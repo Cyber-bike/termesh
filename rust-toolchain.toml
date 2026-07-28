@@ -1,0 +1,8 @@
+# Pinned per doc 1.1: no floating toolchain. Relay and Agent must build on the
+# same rustc. 1.85.0 (the original pick) cannot build the relay tree - the
+# transitive deps time@0.3.54 (needs 1.88) and icu_*@2.2.0 (need 1.86) refuse to
+# compile - so the floor is 1.88 and we pin the current stable instead.
+[toolchain]
+channel = "1.97.1"
+components = ["rustfmt", "clippy"]
+profile = "minimal"

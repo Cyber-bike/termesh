@@ -1,0 +1,46 @@
+[package]
+name = "termy-relay"
+version = "0.1.0"
+edition = "2021"
+rust-version = "1.97.1"
+description = "Termy remote MVP cloud relay: HTTPS auth/device API and WSS gateway"
+
+[[bin]]
+name = "termy-relay"
+path = "src/main.rs"
+
+# Versions are pinned exactly per doc 1.2. No caret, no tilde: a reproducible
+# first build is locked by Cargo.lock and does not float.
+[dependencies]
+axum = { version = "=0.8.4", features = ["ws", "macros"] }
+tokio = { version = "=1.49.0", features = ["rt-multi-thread", "net", "sync", "signal", "macros", "time", "fs"] }
+tower-http = { version = "=0.6.6", features = ["trace", "request-id", "limit"] }
+
+serde = { version = "=1.0.228", features = ["derive"] }
+serde_json = "=1.0.149"
+uuid = { version = "=1.20.0", features = ["v4", "serde"] }
+
+sqlx = { version = "=0.8.6", default-features = false, features = ["runtime-tokio", "tls-rustls-ring", "sqlite", "uuid", "chrono", "migrate", "macros"] }
+chrono = { version = "=0.4.42", default-features = false, features = ["std", "serde", "clock"] }
+
+argon2 = "=0.5.3"
+hmac = "=0.12.1"
+sha2 = "=0.10.9"
+jsonwebtoken = "=9.3.1"
+rand = "=0.8.5"
+base64 = "=0.22.1"
+subtle = "=2.6.1"
+
+tracing = "=0.1.41"
+tracing-subscriber = { version = "=0.3.20", features = ["env-filter"] }
+thiserror = "=2.0.18"
+futures-util = "=0.3.31"
+
+[dev-dependencies]
+tower = { version = "=0.5.2", features = ["util"] }
+
+[profile.release]
+opt-level = 3
+lto = "thin"
+codegen-units = 1
+strip = true
