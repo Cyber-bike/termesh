@@ -62,17 +62,22 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
     }
 }
 
-async fn serve(config: Config, _db: Db) -> Result<(), Box<dyn std::error::Error>> {
-    // The API and gateway routers land in the next step; binding already proves
-    // config, database and migrations are healthy.
-    let app = axum::Router::new().route("/health", axum::routing::get(|| async { "ok" }));
+async fn serve(config: Config, db: Db) -> Result<(), Box<dyn std::error::Error>> {
+    let bind = config.bind;
+    let state = termy_relay::api::AppState::new(db, config);
+    let app = termy_relay::api::router(state);
 
-    let listener = tokio::net::TcpListener::bind(config.bind).await?;
-    tracing::info!(bind = %config.bind, "termy-relay listening");
+    let listener = tokio::net::TcpListener::bind(bind).await?;
+    tracing::info!(%bind, "termy-relay listening");
 
-    axum::serve(listener, app)
-        .with_graceful_shutdown(shutdown_signal())
-        .await?;
+    // ConnectInfo makes the peer address available to the rate limiter when no
+    // reverse proxy is in front (doc 6.5 keys several limits on source IP).
+    axum::serve(
+        listener,
+        app.into_make_service_with_connect_info::<std::net::SocketAddr>(),
+    )
+    .with_graceful_shutdown(shutdown_signal())
+    .await?;
 
     Ok(())
 }
