@@ -46,7 +46,12 @@ coverage/
 # oh-my-codex
 .omx/
 .kiro/
-docs/
+# Upstream keeps docs/ out of the tree as a personal scratch area. docs/remote/
+# is deliverable documentation and must be tracked, so exclude the contents
+# rather than the directory - git cannot re-include a path whose parent
+# directory is itself excluded.
+docs/*
+!docs/remote/
 
 # Personal scratch notes (not part of the plugin)
 t.md
