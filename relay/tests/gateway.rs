@@ -514,6 +514,94 @@ async fn a_transfer_routes_end_to_end() {
     assert_eq!(result["payload"]["success"], true);
 }
 
+/// Regression test for a real ordering bug.
+///
+/// transfer.fileEnd is a control message but is causally ordered after the
+/// chunks it terminates. While it travelled on the priority (control) lane it
+/// could overtake them, and the agent saw a file end before its last chunk -
+/// reported as "wrote 262144 bytes but declared 307200" on a 300 KiB
+/// attachment. Everything belonging to a transfer must arrive in send order.
+#[tokio::test]
+async fn transfer_control_messages_never_overtake_their_chunks() {
+    let server = start().await;
+    let token = server.seed_account("alice").await;
+    let (device_id, device_token) = server.seed_device(&token).await;
+
+    let mut agent = server.online_agent(device_id, &device_token).await;
+    let mut control = server.connect_control(&token).await;
+
+    let transfer_id = Uuid::new_v4();
+    send_json(
+        &mut control,
+        json!({
+            "protocolVersion": 1,
+            "type": "transfer.start",
+            "requestId": Uuid::new_v4().to_string(),
+            "deviceId": device_id.to_string(),
+            "sessionId": null,
+            "payload": {
+                "transferId": transfer_id.to_string(),
+                "rootNote": "big.bin",
+                "entries": [{ "index": 0, "relativePath": "big.bin", "size": 300 * 1024 }]
+            }
+        }),
+    )
+    .await;
+    assert_eq!(recv_json(&mut agent).await["type"], "transfer.start");
+
+    // Two chunks then the end marker, sent back to back with no waiting.
+    let first = frame_bytes(termy_protocol::frame::KIND_FILE_CHUNK, transfer_id, 0, 0, &vec![1u8; 256 * 1024]);
+    let second = frame_bytes(
+        termy_protocol::frame::KIND_FILE_CHUNK,
+        transfer_id,
+        0,
+        262_144,
+        &vec![2u8; 44 * 1024],
+    );
+    control.send(Message::Binary(first.clone().into())).await.unwrap();
+    control.send(Message::Binary(second.clone().into())).await.unwrap();
+    send_json(
+        &mut control,
+        json!({
+            "protocolVersion": 1,
+            "type": "transfer.fileEnd",
+            "requestId": null,
+            "deviceId": device_id.to_string(),
+            "sessionId": null,
+            "payload": { "transferId": transfer_id.to_string(), "fileIndex": 0, "sentSize": 300 * 1024 }
+        }),
+    )
+    .await;
+
+    // The agent must observe exactly this order.
+    let mut order = Vec::new();
+    for _ in 0..3 {
+        let message = tokio::time::timeout(Duration::from_secs(5), agent.next())
+            .await
+            .expect("timed out")
+            .expect("closed")
+            .expect("error");
+        match message {
+            Message::Binary(bytes) => {
+                let decoded = termy_protocol::frame::decode(&bytes).unwrap();
+                order.push(format!("chunk@{}", decoded.offset));
+            }
+            Message::Text(text) => {
+                let value: Value = serde_json::from_str(&text).unwrap();
+                order.push(value["type"].as_str().unwrap().to_string());
+            }
+            Message::Ping(_) | Message::Pong(_) => continue,
+            other => panic!("unexpected {other:?}"),
+        }
+    }
+
+    assert_eq!(
+        order,
+        vec!["chunk@0", "chunk@262144", "transfer.fileEnd"],
+        "a transfer's messages must not be reordered by the priority scheme"
+    );
+}
+
 // --- isolation and uniqueness -----------------------------------------------
 
 #[tokio::test]

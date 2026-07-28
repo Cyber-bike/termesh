@@ -88,11 +88,15 @@ impl Config {
             return Err(AgentError::Config("deviceToken is empty".into()));
         }
         if !self.relay_url.starts_with("wss://") {
-            return Err(AgentError::Config(
-                "relayUrl must start with wss://; the agent verifies certificates against \
-                 webpki-roots and will not connect over ws://"
-                    .into(),
-            ));
+            if !(allow_insecure() && self.relay_url.starts_with("ws://")) {
+                return Err(AgentError::Config(
+                    "relayUrl must start with wss://; the agent verifies certificates against \
+                     webpki-roots and will not connect over ws://. Set \
+                     TERMY_AGENT_ALLOW_INSECURE=1 to permit a plaintext relay for local \
+                     development only"
+                        .into(),
+                ));
+            }
         }
         if self.device_name.is_empty() || self.device_name.chars().count() > 64 {
             return Err(AgentError::Config("deviceName must be 1..64 characters".into()));
@@ -147,6 +151,15 @@ pub fn config_dir() -> PathBuf {
 
 pub fn config_path() -> PathBuf {
     config_dir().join("config.json")
+}
+
+/// Escape hatch for local development against a relay with no TLS in front.
+///
+/// Production always terminates TLS at a reverse proxy (doc 6.1), so plaintext
+/// is refused by default. Without this there is no way to run the agent against
+/// a relay on localhost, which makes the whole stack untestable end to end.
+pub fn allow_insecure() -> bool {
+    std::env::var("TERMY_AGENT_ALLOW_INSECURE").is_ok_and(|v| v == "1")
 }
 
 pub fn home_dir() -> PathBuf {

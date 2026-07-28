@@ -137,6 +137,7 @@ async fn on_text(
                 state
                     .registry
                     .open_transfer(transfer_id, Route { user_id, device_id });
+                return forward_on_file_lane(&agent, &value);
             }
 
             forward_control(&agent, &value)
@@ -166,7 +167,7 @@ async fn on_text(
             if msg_type == "transfer.abort" {
                 state.registry.close_transfer(transfer_id);
             }
-            forward_control(&agent, &value)
+            forward_on_file_lane(&agent, &value)
         }
         // Everything else in the enum travels Agent -> plugin. Receiving one
         // here means the peer is confused about its own role.
@@ -260,6 +261,23 @@ fn transfer_agent(state: &AppState, user_id: Uuid, transfer_id: Uuid) -> Result<
         .registry
         .agent_handle(route.device_id)
         .ok_or_else(|| fault(close::FORBIDDEN, "DEVICE_OFFLINE"))
+}
+
+/// Transfer control messages ride the file lane, not the control lane.
+///
+/// They are causally ordered with the chunks: `transfer.fileEnd` closes the
+/// bytes that preceded it. The control lane is drained first by design (doc 8.6
+/// gives terminal traffic priority), so putting them there lets a fileEnd
+/// overtake the very chunks it terminates - observed as "wrote 262144 bytes but
+/// declared 307200" when a 300 KiB attachment lost its second chunk. Terminal
+/// priority is preserved because terminal frames still use the control lane.
+fn forward_on_file_lane(agent: &ConnHandle, value: &Value) -> Result<(), Fault> {
+    let text = serde_json::to_string(value).map_err(|_| fault(close::INTERNAL, "RELAY_INTERNAL"))?;
+    match agent.try_send_file(Outbound::Text(text)) {
+        Ok(()) => Ok(()),
+        Err(SendError::Closed) => Err(fault(close::FORBIDDEN, "DEVICE_OFFLINE")),
+        Err(SendError::Full) => Err(fault(close::TOO_LARGE, "BACKPRESSURE_LIMIT")),
+    }
 }
 
 fn forward_control(agent: &ConnHandle, value: &Value) -> Result<(), Fault> {

@@ -4,6 +4,7 @@
 //! path safety, PTY teardown, transfer bookkeeping - is reachable from tests
 //! without spawning a process.
 
+pub mod client;
 pub mod config;
 pub mod lock;
 pub mod osc;
