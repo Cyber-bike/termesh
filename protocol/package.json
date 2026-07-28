@@ -21,6 +21,7 @@
     "yaml": "^2.7.0"
   },
   "devDependencies": {
+    "@types/node": "^22.10.2",
     "json-schema-to-typescript": "^15.0.4",
     "typescript": "^5.9.3"
   }
