@@ -22,7 +22,11 @@ pub struct Limit {
 
 impl Limit {
     pub const fn new(max: u32, window_secs: u64, retry_after_secs: u32) -> Self {
-        Self { max, window: Duration::from_secs(window_secs), retry_after_secs }
+        Self {
+            max,
+            window: Duration::from_secs(window_secs),
+            retry_after_secs,
+        }
     }
 }
 
@@ -55,7 +59,9 @@ impl Default for RateLimiter {
 
 impl RateLimiter {
     pub fn new() -> Self {
-        Self { buckets: Mutex::new(HashMap::new()) }
+        Self {
+            buckets: Mutex::new(HashMap::new()),
+        }
     }
 
     /// Counts one hit against `key`. Returns Err(429) once the limit is exceeded.
@@ -70,7 +76,10 @@ impl RateLimiter {
             buckets.retain(|_, w| now.duration_since(w.started) < limit.window);
         }
 
-        let entry = buckets.entry(key.to_string()).or_insert(Window { started: now, count: 0 });
+        let entry = buckets.entry(key.to_string()).or_insert(Window {
+            started: now,
+            count: 0,
+        });
 
         if now.duration_since(entry.started) >= limit.window {
             entry.started = now;
@@ -134,11 +143,38 @@ mod tests {
         // Guards against a silent edit of the numbers doc 6.5 fixes.
         assert_eq!((limits::LOGIN.max, limits::LOGIN.window.as_secs()), (5, 60));
         assert_eq!(limits::LOGIN.retry_after_secs, 60);
-        assert_eq!((limits::CREATE_PAIRING_CODE.max, limits::CREATE_PAIRING_CODE.window.as_secs()), (10, 3600));
-        assert_eq!((limits::REGISTER_BY_IP.max, limits::REGISTER_BY_IP.window.as_secs()), (10, 60));
-        assert_eq!((limits::REGISTER_BY_CODE.max, limits::REGISTER_BY_CODE.window.as_secs()), (5, 3600));
-        assert_eq!((limits::LIST_DEVICES.max, limits::LIST_DEVICES.window.as_secs()), (60, 60));
-        assert_eq!((limits::WS_UPGRADE.max, limits::WS_UPGRADE.window.as_secs()), (30, 60));
+        assert_eq!(
+            (
+                limits::CREATE_PAIRING_CODE.max,
+                limits::CREATE_PAIRING_CODE.window.as_secs()
+            ),
+            (10, 3600)
+        );
+        assert_eq!(
+            (
+                limits::REGISTER_BY_IP.max,
+                limits::REGISTER_BY_IP.window.as_secs()
+            ),
+            (10, 60)
+        );
+        assert_eq!(
+            (
+                limits::REGISTER_BY_CODE.max,
+                limits::REGISTER_BY_CODE.window.as_secs()
+            ),
+            (5, 3600)
+        );
+        assert_eq!(
+            (
+                limits::LIST_DEVICES.max,
+                limits::LIST_DEVICES.window.as_secs()
+            ),
+            (60, 60)
+        );
+        assert_eq!(
+            (limits::WS_UPGRADE.max, limits::WS_UPGRADE.window.as_secs()),
+            (30, 60)
+        );
     }
 
     #[test]
@@ -148,6 +184,10 @@ mod tests {
         for i in 0..5000 {
             let _ = limiter.check(&format!("key-{i}"), limit);
         }
-        assert!(limiter.len() <= 4097, "stale buckets should be swept, got {}", limiter.len());
+        assert!(
+            limiter.len() <= 4097,
+            "stale buckets should be swept, got {}",
+            limiter.len()
+        );
     }
 }

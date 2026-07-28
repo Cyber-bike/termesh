@@ -23,7 +23,9 @@ pub async fn control_ws(
     ClientIp(ip): ClientIp,
     headers: HeaderMap,
 ) -> Result<Response, AppError> {
-    state.limiter.check(&format!("ws-upgrade:{ip}"), limits::WS_UPGRADE)?;
+    state
+        .limiter
+        .check(&format!("ws-upgrade:{ip}"), limits::WS_UPGRADE)?;
     require_subprotocol(&headers)?;
 
     let user_id = user.user_id;
@@ -44,7 +46,9 @@ pub fn require_subprotocol(headers: &HeaderMap) -> Result<(), AppError> {
     if offered.split(',').map(str::trim).any(|p| p == SUBPROTOCOL) {
         Ok(())
     } else {
-        Err(AppError::bad_request(format!("the {SUBPROTOCOL} subprotocol is required")))
+        Err(AppError::bad_request(format!(
+            "the {SUBPROTOCOL} subprotocol is required"
+        )))
     }
 }
 
@@ -55,8 +59,10 @@ async fn handle(socket: WebSocket, state: AppState, user_id: Uuid) {
 
     if let Some(displaced) = state.registry.register_control(user_id, handle.clone()) {
         // Doc 8.2: the newest control connection wins.
-        let _ = displaced
-            .try_send_control(Outbound::Close(close::CONFLICT, close_reason("CONTROL_REPLACED")));
+        let _ = displaced.try_send_control(Outbound::Close(
+            close::CONFLICT,
+            close_reason("CONTROL_REPLACED"),
+        ));
     }
     tracing::info!(%user_id, "control connection established");
 
@@ -69,7 +75,8 @@ async fn handle(socket: WebSocket, state: AppState, user_id: Uuid) {
         };
 
         if let Err(fault) = outcome {
-            let _ = handle.try_send_control(Outbound::Close(fault.code, close_reason(&fault.reason)));
+            let _ =
+                handle.try_send_control(Outbound::Close(fault.code, close_reason(&fault.reason)));
             break;
         }
     }
@@ -95,14 +102,16 @@ pub async fn drain_writer(handle: ConnHandle, writer: tokio::task::JoinHandle<()
     }
 }
 
-
 struct Fault {
     code: u16,
     reason: String,
 }
 
 fn fault(code: u16, reason: &str) -> Fault {
-    Fault { code, reason: reason.to_string() }
+    Fault {
+        code,
+        reason: reason.to_string(),
+    }
 }
 
 async fn on_text(
@@ -272,7 +281,8 @@ fn transfer_agent(state: &AppState, user_id: Uuid, transfer_id: Uuid) -> Result<
 /// declared 307200" when a 300 KiB attachment lost its second chunk. Terminal
 /// priority is preserved because terminal frames still use the control lane.
 fn forward_on_file_lane(agent: &ConnHandle, value: &Value) -> Result<(), Fault> {
-    let text = serde_json::to_string(value).map_err(|_| fault(close::INTERNAL, "RELAY_INTERNAL"))?;
+    let text =
+        serde_json::to_string(value).map_err(|_| fault(close::INTERNAL, "RELAY_INTERNAL"))?;
     match agent.try_send_file(Outbound::Text(text)) {
         Ok(()) => Ok(()),
         Err(SendError::Closed) => Err(fault(close::FORBIDDEN, "DEVICE_OFFLINE")),
@@ -281,7 +291,8 @@ fn forward_on_file_lane(agent: &ConnHandle, value: &Value) -> Result<(), Fault> 
 }
 
 fn forward_control(agent: &ConnHandle, value: &Value) -> Result<(), Fault> {
-    let text = serde_json::to_string(value).map_err(|_| fault(close::INTERNAL, "RELAY_INTERNAL"))?;
+    let text =
+        serde_json::to_string(value).map_err(|_| fault(close::INTERNAL, "RELAY_INTERNAL"))?;
     match agent.try_send_control(Outbound::Text(text)) {
         Ok(()) => Ok(()),
         Err(SendError::Closed) => Err(fault(close::FORBIDDEN, "DEVICE_OFFLINE")),
@@ -306,7 +317,10 @@ fn payload_uuid(value: &Value, field: &str) -> Result<Uuid, Fault> {
 /// Doc 11.2.4: when the plugin goes away, its sessions and transfers die with
 /// it and the agent is told so it can tear down the PTY.
 async fn cleanup(state: &AppState, user_id: Uuid, handle: &ConnHandle) {
-    if !state.registry.unregister_control_if_current(user_id, handle) {
+    if !state
+        .registry
+        .unregister_control_if_current(user_id, handle)
+    {
         // A newer connection already replaced this one; its routes are still live.
         return;
     }

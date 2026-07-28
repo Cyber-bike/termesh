@@ -103,7 +103,11 @@ impl Db {
                 .await?;
 
         row.map(|(id, login, password_digest)| {
-            Ok(User { id: parse_uuid(&id)?, login, password_digest })
+            Ok(User {
+                id: parse_uuid(&id)?,
+                login,
+                password_digest,
+            })
         })
         .transpose()
     }
@@ -272,7 +276,35 @@ impl Db {
         .await?;
 
         rows.into_iter()
-            .map(|(id, user_id, name, platform, agent_version, last_seen_at)| {
+            .map(
+                |(id, user_id, name, platform, agent_version, last_seen_at)| {
+                    Ok(Device {
+                        id: parse_uuid(&id)?,
+                        user_id: parse_uuid(&user_id)?,
+                        name,
+                        platform,
+                        agent_version,
+                        last_seen_at: last_seen_at.as_deref().map(parse_timestamp).transpose()?,
+                    })
+                },
+            )
+            .collect()
+    }
+
+    pub async fn find_device_by_token_digest(
+        &self,
+        token_digest: &[u8],
+    ) -> Result<Option<Device>, AppError> {
+        let row: Option<(String, String, String, String, String, Option<String>)> = sqlx::query_as(
+            "SELECT id, user_id, name, platform, agent_version, last_seen_at \
+                 FROM devices WHERE token_digest = ?",
+        )
+        .bind(token_digest)
+        .fetch_optional(&self.pool)
+        .await?;
+
+        row.map(
+            |(id, user_id, name, platform, agent_version, last_seen_at)| {
                 Ok(Device {
                     id: parse_uuid(&id)?,
                     user_id: parse_uuid(&user_id)?,
@@ -281,33 +313,8 @@ impl Db {
                     agent_version,
                     last_seen_at: last_seen_at.as_deref().map(parse_timestamp).transpose()?,
                 })
-            })
-            .collect()
-    }
-
-    pub async fn find_device_by_token_digest(
-        &self,
-        token_digest: &[u8],
-    ) -> Result<Option<Device>, AppError> {
-        let row: Option<(String, String, String, String, String, Option<String>)> =
-            sqlx::query_as(
-                "SELECT id, user_id, name, platform, agent_version, last_seen_at \
-                 FROM devices WHERE token_digest = ?",
-            )
-            .bind(token_digest)
-            .fetch_optional(&self.pool)
-            .await?;
-
-        row.map(|(id, user_id, name, platform, agent_version, last_seen_at)| {
-            Ok(Device {
-                id: parse_uuid(&id)?,
-                user_id: parse_uuid(&user_id)?,
-                name,
-                platform,
-                agent_version,
-                last_seen_at: last_seen_at.as_deref().map(parse_timestamp).transpose()?,
-            })
-        })
+            },
+        )
         .transpose()
     }
 

@@ -1,5 +1,14 @@
 // Ported verbatim from rust-servers/src/pty/osc_scanner.rs (doc 7.1).
 //
+// The lint allows below are deliberate. This file is a byte-for-byte port, and
+// its whole value is that remote shell integration cannot drift from local. If
+// clippy's suggestions were applied here the two copies would diverge and the
+// next upstream change would be painful to merge. Fix the style upstream, then
+// re-port; do not fix it only here.
+#![allow(clippy::new_without_default)]
+#![allow(clippy::collapsible_if)]
+#![allow(clippy::needless_range_loop)]
+//
 // Kept byte-identical in behaviour so remote shell integration cannot drift
 // from local. Note it reports command boundaries only: cwd is not an OSC
 // concern here, the plugin derives it from the terminal output it already
@@ -16,10 +25,19 @@ pub enum OscSource {
 
 #[derive(Debug, Clone)]
 pub enum OscEvent {
-    PromptStart { source: OscSource },
-    CommandStart { source: OscSource },
-    CommandExecuted { source: OscSource },
-    CommandEnd { source: OscSource, exit_code: Option<i32> },
+    PromptStart {
+        source: OscSource,
+    },
+    CommandStart {
+        source: OscSource,
+    },
+    CommandExecuted {
+        source: OscSource,
+    },
+    CommandEnd {
+        source: OscSource,
+        exit_code: Option<i32>,
+    },
 }
 
 impl OscEvent {
@@ -200,7 +218,10 @@ impl OscScanner {
 }
 
 enum ParseResult {
-    Parsed { next_index: usize, event: Option<OscEvent> },
+    Parsed {
+        next_index: usize,
+        event: Option<OscEvent>,
+    },
     Incomplete,
     Invalid,
 }

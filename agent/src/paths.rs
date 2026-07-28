@@ -40,7 +40,10 @@ impl std::fmt::Display for PathError {
             Self::WindowsReservedName(n) => write!(f, "'{n}' is a reserved device name on Windows"),
             Self::WindowsIllegalChar => write!(f, "path contains a character Windows forbids"),
             Self::WindowsTrailingDotOrSpace => {
-                write!(f, "a path segment ends with a dot or space, which Windows strips")
+                write!(
+                    f,
+                    "a path segment ends with a dot or space, which Windows strips"
+                )
             }
             Self::EscapesRoot => write!(f, "resolved path escapes the receive root"),
             Self::SymlinkEscape => write!(f, "an existing symlink leads outside the receive root"),
@@ -104,14 +107,21 @@ pub fn validate_windows(path: &str) -> Result<(), PathError> {
         if segment.ends_with('.') || segment.ends_with(' ') {
             return Err(PathError::WindowsTrailingDotOrSpace);
         }
-        if segment.chars().any(|c| matches!(c, '<' | '>' | ':' | '"' | '|' | '?' | '*')) {
+        if segment
+            .chars()
+            .any(|c| matches!(c, '<' | '>' | ':' | '"' | '|' | '?' | '*'))
+        {
             return Err(PathError::WindowsIllegalChar);
         }
         if segment.chars().any(|c| (c as u32) < 0x20) {
             return Err(PathError::WindowsIllegalChar);
         }
 
-        let stem = segment.split('.').next().unwrap_or(segment).to_ascii_uppercase();
+        let stem = segment
+            .split('.')
+            .next()
+            .unwrap_or(segment)
+            .to_ascii_uppercase();
         if WINDOWS_RESERVED.contains(&stem.as_str()) {
             return Err(PathError::WindowsReservedName(stem));
         }
@@ -150,7 +160,9 @@ pub fn resolve_under_root(receive_root: &Path, relative: &str) -> Result<PathBuf
 
     // Symlink containment: check every existing ancestor, since a link anywhere
     // along the way is enough to redirect the write.
-    let root_real = receive_root.canonicalize().map_err(|_| PathError::EscapesRoot)?;
+    let root_real = receive_root
+        .canonicalize()
+        .map_err(|_| PathError::EscapesRoot)?;
     let mut probe = resolved.clone();
     loop {
         if probe.exists() {
@@ -175,7 +187,13 @@ mod tests {
 
     #[test]
     fn accepts_ordinary_vault_paths() {
-        for path in ["a.md", "notes/demo.md", "assets/img/diagram.png", "a b/c d.md", "中文/笔记.md"] {
+        for path in [
+            "a.md",
+            "notes/demo.md",
+            "assets/img/diagram.png",
+            "a b/c d.md",
+            "中文/笔记.md",
+        ] {
             assert_eq!(validate_relative(path), Ok(()), "{path} should be accepted");
         }
     }
@@ -184,14 +202,32 @@ mod tests {
     fn rejects_structural_attacks() {
         assert_eq!(validate_relative(""), Err(PathError::Empty));
         assert_eq!(validate_relative("/etc/passwd"), Err(PathError::Absolute));
-        assert_eq!(validate_relative("C:/Windows/system.ini"), Err(PathError::Absolute));
+        assert_eq!(
+            validate_relative("C:/Windows/system.ini"),
+            Err(PathError::Absolute)
+        );
         assert_eq!(validate_relative("../escape.md"), Err(PathError::Traversal));
-        assert_eq!(validate_relative("notes/../../etc/shadow"), Err(PathError::Traversal));
-        assert_eq!(validate_relative("notes//demo.md"), Err(PathError::EmptySegment));
-        assert_eq!(validate_relative("notes/./demo.md"), Err(PathError::EmptySegment));
-        assert_eq!(validate_relative("notes\\demo.md"), Err(PathError::Backslash));
+        assert_eq!(
+            validate_relative("notes/../../etc/shadow"),
+            Err(PathError::Traversal)
+        );
+        assert_eq!(
+            validate_relative("notes//demo.md"),
+            Err(PathError::EmptySegment)
+        );
+        assert_eq!(
+            validate_relative("notes/./demo.md"),
+            Err(PathError::EmptySegment)
+        );
+        assert_eq!(
+            validate_relative("notes\\demo.md"),
+            Err(PathError::Backslash)
+        );
         assert_eq!(validate_relative("a\0b.md"), Err(PathError::NulByte));
-        assert_eq!(validate_relative(&"x".repeat(1025)), Err(PathError::TooLong));
+        assert_eq!(
+            validate_relative(&"x".repeat(1025)),
+            Err(PathError::TooLong)
+        );
     }
 
     #[test]
@@ -200,12 +236,30 @@ mod tests {
             validate_windows("CON.txt"),
             Err(PathError::WindowsReservedName("CON".into()))
         );
-        assert_eq!(validate_windows("nul"), Err(PathError::WindowsReservedName("NUL".into())));
-        assert_eq!(validate_windows("a/COM1.md"), Err(PathError::WindowsReservedName("COM1".into())));
-        assert_eq!(validate_windows("trailing."), Err(PathError::WindowsTrailingDotOrSpace));
-        assert_eq!(validate_windows("trailing "), Err(PathError::WindowsTrailingDotOrSpace));
-        assert_eq!(validate_windows("what?.md"), Err(PathError::WindowsIllegalChar));
-        assert_eq!(validate_windows("a:b.md"), Err(PathError::WindowsIllegalChar));
+        assert_eq!(
+            validate_windows("nul"),
+            Err(PathError::WindowsReservedName("NUL".into()))
+        );
+        assert_eq!(
+            validate_windows("a/COM1.md"),
+            Err(PathError::WindowsReservedName("COM1".into()))
+        );
+        assert_eq!(
+            validate_windows("trailing."),
+            Err(PathError::WindowsTrailingDotOrSpace)
+        );
+        assert_eq!(
+            validate_windows("trailing "),
+            Err(PathError::WindowsTrailingDotOrSpace)
+        );
+        assert_eq!(
+            validate_windows("what?.md"),
+            Err(PathError::WindowsIllegalChar)
+        );
+        assert_eq!(
+            validate_windows("a:b.md"),
+            Err(PathError::WindowsIllegalChar)
+        );
 
         // Names that merely start with a reserved word are fine.
         assert_eq!(validate_windows("console.md"), Ok(()));

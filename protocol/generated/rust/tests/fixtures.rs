@@ -45,7 +45,11 @@ fn json_files(dir: &Path) -> Vec<PathBuf> {
 fn every_valid_fixture_deserializes() {
     let dir = fixture_dir("valid");
     let files = json_files(&dir);
-    assert!(!files.is_empty(), "no valid fixtures found in {}", dir.display());
+    assert!(
+        !files.is_empty(),
+        "no valid fixtures found in {}",
+        dir.display()
+    );
 
     for path in &files {
         let raw = fs::read_to_string(path).unwrap();
@@ -101,12 +105,17 @@ fn schema_level_invalid_fixtures_are_rejected() {
             );
             semantic += 1;
         } else {
-            assert!(parsed.is_err(), "{name} should have been rejected but parsed");
+            assert!(
+                parsed.is_err(),
+                "{name} should have been rejected but parsed"
+            );
             rejected += 1;
         }
     }
 
-    println!("{rejected} fixtures rejected by schema validation, {semantic} deferred to semantic checks");
+    println!(
+        "{rejected} fixtures rejected by schema validation, {semantic} deferred to semantic checks"
+    );
 }
 
 /// Guards the reason `validate` exists at all. typify turns `minimum: 1` into
@@ -116,8 +125,9 @@ fn schema_level_invalid_fixtures_are_rejected() {
 /// be reconsidered.
 #[test]
 fn serde_alone_misses_numeric_upper_bounds() {
-    let raw = fs::read_to_string(fixture_dir("invalid").join("terminal-open-cols-out-of-range.json"))
-        .unwrap();
+    let raw =
+        fs::read_to_string(fixture_dir("invalid").join("terminal-open-cols-out-of-range.json"))
+            .unwrap();
 
     let via_serde: Result<ControlMessage, _> = serde_json::from_str(&raw);
     assert!(
@@ -126,7 +136,10 @@ fn serde_alone_misses_numeric_upper_bounds() {
     );
 
     let via_schema = termy_protocol::parse_validated(&raw);
-    assert!(via_schema.is_err(), "schema validation must reject cols=1001");
+    assert!(
+        via_schema.is_err(),
+        "schema validation must reject cols=1001"
+    );
 }
 
 #[test]
@@ -143,7 +156,10 @@ fn discriminant_is_enforced() {
     }"#;
 
     let parsed: Result<ControlMessage, _> = serde_json::from_str(wrong_type);
-    assert!(parsed.is_err(), "a mislabelled message must not deserialize");
+    assert!(
+        parsed.is_err(),
+        "a mislabelled message must not deserialize"
+    );
 }
 
 #[test]

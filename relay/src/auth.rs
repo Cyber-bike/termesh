@@ -21,16 +21,20 @@ pub struct Claims {
     pub exp: i64,
 }
 
-pub fn issue_access_token(
-    secret: &[u8],
-    user_id: Uuid,
-    ttl_secs: i64,
-) -> Result<String, AppError> {
+pub fn issue_access_token(secret: &[u8], user_id: Uuid, ttl_secs: i64) -> Result<String, AppError> {
     let now = Utc::now().timestamp();
-    let claims = Claims { sub: user_id.to_string(), iat: now, exp: now + ttl_secs };
+    let claims = Claims {
+        sub: user_id.to_string(),
+        iat: now,
+        exp: now + ttl_secs,
+    };
 
-    encode(&Header::new(Algorithm::HS256), &claims, &EncodingKey::from_secret(secret))
-        .map_err(|e| AppError::internal(format!("token signing failed: {e}")))
+    encode(
+        &Header::new(Algorithm::HS256),
+        &claims,
+        &EncodingKey::from_secret(secret),
+    )
+    .map_err(|e| AppError::internal(format!("token signing failed: {e}")))
 }
 
 pub fn verify_access_token(secret: &[u8], token: &str) -> Result<Uuid, AppError> {

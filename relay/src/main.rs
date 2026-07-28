@@ -29,6 +29,12 @@ enum Command {
     Passwd { login: String },
     /// List the devices bound to an account.
     DeviceList { login: String },
+    /// Probe a running relay over HTTP. Used as the container health check,
+    /// where `--version` would only prove the binary loads.
+    Healthcheck {
+        #[arg(long, default_value = "127.0.0.1:8080")]
+        addr: String,
+    },
 }
 
 #[tokio::main]
@@ -51,6 +57,13 @@ async fn main() -> ExitCode {
 
 async fn run() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
+
+    // Runs before the config is read: a health probe must work without the
+    // secrets the server itself needs.
+    if let Command::Healthcheck { addr } = &cli.command {
+        return healthcheck(addr).await;
+    }
+
     let config = Config::from_env()?;
     let db = Db::connect(&config.database_path).await?;
 
@@ -59,6 +72,43 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
         Command::Useradd { login } => useradd(&db, &login).await,
         Command::Passwd { login } => passwd(&db, &login).await,
         Command::DeviceList { login } => device_list(&db, &login).await,
+        Command::Healthcheck { .. } => unreachable!("handled before the config is loaded"),
+    }
+}
+
+/// Minimal GET /health. Deliberately not a full HTTP client: the slim runtime
+/// image has no curl, and pulling one in for a liveness probe is not worth it.
+async fn healthcheck(addr: &str) -> Result<(), Box<dyn std::error::Error>> {
+    use tokio::io::{AsyncReadExt, AsyncWriteExt};
+
+    let mut stream = tokio::time::timeout(
+        std::time::Duration::from_secs(3),
+        tokio::net::TcpStream::connect(addr),
+    )
+    .await??;
+
+    stream
+        .write_all(
+            format!("GET /health HTTP/1.1\r\nHost: {addr}\r\nConnection: close\r\n\r\n").as_bytes(),
+        )
+        .await?;
+
+    let mut response = Vec::new();
+    tokio::time::timeout(
+        std::time::Duration::from_secs(3),
+        stream.read_to_end(&mut response),
+    )
+    .await??;
+
+    let text = String::from_utf8_lossy(&response);
+    if text.starts_with("HTTP/1.1 200") {
+        Ok(())
+    } else {
+        Err(format!(
+            "relay is not healthy: {}",
+            text.lines().next().unwrap_or("no response")
+        )
+        .into())
     }
 }
 
@@ -129,7 +179,7 @@ async fn device_list(db: &Db, login: &str) -> Result<(), Box<dyn std::error::Err
         return Ok(());
     }
 
-    println!("{:<38} {:<24} {:<14} {}", "ID", "NAME", "PLATFORM", "LAST SEEN");
+    println!("{:<38} {:<24} {:<14} LAST SEEN", "ID", "NAME", "PLATFORM");
     for device in devices {
         let last_seen = device
             .last_seen_at

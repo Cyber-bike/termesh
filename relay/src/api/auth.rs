@@ -42,7 +42,9 @@ pub async fn login(
     // Doc 6.5 keys this limit on login + source IP, so one attacker cannot lock
     // a victim out by hammering their account from elsewhere, and one address
     // cannot spray many accounts.
-    state.limiter.check(&format!("login:{}:{ip}", body.login), limits::LOGIN)?;
+    state
+        .limiter
+        .check(&format!("login:{}:{ip}", body.login), limits::LOGIN)?;
 
     if body.login.is_empty() || body.login.chars().count() > 254 {
         return Err(AppError::bad_request("login must be 1..254 characters"));
@@ -65,8 +67,11 @@ pub async fn login(
         return Err(AppError::unauthorized());
     }
 
-    let token =
-        issue_access_token(&state.config.jwt_secret, user.id, state.config.access_token_ttl_secs)?;
+    let token = issue_access_token(
+        &state.config.jwt_secret,
+        user.id,
+        state.config.access_token_ttl_secs,
+    )?;
 
     tracing::info!(user_id = %user.id, "login succeeded");
 
@@ -74,7 +79,10 @@ pub async fn login(
         access_token: token,
         token_type: "Bearer",
         expires_in: state.config.access_token_ttl_secs,
-        user: UserSummary { id: user.id.to_string(), login: user.login },
+        user: UserSummary {
+            id: user.id.to_string(),
+            login: user.login,
+        },
     }))
 }
 

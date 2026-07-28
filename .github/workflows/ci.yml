@@ -49,8 +49,14 @@ jobs:
       - name: Build plugin
         run: pnpm build
 
+      - name: Check the generated protocol types are current
+        run: node scripts/sync-protocol.js --check
+
       - name: Run terminal tests
         run: pnpm test:terminal
+
+      - name: Run remote module tests
+        run: pnpm test:remote
 
       - name: Run script tests
         run: node --test scripts/upload-r2-assets.test.js

@@ -88,14 +88,25 @@ fn a_valid_vector_decodes_to_the_expected_fields() {
     // exercise the u64 field.
     assert_eq!(decoded.offset, 4_294_967_296);
     assert_eq!(decoded.payload.len(), 1024);
-    assert_eq!(decoded.stream_uuid(), "e2f3a4b5-c6d7-4e8f-9a0b-1c2d3e4f5a6b");
+    assert_eq!(
+        decoded.stream_uuid(),
+        "e2f3a4b5-c6d7-4e8f-9a0b-1c2d3e4f5a6b"
+    );
 }
 
 #[test]
 fn re_encoding_a_decoded_vector_reproduces_the_bytes() {
-    for name in ["valid-terminal-output", "valid-file-chunk", "valid-empty-payload"] {
+    for name in [
+        "valid-terminal-output",
+        "valid-file-chunk",
+        "valid-empty-payload",
+    ] {
         let bytes = load_hex(name);
         let decoded = frame::decode(&bytes).unwrap();
-        assert_eq!(frame::encode(&decoded).unwrap(), bytes, "{name} did not round trip");
+        assert_eq!(
+            frame::encode(&decoded).unwrap(),
+            bytes,
+            "{name} did not round trip"
+        );
     }
 }

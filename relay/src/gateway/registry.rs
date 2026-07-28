@@ -47,7 +47,11 @@ pub struct ConnHandle {
 }
 
 impl ConnHandle {
-    pub fn channel() -> (Self, tokio::sync::mpsc::Receiver<Outbound>, tokio::sync::mpsc::Receiver<Outbound>) {
+    pub fn channel() -> (
+        Self,
+        tokio::sync::mpsc::Receiver<Outbound>,
+        tokio::sync::mpsc::Receiver<Outbound>,
+    ) {
         let (control, control_rx) = tokio::sync::mpsc::channel(CONTROL_CAPACITY);
         let (file, file_rx) = tokio::sync::mpsc::channel(FILE_CAPACITY);
         (Self { control, file }, control_rx, file_rx)
@@ -130,7 +134,9 @@ impl Default for Registry {
 
 impl Registry {
     pub fn new() -> Self {
-        Self { inner: Mutex::new(Inner::default()) }
+        Self {
+            inner: Mutex::new(Inner::default()),
+        }
     }
 
     fn lock(&self) -> std::sync::MutexGuard<'_, Inner> {
@@ -150,7 +156,14 @@ impl Registry {
     ) -> Option<ConnHandle> {
         let mut inner = self.lock();
         let previous = inner.agents.remove(&device_id).map(|e| e.handle);
-        inner.agents.insert(device_id, AgentEntry { user_id, handle, last_seen: Instant::now() });
+        inner.agents.insert(
+            device_id,
+            AgentEntry {
+                user_id,
+                handle,
+                last_seen: Instant::now(),
+            },
+        );
         previous
     }
 
@@ -238,7 +251,10 @@ impl Registry {
     }
 
     pub fn device_has_session(&self, device_id: Uuid) -> bool {
-        self.lock().sessions.values().any(|r| r.device_id == device_id)
+        self.lock()
+            .sessions
+            .values()
+            .any(|r| r.device_id == device_id)
     }
 
     pub fn open_transfer(&self, transfer_id: Uuid, route: Route) {
@@ -289,7 +305,10 @@ impl Registry {
             inner.transfers.remove(id);
         }
 
-        DroppedRoutes { sessions, transfers }
+        DroppedRoutes {
+            sessions,
+            transfers,
+        }
     }
 }
 
@@ -308,10 +327,14 @@ mod tests {
         let user = Uuid::new_v4();
 
         let first = handle();
-        assert!(registry.register_agent(device, user, first.clone()).is_none());
+        assert!(registry
+            .register_agent(device, user, first.clone())
+            .is_none());
 
         let second = handle();
-        let displaced = registry.register_agent(device, user, second.clone()).unwrap();
+        let displaced = registry
+            .register_agent(device, user, second.clone())
+            .unwrap();
         assert!(displaced.control.same_channel(&first.control));
 
         // The displaced connection's own cleanup must not evict the replacement.
@@ -349,9 +372,27 @@ mod tests {
         let transfer = Uuid::new_v4();
         let unrelated = Uuid::new_v4();
 
-        registry.open_session(session, Route { user_id: user, device_id: device });
-        registry.open_transfer(transfer, Route { user_id: user, device_id: device });
-        registry.open_session(unrelated, Route { user_id: user, device_id: other_device });
+        registry.open_session(
+            session,
+            Route {
+                user_id: user,
+                device_id: device,
+            },
+        );
+        registry.open_transfer(
+            transfer,
+            Route {
+                user_id: user,
+                device_id: device,
+            },
+        );
+        registry.open_session(
+            unrelated,
+            Route {
+                user_id: user,
+                device_id: other_device,
+            },
+        );
 
         assert!(registry.device_has_session(device));
 
@@ -363,7 +404,10 @@ mod tests {
         assert_eq!(dropped.transfers[0].0, transfer);
 
         assert!(!registry.device_has_session(device));
-        assert!(registry.session_route(unrelated).is_some(), "another device's route survives");
+        assert!(
+            registry.session_route(unrelated).is_some(),
+            "another device's route survives"
+        );
     }
 
     #[test]
@@ -375,8 +419,20 @@ mod tests {
 
         let alice_session = Uuid::new_v4();
         let bob_session = Uuid::new_v4();
-        registry.open_session(alice_session, Route { user_id: alice, device_id: device });
-        registry.open_session(bob_session, Route { user_id: bob, device_id: device });
+        registry.open_session(
+            alice_session,
+            Route {
+                user_id: alice,
+                device_id: device,
+            },
+        );
+        registry.open_session(
+            bob_session,
+            Route {
+                user_id: bob,
+                device_id: device,
+            },
+        );
 
         let dropped = registry.drop_routes_for_user(alice);
         assert_eq!(dropped.sessions.len(), 1);
@@ -393,7 +449,10 @@ mod tests {
         for _ in 0..FILE_CAPACITY {
             assert_eq!(handle.try_send_file(Outbound::Binary(vec![0; 16])), Ok(()));
         }
-        assert_eq!(handle.try_send_file(Outbound::Binary(vec![0; 16])), Err(SendError::Full));
+        assert_eq!(
+            handle.try_send_file(Outbound::Binary(vec![0; 16])),
+            Err(SendError::Full)
+        );
 
         // Control still has room.
         assert_eq!(handle.try_send_control(Outbound::Text("{}".into())), Ok(()));

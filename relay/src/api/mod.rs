@@ -41,8 +41,14 @@ pub fn router(state: AppState) -> Router {
     Router::new()
         .route("/health", get(|| async { "ok" }))
         .route("/v1/auth/login", post(auth::login))
-        .route("/v1/devices/pairing-codes", post(devices::create_pairing_code))
-        .route("/v1/devices/pairing-codes/{id}", delete(devices::revoke_pairing_code))
+        .route(
+            "/v1/devices/pairing-codes",
+            post(devices::create_pairing_code),
+        )
+        .route(
+            "/v1/devices/pairing-codes/{id}",
+            delete(devices::revoke_pairing_code),
+        )
         .route("/v1/devices/register", post(devices::register_device))
         .route("/v1/devices", get(devices::list_devices))
         .route("/v1/devices/{id}", delete(devices::delete_device))

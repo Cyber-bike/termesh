@@ -34,7 +34,10 @@ async fn harness() -> Harness {
         access_token_ttl_secs: 900,
     };
 
-    Harness { _dir: dir, state: AppState::new(db, config) }
+    Harness {
+        _dir: dir,
+        state: AppState::new(db, config),
+    }
 }
 
 impl Harness {
@@ -48,7 +51,13 @@ impl Harness {
     }
 
     async fn token_for(&self, login: &str, password: &str) -> String {
-        let (status, body) = self.post("/v1/auth/login", json!({"login": login, "password": password}), None).await;
+        let (status, body) = self
+            .post(
+                "/v1/auth/login",
+                json!({"login": login, "password": password}),
+                None,
+            )
+            .await;
         assert_eq!(status, StatusCode::OK, "login failed: {body}");
         body["accessToken"].as_str().unwrap().to_string()
     }
@@ -56,7 +65,9 @@ impl Harness {
     async fn request(&self, req: Request<Body>) -> (StatusCode, Value) {
         let response = self.app().oneshot(req).await.unwrap();
         let status = response.status();
-        let bytes = axum::body::to_bytes(response.into_body(), usize::MAX).await.unwrap();
+        let bytes = axum::body::to_bytes(response.into_body(), usize::MAX)
+            .await
+            .unwrap();
         let value = if bytes.is_empty() {
             Value::Null
         } else {
@@ -73,7 +84,8 @@ impl Harness {
         if let Some(t) = token {
             req = req.header("authorization", format!("Bearer {t}"));
         }
-        self.request(req.body(Body::from(body.to_string())).unwrap()).await
+        self.request(req.body(Body::from(body.to_string())).unwrap())
+            .await
     }
 
     async fn get(&self, path: &str, token: Option<&str>) -> (StatusCode, Value) {
@@ -94,7 +106,9 @@ impl Harness {
 
     /// Creates a pairing code and registers a device with it.
     async fn register_device(&self, token: &str, name: &str) -> (String, String) {
-        let (status, body) = self.post("/v1/devices/pairing-codes", json!({}), Some(token)).await;
+        let (status, body) = self
+            .post("/v1/devices/pairing-codes", json!({}), Some(token))
+            .await;
         assert_eq!(status, StatusCode::CREATED);
         let code = body["pairingCode"].as_str().unwrap().to_string();
 
@@ -125,7 +139,13 @@ async fn login_returns_a_usable_token() {
     let h = harness().await;
     h.create_user("alice", "hunter2hunter2").await;
 
-    let (status, body) = h.post("/v1/auth/login", json!({"login": "alice", "password": "hunter2hunter2"}), None).await;
+    let (status, body) = h
+        .post(
+            "/v1/auth/login",
+            json!({"login": "alice", "password": "hunter2hunter2"}),
+            None,
+        )
+        .await;
 
     assert_eq!(status, StatusCode::OK);
     assert_eq!(body["tokenType"], "Bearer");
@@ -143,8 +163,20 @@ async fn login_rejects_bad_credentials_identically() {
     let h = harness().await;
     h.create_user("alice", "hunter2hunter2").await;
 
-    let (wrong_pw, body_a) = h.post("/v1/auth/login", json!({"login": "alice", "password": "wrongpassword"}), None).await;
-    let (no_user, body_b) = h.post("/v1/auth/login", json!({"login": "nobody", "password": "hunter2hunter2"}), None).await;
+    let (wrong_pw, body_a) = h
+        .post(
+            "/v1/auth/login",
+            json!({"login": "alice", "password": "wrongpassword"}),
+            None,
+        )
+        .await;
+    let (no_user, body_b) = h
+        .post(
+            "/v1/auth/login",
+            json!({"login": "nobody", "password": "hunter2hunter2"}),
+            None,
+        )
+        .await;
 
     assert_eq!(wrong_pw, StatusCode::UNAUTHORIZED);
     assert_eq!(no_user, StatusCode::UNAUTHORIZED);
@@ -157,10 +189,22 @@ async fn login_rejects_bad_credentials_identically() {
 #[tokio::test]
 async fn login_validates_field_bounds() {
     let h = harness().await;
-    let (status, _) = h.post("/v1/auth/login", json!({"login": "alice", "password": "short"}), None).await;
+    let (status, _) = h
+        .post(
+            "/v1/auth/login",
+            json!({"login": "alice", "password": "short"}),
+            None,
+        )
+        .await;
     assert_eq!(status, StatusCode::BAD_REQUEST);
 
-    let (status, _) = h.post("/v1/auth/login", json!({"login": "", "password": "hunter2hunter2"}), None).await;
+    let (status, _) = h
+        .post(
+            "/v1/auth/login",
+            json!({"login": "", "password": "hunter2hunter2"}),
+            None,
+        )
+        .await;
     assert_eq!(status, StatusCode::BAD_REQUEST);
 }
 
@@ -168,11 +212,18 @@ async fn login_validates_field_bounds() {
 async fn login_rejects_unknown_fields() {
     let h = harness().await;
     let (status, _) = h
-        .post("/v1/auth/login", json!({"login": "a", "password": "hunter2hunter2", "extra": 1}), None)
+        .post(
+            "/v1/auth/login",
+            json!({"login": "a", "password": "hunter2hunter2", "extra": 1}),
+            None,
+        )
         .await;
     // Doc 8.1 closes every object; serde's deny_unknown_fields turns that into
     // a deserialization failure, which axum reports as 422.
-    assert!(status.is_client_error(), "unknown fields must be rejected, got {status}");
+    assert!(
+        status.is_client_error(),
+        "unknown fields must be rejected, got {status}"
+    );
 }
 
 #[tokio::test]
@@ -181,7 +232,13 @@ async fn login_is_rate_limited() {
     h.create_user("alice", "hunter2hunter2").await;
 
     for _ in 0..5 {
-        let (status, _) = h.post("/v1/auth/login", json!({"login": "alice", "password": "wrongpassword"}), None).await;
+        let (status, _) = h
+            .post(
+                "/v1/auth/login",
+                json!({"login": "alice", "password": "wrongpassword"}),
+                None,
+            )
+            .await;
         assert_eq!(status, StatusCode::UNAUTHORIZED);
     }
 
@@ -189,13 +246,20 @@ async fn login_is_rate_limited() {
         .method("POST")
         .uri("/v1/auth/login")
         .header("content-type", "application/json")
-        .body(Body::from(json!({"login": "alice", "password": "wrongpassword"}).to_string()))
+        .body(Body::from(
+            json!({"login": "alice", "password": "wrongpassword"}).to_string(),
+        ))
         .unwrap();
     let response = h.app().oneshot(req).await.unwrap();
 
     assert_eq!(response.status(), StatusCode::TOO_MANY_REQUESTS);
     assert_eq!(
-        response.headers().get("retry-after").unwrap().to_str().unwrap(),
+        response
+            .headers()
+            .get("retry-after")
+            .unwrap()
+            .to_str()
+            .unwrap(),
         "60",
         "doc 6.2 requires Retry-After on 429"
     );
@@ -216,7 +280,11 @@ async fn protected_routes_require_a_bearer_token() {
         } else {
             h.post(path, json!({}), None).await
         };
-        assert_eq!(status, StatusCode::UNAUTHORIZED, "{method} {path} must require auth");
+        assert_eq!(
+            status,
+            StatusCode::UNAUTHORIZED,
+            "{method} {path} must require auth"
+        );
     }
 }
 
@@ -242,13 +310,17 @@ async fn pairing_code_is_created_with_the_documented_shape() {
     h.create_user("alice", "hunter2hunter2").await;
     let token = h.token_for("alice", "hunter2hunter2").await;
 
-    let (status, body) = h.post("/v1/devices/pairing-codes", json!({}), Some(&token)).await;
+    let (status, body) = h
+        .post("/v1/devices/pairing-codes", json!({}), Some(&token))
+        .await;
 
     assert_eq!(status, StatusCode::CREATED);
     assert_eq!(body["revoked"], false);
     let code = body["pairingCode"].as_str().unwrap();
     assert_eq!(code.len(), 27, "160 bits of entropy as unpadded Base64URL");
-    assert!(code.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_'));
+    assert!(code
+        .chars()
+        .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_'));
 }
 
 /// The 16-code quota cannot be reached by looping over the endpoint: doc 6.5
@@ -261,13 +333,26 @@ async fn pairing_code_quota_is_enforced() {
     h.create_user("alice", "hunter2hunter2").await;
     let token = h.token_for("alice", "hunter2hunter2").await;
 
-    let user = h.state.db.find_user_by_login("alice").await.unwrap().unwrap();
+    let user = h
+        .state
+        .db
+        .find_user_by_login("alice")
+        .await
+        .unwrap()
+        .unwrap();
     for i in 0..16 {
-        let digest = termy_relay::crypto::digest_secret(&h.state.config.pepper, &format!("seed-{i}"));
-        h.state.db.create_pairing_code(user.id, &digest).await.unwrap();
+        let digest =
+            termy_relay::crypto::digest_secret(&h.state.config.pepper, &format!("seed-{i}"));
+        h.state
+            .db
+            .create_pairing_code(user.id, &digest)
+            .await
+            .unwrap();
     }
 
-    let (status, body) = h.post("/v1/devices/pairing-codes", json!({}), Some(&token)).await;
+    let (status, body) = h
+        .post("/v1/devices/pairing-codes", json!({}), Some(&token))
+        .await;
     assert_eq!(status, StatusCode::CONFLICT);
     assert_eq!(body["error"]["code"], "QUOTA_EXCEEDED");
 }
@@ -281,11 +366,15 @@ async fn pairing_code_creation_is_rate_limited_before_the_quota() {
     let token = h.token_for("alice", "hunter2hunter2").await;
 
     for _ in 0..10 {
-        let (status, _) = h.post("/v1/devices/pairing-codes", json!({}), Some(&token)).await;
+        let (status, _) = h
+            .post("/v1/devices/pairing-codes", json!({}), Some(&token))
+            .await;
         assert_eq!(status, StatusCode::CREATED);
     }
 
-    let (status, body) = h.post("/v1/devices/pairing-codes", json!({}), Some(&token)).await;
+    let (status, body) = h
+        .post("/v1/devices/pairing-codes", json!({}), Some(&token))
+        .await;
     assert_eq!(status, StatusCode::TOO_MANY_REQUESTS);
     assert_eq!(body["error"]["code"], "RATE_LIMITED");
 }
@@ -296,13 +385,19 @@ async fn pairing_code_revocation() {
     h.create_user("alice", "hunter2hunter2").await;
     let token = h.token_for("alice", "hunter2hunter2").await;
 
-    let (_, body) = h.post("/v1/devices/pairing-codes", json!({}), Some(&token)).await;
+    let (_, body) = h
+        .post("/v1/devices/pairing-codes", json!({}), Some(&token))
+        .await;
     let id = body["pairingCodeId"].as_str().unwrap();
 
-    let (status, _) = h.delete(&format!("/v1/devices/pairing-codes/{id}"), Some(&token)).await;
+    let (status, _) = h
+        .delete(&format!("/v1/devices/pairing-codes/{id}"), Some(&token))
+        .await;
     assert_eq!(status, StatusCode::NO_CONTENT);
 
-    let (status, _) = h.delete(&format!("/v1/devices/pairing-codes/{id}"), Some(&token)).await;
+    let (status, _) = h
+        .delete(&format!("/v1/devices/pairing-codes/{id}"), Some(&token))
+        .await;
     assert_eq!(status, StatusCode::NOT_FOUND);
 }
 
@@ -314,14 +409,28 @@ async fn another_account_cannot_revoke_a_pairing_code() {
     let alice = h.token_for("alice", "hunter2hunter2").await;
     let mallory = h.token_for("mallory", "hunter2hunter2").await;
 
-    let (_, body) = h.post("/v1/devices/pairing-codes", json!({}), Some(&alice)).await;
+    let (_, body) = h
+        .post("/v1/devices/pairing-codes", json!({}), Some(&alice))
+        .await;
     let id = body["pairingCodeId"].as_str().unwrap();
 
-    let (status, _) = h.delete(&format!("/v1/devices/pairing-codes/{id}"), Some(&mallory)).await;
-    assert_eq!(status, StatusCode::NOT_FOUND, "another account's code must not be confirmed to exist");
+    let (status, _) = h
+        .delete(&format!("/v1/devices/pairing-codes/{id}"), Some(&mallory))
+        .await;
+    assert_eq!(
+        status,
+        StatusCode::NOT_FOUND,
+        "another account's code must not be confirmed to exist"
+    );
 
-    let (status, _) = h.delete(&format!("/v1/devices/pairing-codes/{id}"), Some(&alice)).await;
-    assert_eq!(status, StatusCode::NO_CONTENT, "the owner can still revoke it");
+    let (status, _) = h
+        .delete(&format!("/v1/devices/pairing-codes/{id}"), Some(&alice))
+        .await;
+    assert_eq!(
+        status,
+        StatusCode::NO_CONTENT,
+        "the owner can still revoke it"
+    );
 }
 
 #[tokio::test]
@@ -330,7 +439,9 @@ async fn a_consumed_code_cannot_be_revoked() {
     h.create_user("alice", "hunter2hunter2").await;
     let token = h.token_for("alice", "hunter2hunter2").await;
 
-    let (_, body) = h.post("/v1/devices/pairing-codes", json!({}), Some(&token)).await;
+    let (_, body) = h
+        .post("/v1/devices/pairing-codes", json!({}), Some(&token))
+        .await;
     let id = body["pairingCodeId"].as_str().unwrap().to_string();
     let code = body["pairingCode"].as_str().unwrap().to_string();
 
@@ -343,7 +454,9 @@ async fn a_consumed_code_cannot_be_revoked() {
         .await;
     assert_eq!(status, StatusCode::CREATED);
 
-    let (status, _) = h.delete(&format!("/v1/devices/pairing-codes/{id}"), Some(&token)).await;
+    let (status, _) = h
+        .delete(&format!("/v1/devices/pairing-codes/{id}"), Some(&token))
+        .await;
     assert_eq!(status, StatusCode::CONFLICT);
 }
 
@@ -355,7 +468,9 @@ async fn registration_returns_a_device_token_and_relay_url() {
     h.create_user("alice", "hunter2hunter2").await;
     let token = h.token_for("alice", "hunter2hunter2").await;
 
-    let (_, body) = h.post("/v1/devices/pairing-codes", json!({}), Some(&token)).await;
+    let (_, body) = h
+        .post("/v1/devices/pairing-codes", json!({}), Some(&token))
+        .await;
     let code = body["pairingCode"].as_str().unwrap().to_string();
 
     let (status, body) = h
@@ -367,7 +482,11 @@ async fn registration_returns_a_device_token_and_relay_url() {
         .await;
 
     assert_eq!(status, StatusCode::CREATED);
-    assert_eq!(body["deviceToken"].as_str().unwrap().len(), 43, "256-bit token");
+    assert_eq!(
+        body["deviceToken"].as_str().unwrap().len(),
+        43,
+        "256-bit token"
+    );
     assert_eq!(body["relayUrl"], "wss://relay.test/v1/agent/ws");
     assert!(uuid::Uuid::parse_str(body["deviceId"].as_str().unwrap()).is_ok());
 }
@@ -378,7 +497,9 @@ async fn registration_rejects_a_reused_code() {
     h.create_user("alice", "hunter2hunter2").await;
     let token = h.token_for("alice", "hunter2hunter2").await;
 
-    let (_, body) = h.post("/v1/devices/pairing-codes", json!({}), Some(&token)).await;
+    let (_, body) = h
+        .post("/v1/devices/pairing-codes", json!({}), Some(&token))
+        .await;
     let code = body["pairingCode"].as_str().unwrap().to_string();
 
     let payload = json!({"pairingCode": code, "deviceName": "box", "platform": "ubuntu-x64", "agentVersion": "1.0.0"});
@@ -396,19 +517,36 @@ async fn registration_validates_its_input() {
     let h = harness().await;
     h.create_user("alice", "hunter2hunter2").await;
     let token = h.token_for("alice", "hunter2hunter2").await;
-    let (_, body) = h.post("/v1/devices/pairing-codes", json!({}), Some(&token)).await;
+    let (_, body) = h
+        .post("/v1/devices/pairing-codes", json!({}), Some(&token))
+        .await;
     let code = body["pairingCode"].as_str().unwrap().to_string();
 
     let cases = [
-        (json!({"pairingCode": code, "deviceName": "", "platform": "ubuntu-x64", "agentVersion": "1.0.0"}), StatusCode::BAD_REQUEST),
-        (json!({"pairingCode": code, "deviceName": "box", "platform": "macos-arm64", "agentVersion": "1.0.0"}), StatusCode::BAD_REQUEST),
-        (json!({"pairingCode": code, "deviceName": "box", "platform": "ubuntu-x64", "agentVersion": "not-semver"}), StatusCode::BAD_REQUEST),
-        (json!({"pairingCode": "too-short", "deviceName": "box", "platform": "ubuntu-x64", "agentVersion": "1.0.0"}), StatusCode::NOT_FOUND),
+        (
+            json!({"pairingCode": code, "deviceName": "", "platform": "ubuntu-x64", "agentVersion": "1.0.0"}),
+            StatusCode::BAD_REQUEST,
+        ),
+        (
+            json!({"pairingCode": code, "deviceName": "box", "platform": "macos-arm64", "agentVersion": "1.0.0"}),
+            StatusCode::BAD_REQUEST,
+        ),
+        (
+            json!({"pairingCode": code, "deviceName": "box", "platform": "ubuntu-x64", "agentVersion": "not-semver"}),
+            StatusCode::BAD_REQUEST,
+        ),
+        (
+            json!({"pairingCode": "too-short", "deviceName": "box", "platform": "ubuntu-x64", "agentVersion": "1.0.0"}),
+            StatusCode::NOT_FOUND,
+        ),
     ];
 
     for (payload, expected) in cases {
         let (status, _) = h.post("/v1/devices/register", payload.clone(), None).await;
-        assert_eq!(status, expected, "payload {payload} should map to {expected}");
+        assert_eq!(
+            status, expected,
+            "payload {payload} should map to {expected}"
+        );
     }
 
     // None of the rejections may have consumed the code.
@@ -419,7 +557,11 @@ async fn registration_validates_its_input() {
             None,
         )
         .await;
-    assert_eq!(status, StatusCode::CREATED, "a failed attempt must not consume the code");
+    assert_eq!(
+        status,
+        StatusCode::CREATED,
+        "a failed attempt must not consume the code"
+    );
 }
 
 #[tokio::test]
@@ -473,14 +615,18 @@ async fn unbinding_a_device() {
     let alice = h.token_for("alice", "hunter2hunter2").await;
     let (device_id, _) = h.register_device(&alice, "box").await;
 
-    let (status, _) = h.delete(&format!("/v1/devices/{device_id}"), Some(&alice)).await;
+    let (status, _) = h
+        .delete(&format!("/v1/devices/{device_id}"), Some(&alice))
+        .await;
     assert_eq!(status, StatusCode::NO_CONTENT);
 
     let (status, body) = h.get("/v1/devices", Some(&alice)).await;
     assert_eq!(status, StatusCode::OK);
     assert!(body["devices"].as_array().unwrap().is_empty());
 
-    let (status, _) = h.delete(&format!("/v1/devices/{device_id}"), Some(&alice)).await;
+    let (status, _) = h
+        .delete(&format!("/v1/devices/{device_id}"), Some(&alice))
+        .await;
     assert_eq!(status, StatusCode::NOT_FOUND);
 }
 
@@ -494,7 +640,9 @@ async fn another_account_cannot_unbind_your_device() {
 
     let (device_id, _) = h.register_device(&alice, "box").await;
 
-    let (status, body) = h.delete(&format!("/v1/devices/{device_id}"), Some(&mallory)).await;
+    let (status, body) = h
+        .delete(&format!("/v1/devices/{device_id}"), Some(&mallory))
+        .await;
     assert_eq!(status, StatusCode::FORBIDDEN);
     assert_eq!(body["error"]["code"], "DEVICE_FORBIDDEN");
 
@@ -523,7 +671,9 @@ async fn secrets_never_appear_in_responses_beyond_their_one_delivery() {
     h.create_user("alice", "hunter2hunter2").await;
     let token = h.token_for("alice", "hunter2hunter2").await;
 
-    let (_, created) = h.post("/v1/devices/pairing-codes", json!({}), Some(&token)).await;
+    let (_, created) = h
+        .post("/v1/devices/pairing-codes", json!({}), Some(&token))
+        .await;
     let code = created["pairingCode"].as_str().unwrap().to_string();
 
     let (_, body) = h
@@ -538,8 +688,14 @@ async fn secrets_never_appear_in_responses_beyond_their_one_delivery() {
     // Neither secret may reappear in any later response (doc 6.3.5).
     let (_, list) = h.get("/v1/devices", Some(&token)).await;
     let serialised = list.to_string();
-    assert!(!serialised.contains(&code), "pairing code leaked into the device list");
-    assert!(!serialised.contains(&device_token), "device token leaked into the device list");
+    assert!(
+        !serialised.contains(&code),
+        "pairing code leaked into the device list"
+    );
+    assert!(
+        !serialised.contains(&device_token),
+        "device token leaked into the device list"
+    );
 }
 
 // Keeps the unused-import warning away when the module compiles without the

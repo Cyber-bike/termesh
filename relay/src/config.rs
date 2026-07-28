@@ -33,7 +33,9 @@ impl Config {
     pub fn from_env() -> Result<Self, StartupError> {
         let bind = env_or("TERMY_BIND", "0.0.0.0:8080")
             .parse::<SocketAddr>()
-            .map_err(|e| StartupError::Config(format!("TERMY_BIND is not a socket address: {e}")))?;
+            .map_err(|e| {
+                StartupError::Config(format!("TERMY_BIND is not a socket address: {e}"))
+            })?;
 
         let database_path = PathBuf::from(env_or("TERMY_DB_PATH", "/var/lib/termy-relay/relay.db"));
 
@@ -72,21 +74,12 @@ fn require(key: &str) -> Result<String, StartupError> {
 /// bytes survive environment transport intact.
 fn decode_secret(key: &str) -> Result<Vec<u8>, StartupError> {
     let raw = require(key)?;
-    let engines: [&dyn Fn(&str) -> Result<Vec<u8>, base64::DecodeError>; 2] = [
-        &|s| base64::engine::general_purpose::STANDARD_NO_PAD.decode(s.trim_end_matches('=')),
-        &|s| base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(s.trim_end_matches('=')),
-    ];
+    let trimmed = raw.trim_end_matches('=');
 
-    let mut decoded = None;
-    for engine in engines {
-        if let Ok(bytes) = engine(&raw) {
-            decoded = Some(bytes);
-            break;
-        }
-    }
-
-    let bytes = decoded
-        .ok_or_else(|| StartupError::Config(format!("{key} is not valid base64")))?;
+    let bytes = base64::engine::general_purpose::STANDARD_NO_PAD
+        .decode(trimmed)
+        .or_else(|_| base64::engine::general_purpose::URL_SAFE_NO_PAD.decode(trimmed))
+        .map_err(|_| StartupError::Config(format!("{key} is not valid base64")))?;
 
     if bytes.len() < MIN_SECRET_BYTES {
         return Err(StartupError::Config(format!(

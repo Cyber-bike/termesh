@@ -53,7 +53,10 @@ pub fn acquire(path: &Path) -> Result<InstanceLock, AgentError> {
         return Err(AgentError::AlreadyRunning(path.display().to_string()));
     }
 
-    Ok(InstanceLock { file, path: path.to_path_buf() })
+    Ok(InstanceLock {
+        file,
+        path: path.to_path_buf(),
+    })
 }
 
 #[cfg(unix)]
@@ -88,7 +91,10 @@ pub fn acquire(path: &Path) -> Result<InstanceLock, AgentError> {
         .open(path)
         .map_err(|_| AgentError::AlreadyRunning(path.display().to_string()))?;
 
-    Ok(InstanceLock { file, path: path.to_path_buf() })
+    Ok(InstanceLock {
+        file,
+        path: path.to_path_buf(),
+    })
 }
 
 #[cfg(test)]

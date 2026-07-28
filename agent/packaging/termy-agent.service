@@ -1,0 +1,38 @@
+[Unit]
+Description=Termy remote agent
+Documentation=https://github.com/ZyphrZero/Termy
+# Only meaningful once the network is usable; the agent retries regardless, this
+# just avoids a guaranteed first failure on boot.
+After=network-online.target
+Wants=network-online.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/termy-agent run
+
+# Doc 7.6: the agent reconnects on its own with backoff. Restart=always covers
+# the cases it cannot - a panic, an OOM kill, or the operator killing it - and
+# RestartSec keeps a crash loop from spinning.
+Restart=always
+RestartSec=5
+
+# Doc 7.3: credentials are read from the config file, never from argv or the
+# environment, so nothing secret can leak into `systemctl show` or the journal.
+Environment=RUST_LOG=termy_agent=info
+
+# Doc 2.1.13: agent and shell run as the ordinary user who owns the unit. A user
+# unit cannot escalate, so this is structural rather than a setting.
+# NoNewPrivileges is still set to block a setuid binary reached through the shell
+# from gaining privileges the user did not already have.
+NoNewPrivileges=true
+
+# The remote shell is a general-purpose terminal, so it must keep access to the
+# user's home and the wider filesystem. Sandboxing directives such as
+# ProtectHome or PrivateTmp would break the feature rather than harden it.
+
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=termy-agent
+
+[Install]
+WantedBy=default.target

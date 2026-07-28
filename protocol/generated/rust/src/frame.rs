@@ -47,7 +47,14 @@ pub struct Frame {
 impl Frame {
     pub fn stream_uuid(&self) -> String {
         let h: String = self.stream_id.iter().map(|b| format!("{b:02x}")).collect();
-        format!("{}-{}-{}-{}-{}", &h[0..8], &h[8..12], &h[12..16], &h[16..20], &h[20..32])
+        format!(
+            "{}-{}-{}-{}-{}",
+            &h[0..8],
+            &h[8..12],
+            &h[12..16],
+            &h[16..20],
+            &h[20..32]
+        )
     }
 
     pub fn is_file(&self) -> bool {
@@ -64,7 +71,10 @@ pub fn payload_limit(kind: u8) -> usize {
 }
 
 pub fn encode(frame: &Frame) -> Result<Vec<u8>, FrameError> {
-    if !matches!(frame.kind, KIND_TERMINAL_INPUT | KIND_TERMINAL_OUTPUT | KIND_FILE_CHUNK) {
+    if !matches!(
+        frame.kind,
+        KIND_TERMINAL_INPUT | KIND_TERMINAL_OUTPUT | KIND_FILE_CHUNK
+    ) {
         return err(format!("unknown kind 0x{:x}", frame.kind));
     }
     if frame.payload.len() > payload_limit(frame.kind) {
@@ -75,8 +85,11 @@ pub fn encode(frame: &Frame) -> Result<Vec<u8>, FrameError> {
         ));
     }
 
-    let file_index =
-        if frame.kind == KIND_FILE_CHUNK { frame.file_index } else { TERMINAL_FILE_INDEX };
+    let file_index = if frame.kind == KIND_FILE_CHUNK {
+        frame.file_index
+    } else {
+        TERMINAL_FILE_INDEX
+    };
 
     let mut out = Vec::with_capacity(HEADER_BYTES + frame.payload.len());
     out.extend_from_slice(&MAGIC);
@@ -107,7 +120,10 @@ pub fn decode(buf: &[u8]) -> Result<Frame, FrameError> {
     }
 
     let kind = buf[3];
-    if !matches!(kind, KIND_TERMINAL_INPUT | KIND_TERMINAL_OUTPUT | KIND_FILE_CHUNK) {
+    if !matches!(
+        kind,
+        KIND_TERMINAL_INPUT | KIND_TERMINAL_OUTPUT | KIND_FILE_CHUNK
+    ) {
         return err(format!("unknown kind 0x{kind:x}"));
     }
     if buf[4] != 0 {
@@ -120,10 +136,14 @@ pub fn decode(buf: &[u8]) -> Result<Frame, FrameError> {
     let payload_length = u32::from_be_bytes([buf[6], buf[7], buf[8], buf[9]]) as usize;
     let actual = buf.len() - HEADER_BYTES;
     if payload_length != actual {
-        return err(format!("payloadLength {payload_length} does not match the {actual} bytes present"));
+        return err(format!(
+            "payloadLength {payload_length} does not match the {actual} bytes present"
+        ));
     }
     if payload_length > payload_limit(kind) {
-        return err(format!("payload {payload_length} exceeds the limit for kind 0x{kind:x}"));
+        return err(format!(
+            "payload {payload_length} exceeds the limit for kind 0x{kind:x}"
+        ));
     }
 
     let mut stream_id = [0u8; 16];
@@ -132,7 +152,9 @@ pub fn decode(buf: &[u8]) -> Result<Frame, FrameError> {
     let file_index = u32::from_be_bytes([buf[26], buf[27], buf[28], buf[29]]);
     if kind == KIND_FILE_CHUNK {
         if file_index > 255 {
-            return err(format!("fileIndex {file_index} exceeds the 256-file batch limit"));
+            return err(format!(
+                "fileIndex {file_index} exceeds the 256-file batch limit"
+            ));
         }
     } else if file_index != TERMINAL_FILE_INDEX {
         return err("terminal frames must set fileIndex to 0xFFFFFFFF");
@@ -142,7 +164,13 @@ pub fn decode(buf: &[u8]) -> Result<Frame, FrameError> {
         buf[30], buf[31], buf[32], buf[33], buf[34], buf[35], buf[36], buf[37],
     ]);
 
-    Ok(Frame { kind, stream_id, file_index, offset, payload: buf[HEADER_BYTES..].to_vec() })
+    Ok(Frame {
+        kind,
+        stream_id,
+        file_index,
+        offset,
+        payload: buf[HEADER_BYTES..].to_vec(),
+    })
 }
 
 /// Per-counting-domain offset continuity (doc 8.5).
@@ -181,9 +209,15 @@ impl OffsetTracker {
         let expected = *self.domains.get(&key).unwrap_or(&0);
         let ok = expected == frame.offset;
         if ok {
-            self.domains.insert(key, expected + frame.payload.len() as u64);
+            self.domains
+                .insert(key, expected + frame.payload.len() as u64);
         }
-        OffsetCheck { ok, fatal: !ok && frame.is_file(), expected, got: frame.offset }
+        OffsetCheck {
+            ok,
+            fatal: !ok && frame.is_file(),
+            expected,
+            got: frame.offset,
+        }
     }
 
     pub fn forget_stream(&mut self, stream_id: &[u8; 16]) {
@@ -238,7 +272,10 @@ mod tests {
 
         let mut bad_version = good.clone();
         bad_version[2] = 0x02;
-        assert!(decode(&bad_version).unwrap_err().0.contains("unsupported frame version"));
+        assert!(decode(&bad_version)
+            .unwrap_err()
+            .0
+            .contains("unsupported frame version"));
 
         let mut bad_kind = good.clone();
         bad_kind[3] = 0x09;
@@ -250,7 +287,10 @@ mod tests {
 
         let mut reserved = good.clone();
         reserved[5] = 1;
-        assert!(decode(&reserved).unwrap_err().0.contains("reserved byte must be 0"));
+        assert!(decode(&reserved)
+            .unwrap_err()
+            .0
+            .contains("reserved byte must be 0"));
 
         let mut length = good.clone();
         length[6..10].copy_from_slice(&999u32.to_be_bytes());
@@ -258,9 +298,15 @@ mod tests {
 
         let mut file_index = good.clone();
         file_index[26..30].copy_from_slice(&3u32.to_be_bytes());
-        assert!(decode(&file_index).unwrap_err().0.contains("terminal frames must set fileIndex"));
+        assert!(decode(&file_index)
+            .unwrap_err()
+            .0
+            .contains("terminal frames must set fileIndex"));
 
-        assert!(decode(&good[..20]).unwrap_err().0.contains("truncated header"));
+        assert!(decode(&good[..20])
+            .unwrap_err()
+            .0
+            .contains("truncated header"));
     }
 
     #[test]
@@ -269,7 +315,10 @@ mod tests {
 
         assert!(tracker.accept(&terminal(0, 100)).ok);
         // Input counts separately from output even though the session matches.
-        let input = Frame { kind: KIND_TERMINAL_INPUT, ..terminal(0, 10) };
+        let input = Frame {
+            kind: KIND_TERMINAL_INPUT,
+            ..terminal(0, 10)
+        };
         assert!(tracker.accept(&input).ok);
         assert!(tracker.accept(&terminal(100, 50)).ok);
 

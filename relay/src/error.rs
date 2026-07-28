@@ -66,7 +66,13 @@ pub struct AppError {
 
 impl AppError {
     fn new(status: StatusCode, code: ErrorCode, message: impl Into<String>) -> Self {
-        Self { status, code, message: message.into(), retry_after: None, internal: None }
+        Self {
+            status,
+            code,
+            message: message.into(),
+            retry_after: None,
+            internal: None,
+        }
     }
 
     pub fn bad_request(message: impl Into<String>) -> Self {
@@ -92,7 +98,11 @@ impl AppError {
     }
 
     pub fn not_found(message: impl Into<String>) -> Self {
-        Self::new(StatusCode::NOT_FOUND, ErrorCode::PairingCodeInvalid, message)
+        Self::new(
+            StatusCode::NOT_FOUND,
+            ErrorCode::PairingCodeInvalid,
+            message,
+        )
     }
 
     pub fn conflict(message: impl Into<String>) -> Self {
@@ -167,13 +177,19 @@ impl IntoResponse for AppError {
         }
 
         let body = Json(ErrorBody {
-            error: ErrorPayload { code: self.code.as_str(), message: self.message, request_id },
+            error: ErrorPayload {
+                code: self.code.as_str(),
+                message: self.message,
+                request_id,
+            },
         });
 
         let mut response = (self.status, body).into_response();
         if let Some(secs) = self.retry_after {
             if let Ok(value) = secs.to_string().parse() {
-                response.headers_mut().insert(axum::http::header::RETRY_AFTER, value);
+                response
+                    .headers_mut()
+                    .insert(axum::http::header::RETRY_AFTER, value);
             }
         }
         response

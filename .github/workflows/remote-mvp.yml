@@ -1,0 +1,182 @@
+name: Remote MVP
+
+on:
+  push:
+    branches: [main, develop, 'feat/**']
+    paths:
+      - 'protocol/**'
+      - 'relay/**'
+      - 'agent/**'
+      - 'src/services/remote/**'
+      - 'src/protocol/**'
+      - 'rust-toolchain.toml'
+      - 'e2e-run.sh'
+      - 'e2e-driver.js'
+      - '.github/workflows/remote-mvp.yml'
+  pull_request:
+    branches: [main, develop]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: remote-mvp-${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+env:
+  CARGO_TERM_COLOR: always
+  RUST_BACKTRACE: 1
+
+jobs:
+  protocol:
+    name: Protocol contract
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - uses: actions/checkout@v5
+
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - name: Install protocol tooling
+        working-directory: protocol
+        run: npm ci
+
+      - name: Schemas, OpenAPI, fixtures and frame vectors
+        working-directory: protocol
+        run: npm test
+
+      # Doc 8.1: generated files are checked in and must never be hand-edited,
+      # so CI regenerates and fails on any diff.
+      - name: Generated TypeScript is current
+        working-directory: protocol
+        run: |
+          node tools/generate-typescript.js
+          git diff --exit-code -- generated/typescript
+
+      - name: Plugin copy of the generated types is current
+        run: node scripts/sync-protocol.js --check
+
+  rust:
+    name: Relay and agent
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v5
+
+      # rust-toolchain.toml pins the version; the action honours it.
+      - uses: dtolnay/rust-toolchain@stable
+        with:
+          components: rustfmt, clippy
+
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            relay
+            agent
+            protocol/generated/rust
+
+      - name: Format
+        run: |
+          cargo fmt --manifest-path relay/Cargo.toml --check
+          cargo fmt --manifest-path agent/Cargo.toml --check
+
+      - name: Clippy
+        run: |
+          cargo clippy --manifest-path relay/Cargo.toml --all-targets -- -D warnings
+          cargo clippy --manifest-path agent/Cargo.toml --all-targets -- -D warnings
+
+      - name: Protocol crate tests
+        run: cargo test --manifest-path protocol/generated/rust/Cargo.toml
+
+      - name: Relay tests
+        run: cargo test --manifest-path relay/Cargo.toml
+
+      - name: Agent tests
+        run: cargo test --manifest-path agent/Cargo.toml
+
+  generated-rust:
+    name: Generated Rust is current
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      # Separate job because installing cargo-typify costs several minutes and
+      # should not sit in front of the test feedback.
+      - name: Regenerate and diff
+        working-directory: protocol
+        run: |
+          cargo install cargo-typify --locked
+          node tools/generate-rust.js
+          git diff --exit-code -- generated/rust/src/messages.rs
+
+  agent-windows:
+    name: Agent builds on Windows
+    runs-on: windows-latest
+    timeout-minutes: 45
+
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: agent
+
+      # The Job Object teardown in pty.rs is Windows-only and never compiles on
+      # the Linux development host, so this job is the first thing that checks
+      # it at all. It does not prove the teardown works: that needs the manual
+      # acceptance run on real hardware (doc 7.5).
+      - name: Build
+        run: cargo build --manifest-path agent/Cargo.toml
+
+      - name: Test
+        run: cargo test --manifest-path agent/Cargo.toml
+
+  e2e:
+    name: End to end
+    runs-on: ubuntu-latest
+    timeout-minutes: 45
+    needs: [rust]
+
+    steps:
+      - uses: actions/checkout@v5
+      - uses: dtolnay/rust-toolchain@stable
+      - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: |
+            relay
+            agent
+      - uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+
+      - name: Build both binaries
+        run: |
+          cargo build --manifest-path relay/Cargo.toml
+          cargo build --manifest-path agent/Cargo.toml
+
+      - name: Install driver dependencies
+        run: npm install --no-save ws@8.20.1
+
+      # Starts a relay and an agent, then drives a real terminal session and a
+      # real transfer through the control socket. This is the test that caught
+      # transfer.fileEnd overtaking the chunks it terminates.
+      - name: Terminal and transfer round trip
+        run: ./e2e-run.sh
+
+      - name: Relay and agent logs
+        if: failure()
+        run: |
+          echo "--- relay ---"; cat /tmp/e2e/relay.log || true
+          echo "--- agent ---"; cat /tmp/e2e/agent.log || true

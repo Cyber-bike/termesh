@@ -126,9 +126,8 @@ async fn connect_and_serve(
     serve(socket, config, state_path, agent_state).await
 }
 
-type Socket = tokio_tungstenite::WebSocketStream<
-    tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>,
->;
+type Socket =
+    tokio_tungstenite::WebSocketStream<tokio_tungstenite::MaybeTlsStream<tokio::net::TcpStream>>;
 
 /// One connection's lifetime.
 struct Session {
@@ -298,7 +297,11 @@ async fn serve(
 
 enum PtyEvent {
     Output(Vec<u8>),
-    Shell { name: &'static str, source: &'static str, exit_code: Option<i32> },
+    Shell {
+        name: &'static str,
+        source: &'static str,
+        exit_code: Option<i32>,
+    },
     Exited(i32),
 }
 
@@ -316,8 +319,7 @@ async fn handle_control(
 ) -> Result<(), AgentError> {
     let value: Value =
         serde_json::from_str(text).map_err(|e| AgentError::Protocol(e.to_string()))?;
-    termy_protocol::validate(&value)
-        .map_err(|errors| AgentError::Protocol(errors.join("; ")))?;
+    termy_protocol::validate(&value).map_err(|errors| AgentError::Protocol(errors.join("; ")))?;
 
     let msg_type = value["type"].as_str().unwrap_or_default();
     let request_id = value["requestId"].clone();
@@ -363,14 +365,18 @@ async fn handle_control(
                     agent_state.session_active = true;
                     let _ = state::write(state_path, agent_state);
 
-                    send_json(out_tx, json!({
-                        "protocolVersion": 1,
-                        "type": "terminal.opened",
-                        "requestId": request_id,
-                        "deviceId": config.device_id,
-                        "sessionId": session_id.to_string(),
-                        "payload": { "shell": shell }
-                    })).await;
+                    send_json(
+                        out_tx,
+                        json!({
+                            "protocolVersion": 1,
+                            "type": "terminal.opened",
+                            "requestId": request_id,
+                            "deviceId": config.device_id,
+                            "sessionId": session_id.to_string(),
+                            "payload": { "shell": shell }
+                        }),
+                    )
+                    .await;
                 }
                 Err(e) => {
                     slot.release(session_id);
@@ -409,7 +415,10 @@ async fn handle_control(
 
         "transfer.start" => {
             let transfer_id = uuid_at(&value, "transferId")?;
-            let root_note = value["payload"]["rootNote"].as_str().unwrap_or_default().to_string();
+            let root_note = value["payload"]["rootNote"]
+                .as_str()
+                .unwrap_or_default()
+                .to_string();
 
             let entries: Vec<Entry> = value["payload"]["entries"]
                 .as_array()
@@ -435,20 +444,32 @@ async fn handle_control(
             ) {
                 Ok(active) => {
                     *transfer = Some((transfer_id, active));
-                    send_json(out_tx, json!({
-                        "protocolVersion": 1,
-                        "type": "transfer.accepted",
-                        "requestId": request_id,
-                        "deviceId": config.device_id,
-                        "sessionId": null,
-                        "payload": {
-                            "transferId": transfer_id.to_string(),
-                            "grantedBytes": INITIAL_CREDIT
-                        }
-                    })).await;
+                    send_json(
+                        out_tx,
+                        json!({
+                            "protocolVersion": 1,
+                            "type": "transfer.accepted",
+                            "requestId": request_id,
+                            "deviceId": config.device_id,
+                            "sessionId": null,
+                            "payload": {
+                                "transferId": transfer_id.to_string(),
+                                "grantedBytes": INITIAL_CREDIT
+                            }
+                        }),
+                    )
+                    .await;
                 }
                 Err(e) => {
-                    send_result(out_tx, config, transfer_id, false, Some("INVALID_PATH"), &redact(&e.to_string())).await;
+                    send_result(
+                        out_tx,
+                        config,
+                        transfer_id,
+                        false,
+                        Some("INVALID_PATH"),
+                        &redact(&e.to_string()),
+                    )
+                    .await;
                 }
             }
             Ok(())
@@ -465,7 +486,15 @@ async fn handle_control(
                         active.abort();
                         let message = redact(&e.to_string());
                         transfer.take();
-                        send_result(out_tx, config, transfer_id, false, Some("TRANSFER_FAILED"), &message).await;
+                        send_result(
+                            out_tx,
+                            config,
+                            transfer_id,
+                            false,
+                            Some("TRANSFER_FAILED"),
+                            &message,
+                        )
+                        .await;
                     }
                 }
             }
@@ -482,7 +511,15 @@ async fn handle_control(
                         }
                         Err(e) => {
                             active.abort();
-                            send_result(out_tx, config, transfer_id, false, Some("TRANSFER_FAILED"), &redact(&e.to_string())).await;
+                            send_result(
+                                out_tx,
+                                config,
+                                transfer_id,
+                                false,
+                                Some("TRANSFER_FAILED"),
+                                &redact(&e.to_string()),
+                            )
+                            .await;
                         }
                     }
                 } else {
@@ -497,8 +534,15 @@ async fn handle_control(
             if let Some((id, mut active)) = transfer.take() {
                 if id == transfer_id {
                     active.abort();
-                    send_result(out_tx, config, transfer_id, false, Some("TRANSFER_FAILED"),
-                        "Transfer aborted by the sender; partial files may remain").await;
+                    send_result(
+                        out_tx,
+                        config,
+                        transfer_id,
+                        false,
+                        Some("TRANSFER_FAILED"),
+                        "Transfer aborted by the sender; partial files may remain",
+                    )
+                    .await;
                 } else {
                     *transfer = Some((id, active));
                 }
@@ -506,7 +550,9 @@ async fn handle_control(
             Ok(())
         }
 
-        other => Err(AgentError::Protocol(format!("unexpected message type {other}"))),
+        other => Err(AgentError::Protocol(format!(
+            "unexpected message type {other}"
+        ))),
     }
 }
 
@@ -532,7 +578,8 @@ async fn handle_binary(
                 // Doc 8.5: terminal offsets are reported, not fatal.
                 tracing::debug!(
                     "terminal input offset {} where {} was expected",
-                    decoded.offset, active.input_offset
+                    decoded.offset,
+                    active.input_offset
                 );
             }
             active.input_offset = decoded.offset + decoded.payload.len() as u64;
@@ -548,17 +595,24 @@ async fn handle_binary(
                 return Err(AgentError::Protocol("chunk for an unknown transfer".into()));
             }
 
-            match active.write_chunk(decoded.file_index as usize, decoded.offset, &decoded.payload)
-            {
+            match active.write_chunk(
+                decoded.file_index as usize,
+                decoded.offset,
+                &decoded.payload,
+            ) {
                 Ok(Some(granted)) => {
-                    send_json(out_tx, json!({
-                        "protocolVersion": 1,
-                        "type": "transfer.credit",
-                        "requestId": null,
-                        "deviceId": config.device_id,
-                        "sessionId": null,
-                        "payload": { "transferId": id.to_string(), "grantedBytes": granted }
-                    })).await;
+                    send_json(
+                        out_tx,
+                        json!({
+                            "protocolVersion": 1,
+                            "type": "transfer.credit",
+                            "requestId": null,
+                            "deviceId": config.device_id,
+                            "sessionId": null,
+                            "payload": { "transferId": id.to_string(), "grantedBytes": granted }
+                        }),
+                    )
+                    .await;
                     Ok(())
                 }
                 Ok(None) => Ok(()),
@@ -567,13 +621,23 @@ async fn handle_binary(
                     let message = redact(&e.to_string());
                     let transfer_id = *id;
                     transfer.take();
-                    send_result(out_tx, config, transfer_id, false, Some("TRANSFER_FAILED"), &message).await;
+                    send_result(
+                        out_tx,
+                        config,
+                        transfer_id,
+                        false,
+                        Some("TRANSFER_FAILED"),
+                        &message,
+                    )
+                    .await;
                     Ok(())
                 }
             }
         }
 
-        _ => Err(AgentError::Protocol("agents do not receive terminal output".into())),
+        _ => Err(AgentError::Protocol(
+            "agents do not receive terminal output".into(),
+        )),
     }
 }
 
@@ -595,7 +659,10 @@ fn spawn_output_pump(mut reader: Box<dyn std::io::Read + Send>, tx: mpsc::Sender
                             exit_code: event.exit_code(),
                         });
                     }
-                    if tx.blocking_send(PtyEvent::Output(buf[..n].to_vec())).is_err() {
+                    if tx
+                        .blocking_send(PtyEvent::Output(buf[..n].to_vec()))
+                        .is_err()
+                    {
                         break;
                     }
                 }
@@ -720,7 +787,13 @@ async fn http_post_json(url: &str, body: &Value) -> Result<Value, AgentError> {
 
     let rest = url
         .strip_prefix("https://")
-        .or_else(|| if insecure { url.strip_prefix("http://") } else { None })
+        .or_else(|| {
+            if insecure {
+                url.strip_prefix("http://")
+            } else {
+                None
+            }
+        })
         .ok_or_else(|| {
             AgentError::Config(
                 "the relay base URL must be https://; set TERMY_AGENT_ALLOW_INSECURE=1 for local \
@@ -773,12 +846,19 @@ async fn http_post_json(url: &str, body: &Value) -> Result<Value, AgentError> {
         .and_then(|s| s.parse().ok())
         .unwrap_or(0);
 
-    let body_text = text.split_once("\r\n\r\n").map(|(_, b)| b).unwrap_or("").trim().to_string();
+    let body_text = text
+        .split_once("\r\n\r\n")
+        .map(|(_, b)| b)
+        .unwrap_or("")
+        .trim()
+        .to_string();
     let parsed: Value = serde_json::from_str(&body_text).unwrap_or(Value::Null);
 
     if !(200..300).contains(&status) {
         let code = parsed["error"]["code"].as_str().unwrap_or("HTTP_ERROR");
-        let message = parsed["error"]["message"].as_str().unwrap_or("registration failed");
+        let message = parsed["error"]["message"]
+            .as_str()
+            .unwrap_or("registration failed");
         return Err(AgentError::Protocol(format!("{code}: {message}")));
     }
 

@@ -1,0 +1,39 @@
+# Single-node deployment sketch (doc 6.1).
+#
+# The relay speaks plain HTTP and expects a reverse proxy in front to terminate
+# TLS. Only 443 faces the internet; the relay port stays on the host network.
+#
+# NOT RUN ON THE DEVELOPMENT HOST - no Docker daemon was available - so treat
+# this as reviewed, not proven.
+
+services:
+  relay:
+    build:
+      context: ..
+      dockerfile: relay/Dockerfile
+    restart: unless-stopped
+
+    # Bound to loopback on purpose: doc 6.1 requires the relay and its proxy to
+    # sit on the same controlled host network, and the rate limiter trusts
+    # X-Forwarded-For only because nothing else can reach this port.
+    ports:
+      - "127.0.0.1:8080:8080"
+
+    environment:
+      TERMY_BIND: "0.0.0.0:8080"
+      TERMY_DB_PATH: "/var/lib/termy-relay/relay.db"
+      # Generate once and keep: rotating the pepper invalidates every pairing
+      # code and device token, and rotating the JWT secret logs everyone out.
+      #   head -c32 /dev/urandom | base64
+      TERMY_PEPPER: "${TERMY_PEPPER:?set TERMY_PEPPER to 32+ random bytes, base64}"
+      TERMY_JWT_SECRET: "${TERMY_JWT_SECRET:?set TERMY_JWT_SECRET to 32+ random bytes, base64}"
+      # What agents are told to connect back to, so it must be the public name.
+      TERMY_RELAY_URL: "${TERMY_RELAY_URL:?set TERMY_RELAY_URL, e.g. wss://relay.example.com/v1/agent/ws}"
+      RUST_LOG: "termy_relay=info,tower_http=info"
+
+    volumes:
+      # Review item B9: without this the database is destroyed on every restart.
+      - relay-data:/var/lib/termy-relay
+
+volumes:
+  relay-data:

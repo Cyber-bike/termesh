@@ -164,7 +164,12 @@ impl TransferSession {
 
             // Truncating open is the documented overwrite behaviour (doc 2.1.9).
             let handle = File::create(&path)?;
-            self.current = Some(OpenFile { index: file_index, handle, written: 0, path });
+            self.current = Some(OpenFile {
+                index: file_index,
+                handle,
+                written: 0,
+                path,
+            });
         }
 
         let open = self.current.as_mut().expect("just ensured");
@@ -209,7 +214,9 @@ impl TransferSession {
             .clone();
 
         if !self.finished.insert(file_index) {
-            return Err(AgentError::Transfer(format!("fileIndex {file_index} ended twice")));
+            return Err(AgentError::Transfer(format!(
+                "fileIndex {file_index} ended twice"
+            )));
         }
 
         if sent_size > entry.size {
@@ -290,7 +297,11 @@ mod tests {
     use super::*;
 
     fn entry(index: usize, path: &str, size: u64) -> Entry {
-        Entry { index, relative_path: path.into(), size }
+        Entry {
+            index,
+            relative_path: path.into(),
+            size,
+        }
     }
 
     fn session(root: &std::path::Path, entries: Vec<Entry>) -> TransferSession {
@@ -313,8 +324,14 @@ mod tests {
         s.complete().unwrap();
 
         assert!(s.is_complete());
-        assert_eq!(std::fs::read(dir.path().join("notes/demo.md")).unwrap(), b"hello world");
-        assert_eq!(std::fs::read(dir.path().join("assets/img.png")).unwrap(), b"\x89PNG");
+        assert_eq!(
+            std::fs::read(dir.path().join("notes/demo.md")).unwrap(),
+            b"hello world"
+        );
+        assert_eq!(
+            std::fs::read(dir.path().join("assets/img.png")).unwrap(),
+            b"\x89PNG"
+        );
     }
 
     #[test]
@@ -350,7 +367,10 @@ mod tests {
         let mut s = session(dir.path(), vec![entry(0, "a.md", 10)]);
 
         s.write_chunk(0, 0, b"abc").unwrap();
-        assert!(s.write_chunk(0, 5, b"def").is_err(), "a gap must be rejected");
+        assert!(
+            s.write_chunk(0, 5, b"def").is_err(),
+            "a gap must be rejected"
+        );
         assert!(s.write_chunk(0, 3, b"def").is_ok());
     }
 
@@ -366,7 +386,10 @@ mod tests {
         let dir = tempfile::tempdir().unwrap();
         let mut s = session(dir.path(), vec![entry(0, "a.md", 10)]);
         s.write_chunk(0, 0, b"abc").unwrap();
-        assert!(s.finish_file(0, 5).is_err(), "declared size must match the bytes written");
+        assert!(
+            s.finish_file(0, 5).is_err(),
+            "declared size must match the bytes written"
+        );
     }
 
     #[test]
@@ -399,7 +422,8 @@ mod tests {
 
         // rootNote mismatch.
         assert!(
-            TransferSession::new(root.clone(), vec![entry(0, "a.md", 1)], "other.md", 1024).is_err()
+            TransferSession::new(root.clone(), vec![entry(0, "a.md", 1)], "other.md", 1024)
+                .is_err()
         );
 
         // Duplicate path.
@@ -455,7 +479,10 @@ mod tests {
             offset += chunk.len() as u64;
         }
 
-        assert!(!grants.is_empty(), "the window must be topped up during a long transfer");
+        assert!(
+            !grants.is_empty(),
+            "the window must be topped up during a long transfer"
+        );
         assert!(
             grants.windows(2).all(|w| w[1] > w[0]),
             "granted totals must increase monotonically"

@@ -93,7 +93,11 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     println!("deviceName   {}", config.device_name);
                     println!("relayUrl     {}", config.relay_url);
                     println!("receiveRoot  {}", config.receive_root.display());
-                    println!("shell        {} {}", config.shell.program, config.shell.args.join(" "));
+                    println!(
+                        "shell        {} {}",
+                        config.shell.program,
+                        config.shell.args.join(" ")
+                    );
                     return Ok(());
                 }
                 ConfigCommand::SetName { name } => config.device_name = name,
@@ -131,18 +135,40 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
             let state_file = state::state_path();
             match state::read(&state_file) {
                 None => {
-                    println!("no state file at {}; the agent has not run yet", state_file.display());
+                    println!(
+                        "no state file at {}; the agent has not run yet",
+                        state_file.display()
+                    );
                 }
                 Some(state) => {
                     let running = process_alive(state.pid);
-                    println!("pid           {} ({})", state.pid, if running { "running" } else { "not running" });
+                    println!(
+                        "pid           {} ({})",
+                        state.pid,
+                        if running { "running" } else { "not running" }
+                    );
                     println!("connection    {:?}", state.connection);
-                    println!("last connect  {}", state.last_connected_at.unwrap_or_else(|| "never".into()));
-                    println!("last drop     {}", state.last_disconnected_at.unwrap_or_else(|| "never".into()));
-                    println!("session       {}", if state.session_active { "active" } else { "idle" });
+                    println!(
+                        "last connect  {}",
+                        state.last_connected_at.unwrap_or_else(|| "never".into())
+                    );
+                    println!(
+                        "last drop     {}",
+                        state.last_disconnected_at.unwrap_or_else(|| "never".into())
+                    );
+                    println!(
+                        "session       {}",
+                        if state.session_active {
+                            "active"
+                        } else {
+                            "idle"
+                        }
+                    );
                     if state.needs_rebind {
                         println!();
-                        println!("the relay rejected this device token; run `termy-agent bind` again");
+                        println!(
+                            "the relay rejected this device token; run `termy-agent bind` again"
+                        );
                     }
                 }
             }

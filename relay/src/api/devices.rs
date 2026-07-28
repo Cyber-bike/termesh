@@ -36,11 +36,15 @@ pub async fn create_pairing_code(
     user: AuthUser,
     Json(_body): Json<CreatePairingCodeRequest>,
 ) -> Result<(StatusCode, Json<PairingCodeCreated>), AppError> {
-    state
-        .limiter
-        .check(&format!("pairing-create:{}", user.user_id), limits::CREATE_PAIRING_CODE)?;
+    state.limiter.check(
+        &format!("pairing-create:{}", user.user_id),
+        limits::CREATE_PAIRING_CODE,
+    )?;
 
-    let outstanding = state.db.count_unconsumed_pairing_codes(user.user_id).await?;
+    let outstanding = state
+        .db
+        .count_unconsumed_pairing_codes(user.user_id)
+        .await?;
     if outstanding >= MAX_UNCONSUMED_PAIRING_CODES {
         return Err(AppError::conflict(format!(
             "Account already has the maximum of {MAX_UNCONSUMED_PAIRING_CODES} unconsumed pairing codes"
@@ -113,13 +117,18 @@ pub async fn register_device(
 ) -> Result<(StatusCode, Json<RegisterResponse>), AppError> {
     // Two independent limits (doc 6.5): by address, to blunt a spray from one
     // host, and by code digest, to blunt distributed guessing at one code.
-    state.limiter.check(&format!("register-ip:{ip}"), limits::REGISTER_BY_IP)?;
+    state
+        .limiter
+        .check(&format!("register-ip:{ip}"), limits::REGISTER_BY_IP)?;
 
     validate_register(&body)?;
 
     let code_digest = crypto::digest_secret(&state.config.pepper, &body.pairing_code);
     let code_key = hex_key(&code_digest);
-    state.limiter.check(&format!("register-code:{code_key}"), limits::REGISTER_BY_CODE)?;
+    state.limiter.check(
+        &format!("register-code:{code_key}"),
+        limits::REGISTER_BY_CODE,
+    )?;
 
     let token = crypto::generate_device_token();
     let token_digest = crypto::digest_secret(&state.config.pepper, &token);
@@ -157,10 +166,14 @@ fn validate_register(body: &RegisterRequest) -> Result<(), AppError> {
         return Err(AppError::bad_request("deviceName must be 1..64 characters"));
     }
     if body.device_name.chars().any(char::is_control) {
-        return Err(AppError::bad_request("deviceName must not contain control characters"));
+        return Err(AppError::bad_request(
+            "deviceName must not contain control characters",
+        ));
     }
     if !matches!(body.platform.as_str(), "windows-x64" | "ubuntu-x64") {
-        return Err(AppError::bad_request("platform must be windows-x64 or ubuntu-x64"));
+        return Err(AppError::bad_request(
+            "platform must be windows-x64 or ubuntu-x64",
+        ));
     }
     if !is_semver(&body.agent_version) {
         return Err(AppError::bad_request("agentVersion must be semver"));
@@ -216,7 +229,9 @@ pub async fn list_devices(
     State(state): State<AppState>,
     user: AuthUser,
 ) -> Result<Json<DeviceList>, AppError> {
-    state.limiter.check(&format!("devices:{}", user.user_id), limits::LIST_DEVICES)?;
+    state
+        .limiter
+        .check(&format!("devices:{}", user.user_id), limits::LIST_DEVICES)?;
 
     let devices = state.db.list_devices(user.user_id).await?;
 

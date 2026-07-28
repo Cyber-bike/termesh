@@ -47,12 +47,19 @@ async fn start() -> Server {
     let app = router(state.clone());
 
     tokio::spawn(async move {
-        axum::serve(listener, app.into_make_service_with_connect_info::<SocketAddr>())
-            .await
-            .unwrap();
+        axum::serve(
+            listener,
+            app.into_make_service_with_connect_info::<SocketAddr>(),
+        )
+        .await
+        .unwrap();
     });
 
-    Server { addr, state, _dir: dir }
+    Server {
+        addr,
+        state,
+        _dir: dir,
+    }
 }
 
 impl Server {
@@ -62,11 +69,15 @@ impl Server {
 
     async fn post(&self, path: &str, body: Value, token: Option<&str>) -> (u16, Value) {
         let client = reqwest_lite::Client;
-        client.request("POST", &self.http(path), Some(body), token).await
+        client
+            .request("POST", &self.http(path), Some(body), token)
+            .await
     }
 
     async fn get(&self, path: &str, token: Option<&str>) -> (u16, Value) {
-        reqwest_lite::Client.request("GET", &self.http(path), None, token).await
+        reqwest_lite::Client
+            .request("GET", &self.http(path), None, token)
+            .await
     }
 
     async fn seed_account(&self, login: &str) -> String {
@@ -74,14 +85,20 @@ impl Server {
         self.state.db.create_user(login, &digest).await.unwrap();
 
         let (status, body) = self
-            .post("/v1/auth/login", json!({"login": login, "password": "hunter2hunter2"}), None)
+            .post(
+                "/v1/auth/login",
+                json!({"login": login, "password": "hunter2hunter2"}),
+                None,
+            )
             .await;
         assert_eq!(status, 200, "login failed: {body}");
         body["accessToken"].as_str().unwrap().to_string()
     }
 
     async fn seed_device(&self, token: &str) -> (Uuid, String) {
-        let (_, body) = self.post("/v1/devices/pairing-codes", json!({}), Some(token)).await;
+        let (_, body) = self
+            .post("/v1/devices/pairing-codes", json!({}), Some(token))
+            .await;
         let code = body["pairingCode"].as_str().unwrap().to_string();
 
         let (status, body) = self
@@ -100,22 +117,29 @@ impl Server {
     }
 
     async fn connect_agent(&self, device_id: Uuid, device_token: &str) -> Socket {
-        let mut request = format!("ws://{}/v1/agent/ws", self.addr).into_client_request().unwrap();
+        let mut request = format!("ws://{}/v1/agent/ws", self.addr)
+            .into_client_request()
+            .unwrap();
         request.headers_mut().insert(
             "authorization",
-            format!("Device {device_id}.{device_token}").parse().unwrap(),
+            format!("Device {device_id}.{device_token}")
+                .parse()
+                .unwrap(),
         );
         request
             .headers_mut()
             .insert("sec-websocket-protocol", "termy.v1".parse().unwrap());
 
-        let (socket, _) = connect_async(request).await.expect("agent handshake failed");
+        let (socket, _) = connect_async(request)
+            .await
+            .expect("agent handshake failed");
         socket
     }
 
     async fn connect_control(&self, token: &str) -> Socket {
-        let mut request =
-            format!("ws://{}/v1/control/ws", self.addr).into_client_request().unwrap();
+        let mut request = format!("ws://{}/v1/control/ws", self.addr)
+            .into_client_request()
+            .unwrap();
         request
             .headers_mut()
             .insert("authorization", format!("Bearer {token}").parse().unwrap());
@@ -123,7 +147,9 @@ impl Server {
             .headers_mut()
             .insert("sec-websocket-protocol", "termy.v1".parse().unwrap());
 
-        let (socket, _) = connect_async(request).await.expect("control handshake failed");
+        let (socket, _) = connect_async(request)
+            .await
+            .expect("control handshake failed");
         socket
     }
 
@@ -177,9 +203,8 @@ mod reqwest_lite {
             let mut stream = tokio::net::TcpStream::connect(authority).await.unwrap();
 
             let payload = body.map(|b| b.to_string()).unwrap_or_default();
-            let mut request = format!(
-                "{method} {path} HTTP/1.1\r\nHost: {authority}\r\nConnection: close\r\n"
-            );
+            let mut request =
+                format!("{method} {path} HTTP/1.1\r\nHost: {authority}\r\nConnection: close\r\n");
             if let Some(t) = token {
                 request.push_str(&format!("Authorization: Bearer {t}\r\n"));
             }
@@ -219,7 +244,10 @@ mod reqwest_lite {
 }
 
 async fn send_json(socket: &mut Socket, value: Value) {
-    socket.send(Message::Text(value.to_string().into())).await.unwrap();
+    socket
+        .send(Message::Text(value.to_string().into()))
+        .await
+        .unwrap();
 }
 
 /// Reads the next JSON message, skipping pings and pongs the gateway may send.
@@ -292,24 +320,40 @@ async fn agent_handshake_requires_a_valid_device_credential() {
     let (device_id, device_token) = server.seed_device(&token).await;
 
     // Wrong token.
-    let mut request =
-        format!("ws://{}/v1/agent/ws", server.addr).into_client_request().unwrap();
+    let mut request = format!("ws://{}/v1/agent/ws", server.addr)
+        .into_client_request()
+        .unwrap();
     request.headers_mut().insert(
         "authorization",
-        format!("Device {device_id}.{}", "x".repeat(43)).parse().unwrap(),
+        format!("Device {device_id}.{}", "x".repeat(43))
+            .parse()
+            .unwrap(),
     );
-    request.headers_mut().insert("sec-websocket-protocol", "termy.v1".parse().unwrap());
-    assert!(connect_async(request).await.is_err(), "a bad device token must not upgrade");
+    request
+        .headers_mut()
+        .insert("sec-websocket-protocol", "termy.v1".parse().unwrap());
+    assert!(
+        connect_async(request).await.is_err(),
+        "a bad device token must not upgrade"
+    );
 
     // Right token but somebody else's device id.
-    let mut request =
-        format!("ws://{}/v1/agent/ws", server.addr).into_client_request().unwrap();
+    let mut request = format!("ws://{}/v1/agent/ws", server.addr)
+        .into_client_request()
+        .unwrap();
     request.headers_mut().insert(
         "authorization",
-        format!("Device {}.{device_token}", Uuid::new_v4()).parse().unwrap(),
+        format!("Device {}.{device_token}", Uuid::new_v4())
+            .parse()
+            .unwrap(),
     );
-    request.headers_mut().insert("sec-websocket-protocol", "termy.v1".parse().unwrap());
-    assert!(connect_async(request).await.is_err(), "device id and token must agree");
+    request
+        .headers_mut()
+        .insert("sec-websocket-protocol", "termy.v1".parse().unwrap());
+    assert!(
+        connect_async(request).await.is_err(),
+        "device id and token must agree"
+    );
 }
 
 #[tokio::test]
@@ -317,12 +361,18 @@ async fn the_subprotocol_is_required() {
     let server = start().await;
     let token = server.seed_account("alice").await;
 
-    let mut request =
-        format!("ws://{}/v1/control/ws", server.addr).into_client_request().unwrap();
-    request.headers_mut().insert("authorization", format!("Bearer {token}").parse().unwrap());
+    let mut request = format!("ws://{}/v1/control/ws", server.addr)
+        .into_client_request()
+        .unwrap();
+    request
+        .headers_mut()
+        .insert("authorization", format!("Bearer {token}").parse().unwrap());
     request.headers_mut().remove("sec-websocket-protocol");
 
-    assert!(connect_async(request).await.is_err(), "termy.v1 must be offered");
+    assert!(
+        connect_async(request).await.is_err(),
+        "termy.v1 must be offered"
+    );
 }
 
 #[tokio::test]
@@ -338,7 +388,10 @@ async fn an_online_agent_shows_up_in_the_device_list() {
 
     let (_, body) = server.get("/v1/devices", Some(&token)).await;
     assert_eq!(body["devices"][0]["online"], true);
-    assert!(body["devices"][0]["lastSeenAt"].is_string(), "hello should stamp lastSeenAt");
+    assert!(
+        body["devices"][0]["lastSeenAt"].is_string(),
+        "hello should stamp lastSeenAt"
+    );
 }
 
 // --- terminal routing -------------------------------------------------------
@@ -399,7 +452,10 @@ async fn a_terminal_session_routes_end_to_end() {
         0,
         b"ls -la\n",
     );
-    control.send(Message::Binary(input.clone().into())).await.unwrap();
+    control
+        .send(Message::Binary(input.clone().into()))
+        .await
+        .unwrap();
     assert_eq!(recv_binary(&mut agent).await, input);
 
     // Output travels agent -> plugin.
@@ -410,7 +466,10 @@ async fn a_terminal_session_routes_end_to_end() {
         0,
         b"total 0\r\n",
     );
-    agent.send(Message::Binary(output.clone().into())).await.unwrap();
+    agent
+        .send(Message::Binary(output.clone().into()))
+        .await
+        .unwrap();
     assert_eq!(recv_binary(&mut control).await, output);
 
     // Shell integration events reach the plugin, which is what keeps cwd
@@ -478,9 +537,17 @@ async fn a_transfer_routes_end_to_end() {
     assert_eq!(recv_json(&mut control).await["type"], "transfer.accepted");
 
     // One chunk, then the end-of-file marker and completion.
-    let chunk =
-        frame_bytes(termy_protocol::frame::KIND_FILE_CHUNK, transfer_id, 0, 0, b"hello world");
-    control.send(Message::Binary(chunk.clone().into())).await.unwrap();
+    let chunk = frame_bytes(
+        termy_protocol::frame::KIND_FILE_CHUNK,
+        transfer_id,
+        0,
+        0,
+        b"hello world",
+    );
+    control
+        .send(Message::Binary(chunk.clone().into()))
+        .await
+        .unwrap();
     assert_eq!(recv_binary(&mut agent).await, chunk);
 
     send_json(
@@ -550,7 +617,13 @@ async fn transfer_control_messages_never_overtake_their_chunks() {
     assert_eq!(recv_json(&mut agent).await["type"], "transfer.start");
 
     // Two chunks then the end marker, sent back to back with no waiting.
-    let first = frame_bytes(termy_protocol::frame::KIND_FILE_CHUNK, transfer_id, 0, 0, &vec![1u8; 256 * 1024]);
+    let first = frame_bytes(
+        termy_protocol::frame::KIND_FILE_CHUNK,
+        transfer_id,
+        0,
+        0,
+        &vec![1u8; 256 * 1024],
+    );
     let second = frame_bytes(
         termy_protocol::frame::KIND_FILE_CHUNK,
         transfer_id,
@@ -558,8 +631,14 @@ async fn transfer_control_messages_never_overtake_their_chunks() {
         262_144,
         &vec![2u8; 44 * 1024],
     );
-    control.send(Message::Binary(first.clone().into())).await.unwrap();
-    control.send(Message::Binary(second.clone().into())).await.unwrap();
+    control
+        .send(Message::Binary(first.clone().into()))
+        .await
+        .unwrap();
+    control
+        .send(Message::Binary(second.clone().into()))
+        .await
+        .unwrap();
     send_json(
         &mut control,
         json!({
@@ -786,7 +865,10 @@ async fn a_malformed_binary_frame_is_refused() {
     let token = server.seed_account("alice").await;
     let mut control = server.connect_control(&token).await;
 
-    control.send(Message::Binary(vec![0x00; 10].into())).await.unwrap();
+    control
+        .send(Message::Binary(vec![0x00; 10].into()))
+        .await
+        .unwrap();
 
     let (code, reason) = recv_close(&mut control).await;
     assert_eq!(code, 4400);

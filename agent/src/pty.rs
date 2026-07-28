@@ -35,7 +35,12 @@ impl PtySession {
     ) -> Result<(Self, Box<dyn Read + Send>), AgentError> {
         let pty_system = native_pty_system();
         let pair = pty_system
-            .openpty(PtySize { rows, cols, pixel_width: 0, pixel_height: 0 })
+            .openpty(PtySize {
+                rows,
+                cols,
+                pixel_width: 0,
+                pixel_height: 0,
+            })
             .map_err(|e| AgentError::Pty(format!("cannot open a pty: {e}")))?;
 
         let mut cmd = CommandBuilder::new(program);
@@ -87,7 +92,12 @@ impl PtySession {
 
     pub fn resize(&self, cols: u16, rows: u16) -> Result<(), AgentError> {
         self.master
-            .resize(PtySize { rows, cols, pixel_width: 0, pixel_height: 0 })
+            .resize(PtySize {
+                rows,
+                cols,
+                pixel_width: 0,
+                pixel_height: 0,
+            })
             .map_err(|e| AgentError::Pty(format!("resize failed: {e}")))
     }
 
@@ -245,11 +255,13 @@ mod windows_job {
 
     use windows_sys::Win32::Foundation::{CloseHandle, HANDLE};
     use windows_sys::Win32::System::JobObjects::{
-        AssignProcessToJobObject, CreateJobObjectW, SetInformationJobObject,
-        JobObjectExtendedLimitInformation, JOBOBJECT_EXTENDED_LIMIT_INFORMATION,
+        AssignProcessToJobObject, CreateJobObjectW, JobObjectExtendedLimitInformation,
+        SetInformationJobObject, JOBOBJECT_EXTENDED_LIMIT_INFORMATION,
         JOB_OBJECT_LIMIT_KILL_ON_JOB_CLOSE,
     };
-    use windows_sys::Win32::System::Threading::{OpenProcess, PROCESS_SET_QUOTA, PROCESS_TERMINATE};
+    use windows_sys::Win32::System::Threading::{
+        OpenProcess, PROCESS_SET_QUOTA, PROCESS_TERMINATE,
+    };
 
     pub struct JobObject(HANDLE);
 
@@ -391,7 +403,10 @@ mod tests {
             }
         }
 
-        assert!(seen.contains("termy-pty-ok"), "expected the echo to come back, saw: {seen:?}");
+        assert!(
+            seen.contains("termy-pty-ok"),
+            "expected the echo to come back, saw: {seen:?}"
+        );
         session.terminate();
     }
 
@@ -431,7 +446,10 @@ mod tests {
         let pid: i32 =
             pid.unwrap_or_else(|| panic!("could not read the grandchild pid from {seen:?}"));
 
-        assert!(process_alive(pid), "the grandchild should be running before teardown");
+        assert!(
+            process_alive(pid),
+            "the grandchild should be running before teardown"
+        );
 
         session.terminate();
 

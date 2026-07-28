@@ -65,8 +65,7 @@ fn random_base64url(bytes: usize) -> String {
 /// Keyed digest of a high-entropy secret. Deterministic, so it can be looked up
 /// by an indexed equality query.
 pub fn digest_secret(pepper: &[u8], secret: &str) -> Vec<u8> {
-    let mut mac = HmacSha256::new_from_slice(pepper)
-        .expect("HMAC accepts keys of any length");
+    let mut mac = HmacSha256::new_from_slice(pepper).expect("HMAC accepts keys of any length");
     mac.update(secret.as_bytes());
     mac.finalize().into_bytes().to_vec()
 }
@@ -93,7 +92,10 @@ mod tests {
     fn password_hashes_are_salted() {
         let a = hash_password("same password").unwrap();
         let b = hash_password("same password").unwrap();
-        assert_ne!(a, b, "identical passwords must not produce identical hashes");
+        assert_ne!(
+            a, b,
+            "identical passwords must not produce identical hashes"
+        );
     }
 
     #[test]
@@ -106,18 +108,25 @@ mod tests {
     fn generated_secrets_have_the_documented_shape() {
         let code = generate_pairing_code();
         assert_eq!(code.len(), 27, "160 bits is 27 unpadded Base64URL chars");
-        assert!(code.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_'));
+        assert!(code
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_'));
 
         let token = generate_device_token();
         assert_eq!(token.len(), 43, "256 bits is 43 unpadded Base64URL chars");
-        assert!(token.chars().all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_'));
+        assert!(token
+            .chars()
+            .all(|c| c.is_ascii_alphanumeric() || c == '-' || c == '_'));
     }
 
     #[test]
     fn generated_secrets_do_not_repeat() {
         let mut seen = std::collections::HashSet::new();
         for _ in 0..256 {
-            assert!(seen.insert(generate_pairing_code()), "pairing code repeated");
+            assert!(
+                seen.insert(generate_pairing_code()),
+                "pairing code repeated"
+            );
         }
     }
 

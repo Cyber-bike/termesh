@@ -34,7 +34,9 @@ pub async fn agent_ws(
     ClientIp(ip): ClientIp,
     headers: HeaderMap,
 ) -> Result<Response, AppError> {
-    state.limiter.check(&format!("ws-upgrade:{ip}"), limits::WS_UPGRADE)?;
+    state
+        .limiter
+        .check(&format!("ws-upgrade:{ip}"), limits::WS_UPGRADE)?;
     require_subprotocol(&headers)?;
 
     let (device_id, user_id) = authenticate(&state, &headers).await?;
@@ -55,8 +57,13 @@ async fn authenticate(state: &AppState, headers: &HeaderMap) -> Result<(Uuid, Uu
         .and_then(|v| v.to_str().ok())
         .ok_or_else(AppError::unauthorized)?;
 
-    let credential = header.strip_prefix("Device ").ok_or_else(AppError::unauthorized)?.trim();
-    let (claimed_id, token) = credential.split_once('.').ok_or_else(AppError::unauthorized)?;
+    let credential = header
+        .strip_prefix("Device ")
+        .ok_or_else(AppError::unauthorized)?
+        .trim();
+    let (claimed_id, token) = credential
+        .split_once('.')
+        .ok_or_else(AppError::unauthorized)?;
 
     let claimed_id = Uuid::parse_str(claimed_id).map_err(|_| AppError::unauthorized())?;
 
@@ -79,11 +86,16 @@ async fn handle(socket: WebSocket, state: AppState, device_id: Uuid, user_id: Uu
     let (handle, control_rx, file_rx) = ConnHandle::channel();
     let writer = tokio::spawn(writer_task(sink, control_rx, file_rx));
 
-    if let Some(displaced) = state.registry.register_agent(device_id, user_id, handle.clone()) {
+    if let Some(displaced) = state
+        .registry
+        .register_agent(device_id, user_id, handle.clone())
+    {
         // Doc 8.2: one connection per device, newest wins. Without this an agent
         // restarted by systemd would fight its own stale connection.
-        let _ = displaced
-            .try_send_control(Outbound::Close(close::CONFLICT, close_reason("AGENT_REPLACED")));
+        let _ = displaced.try_send_control(Outbound::Close(
+            close::CONFLICT,
+            close_reason("AGENT_REPLACED"),
+        ));
     }
     tracing::info!(%device_id, %user_id, "agent connected");
 
@@ -93,9 +105,7 @@ async fn handle(socket: WebSocket, state: AppState, device_id: Uuid, user_id: Uu
         state.registry.touch_agent(device_id);
 
         let outcome = match message {
-            Message::Text(text) => {
-                on_text(&state, device_id, user_id, text.as_str()).await
-            }
+            Message::Text(text) => on_text(&state, device_id, user_id, text.as_str()).await,
             Message::Binary(bytes) => on_binary(&state, device_id, user_id, &bytes).await,
             Message::Ping(_) | Message::Pong(_) => Ok(()),
             Message::Close(_) => break,
@@ -127,8 +137,10 @@ async fn monitor_liveness(state: AppState, device_id: Uuid, handle: ConnHandle) 
 
         if last_seen.elapsed() > AGENT_OFFLINE_TIMEOUT {
             tracing::warn!(%device_id, "agent heartbeat timed out");
-            let _ = handle
-                .try_send_control(Outbound::Close(close::TIMEOUT, close_reason("SESSION_TIMEOUT")));
+            let _ = handle.try_send_control(Outbound::Close(
+                close::TIMEOUT,
+                close_reason("SESSION_TIMEOUT"),
+            ));
             return;
         }
 
@@ -153,7 +165,10 @@ struct Fault {
 }
 
 fn fault(code: u16, reason: &str) -> Fault {
-    Fault { code, reason: reason.to_string() }
+    Fault {
+        code,
+        reason: reason.to_string(),
+    }
 }
 
 async fn on_text(
@@ -213,7 +228,9 @@ async fn on_text(
 
         "terminal.opened" => {
             let session_id = envelope_uuid(&value, "sessionId")?;
-            state.registry.open_session(session_id, Route { user_id, device_id });
+            state
+                .registry
+                .open_session(session_id, Route { user_id, device_id });
             forward_to_control(state, user_id, &value)
         }
         "terminal.close" => {
@@ -283,7 +300,8 @@ fn forward_to_control(state: &AppState, user_id: Uuid, value: &Value) -> Result<
         return Ok(());
     };
 
-    let text = serde_json::to_string(value).map_err(|_| fault(close::INTERNAL, "RELAY_INTERNAL"))?;
+    let text =
+        serde_json::to_string(value).map_err(|_| fault(close::INTERNAL, "RELAY_INTERNAL"))?;
     match control.try_send_control(Outbound::Text(text)) {
         Ok(()) | Err(SendError::Closed) => Ok(()),
         Err(SendError::Full) => Err(fault(close::TOO_LARGE, "BACKPRESSURE_LIMIT")),
@@ -307,7 +325,10 @@ fn payload_uuid(value: &Value, field: &str) -> Result<Uuid, Fault> {
 /// Doc 11.2.1 and 11.2.4: drop the online entry, tear down every route this
 /// device carried and tell the plugin, then persist lastSeenAt.
 async fn cleanup(state: &AppState, device_id: Uuid, user_id: Uuid, handle: &ConnHandle) {
-    if !state.registry.unregister_agent_if_current(device_id, handle) {
+    if !state
+        .registry
+        .unregister_agent_if_current(device_id, handle)
+    {
         // Displaced by a newer connection, which now owns these routes.
         return;
     }

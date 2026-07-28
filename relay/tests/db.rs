@@ -53,7 +53,10 @@ async fn user_create_and_lookup() {
     let found = db.find_user_by_login("alice").await.unwrap().unwrap();
     assert_eq!(found.id, id);
     assert_eq!(found.login, "alice");
-    assert!(crypto::verify_password(&found.password_digest, "a-good-password"));
+    assert!(crypto::verify_password(
+        &found.password_digest,
+        "a-good-password"
+    ));
 
     assert!(db.find_user_by_login("bob").await.unwrap().is_none());
 }
@@ -77,8 +80,14 @@ async fn password_can_be_changed() {
     assert!(db.set_password_digest("alice", &new_digest).await.unwrap());
 
     let found = db.find_user_by_login("alice").await.unwrap().unwrap();
-    assert!(crypto::verify_password(&found.password_digest, "a-new-password"));
-    assert!(!crypto::verify_password(&found.password_digest, "a-good-password"));
+    assert!(crypto::verify_password(
+        &found.password_digest,
+        "a-new-password"
+    ));
+    assert!(!crypto::verify_password(
+        &found.password_digest,
+        "a-good-password"
+    ));
 
     assert!(!db.set_password_digest("nobody", &new_digest).await.unwrap());
 }
@@ -308,7 +317,11 @@ async fn device_lookup_by_token_digest() {
     assert!(found.last_seen_at.is_none());
 
     let wrong = crypto::digest_secret(PEPPER, "not-the-token");
-    assert!(db.find_device_by_token_digest(&wrong).await.unwrap().is_none());
+    assert!(db
+        .find_device_by_token_digest(&wrong)
+        .await
+        .unwrap()
+        .is_none());
 }
 
 #[tokio::test]

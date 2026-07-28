@@ -105,7 +105,10 @@ async fn send(sink: &mut SplitSink<WebSocket, Message>, msg: Outbound) -> bool {
         Outbound::Binary(b) => (Message::Binary(b.into()), false),
         Outbound::Ping => (Message::Ping(Vec::new().into()), false),
         Outbound::Close(code, reason) => (
-            Message::Close(Some(CloseFrame { code, reason: reason.into() })),
+            Message::Close(Some(CloseFrame {
+                code,
+                reason: reason.into(),
+            })),
             true,
         ),
     };

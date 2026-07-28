@@ -34,9 +34,15 @@ pub struct Config {
 impl Config {
     pub fn default_shell() -> ShellConfig {
         if cfg!(windows) {
-            ShellConfig { program: "powershell.exe".into(), args: vec![] }
+            ShellConfig {
+                program: "powershell.exe".into(),
+                args: vec![],
+            }
         } else {
-            ShellConfig { program: "/bin/bash".into(), args: vec![] }
+            ShellConfig {
+                program: "/bin/bash".into(),
+                args: vec![],
+            }
         }
     }
 
@@ -87,8 +93,9 @@ impl Config {
         if self.device_token.is_empty() {
             return Err(AgentError::Config("deviceToken is empty".into()));
         }
-        if !self.relay_url.starts_with("wss://") {
-            if !(allow_insecure() && self.relay_url.starts_with("ws://")) {
+        let plaintext_allowed = allow_insecure() && self.relay_url.starts_with("ws://");
+        if !self.relay_url.starts_with("wss://") && !plaintext_allowed {
+            {
                 return Err(AgentError::Config(
                     "relayUrl must start with wss://; the agent verifies certificates against \
                      webpki-roots and will not connect over ws://. Set \
@@ -99,10 +106,14 @@ impl Config {
             }
         }
         if self.device_name.is_empty() || self.device_name.chars().count() > 64 {
-            return Err(AgentError::Config("deviceName must be 1..64 characters".into()));
+            return Err(AgentError::Config(
+                "deviceName must be 1..64 characters".into(),
+            ));
         }
         if !self.receive_root.is_absolute() {
-            return Err(AgentError::Config("receiveRoot must be an absolute path".into()));
+            return Err(AgentError::Config(
+                "receiveRoot must be an absolute path".into(),
+            ));
         }
         if self.shell.program.is_empty() {
             return Err(AgentError::Config("shell.program is empty".into()));
@@ -139,7 +150,10 @@ pub fn config_dir() -> PathBuf {
     if cfg!(windows) {
         match std::env::var_os("APPDATA") {
             Some(appdata) => PathBuf::from(appdata).join("TermyAgent"),
-            None => home_dir().join("AppData").join("Roaming").join("TermyAgent"),
+            None => home_dir()
+                .join("AppData")
+                .join("Roaming")
+                .join("TermyAgent"),
         }
     } else {
         match std::env::var_os("XDG_CONFIG_HOME").filter(|v| !v.is_empty()) {
@@ -230,8 +244,11 @@ mod tests {
         sample(dir.path()).save(&path).unwrap();
 
         let file_mode = std::fs::metadata(&path).unwrap().permissions().mode() & 0o777;
-        let dir_mode =
-            std::fs::metadata(path.parent().unwrap()).unwrap().permissions().mode() & 0o777;
+        let dir_mode = std::fs::metadata(path.parent().unwrap())
+            .unwrap()
+            .permissions()
+            .mode()
+            & 0o777;
 
         assert_eq!(file_mode, 0o600, "config holds the device token");
         assert_eq!(dir_mode, 0o700);
@@ -274,6 +291,9 @@ mod tests {
         assert!(broken.save(&path).is_err());
 
         // The original survives because validation runs before any write.
-        assert_eq!(Config::load(&path).unwrap().relay_url, "wss://relay.example.com/v1/agent/ws");
+        assert_eq!(
+            Config::load(&path).unwrap().relay_url,
+            "wss://relay.example.com/v1/agent/ws"
+        );
     }
 }
