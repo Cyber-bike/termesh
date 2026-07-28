@@ -1,0 +1,316 @@
+openapi: 3.1.0
+
+info:
+  title: Termy Remote MVP HTTPS API
+  version: '1.0.0'
+  description: |
+    云端 Relay 的 HTTPS 接口，对应技术方案第 6 章。WSS 通道不在本文件描述，
+    见 schema/control-envelope.schema.json 与 schema/messages/。
+
+    所有对象 additionalProperties: false；时间为 UTC RFC 3339；ID 为小写连字符 UUID。
+    成功状态只用 200 / 201 / 204，失败一律返回 Error 对象。
+
+servers:
+  - url: https://relay.example.com
+    description: 单节点部署，只暴露 443/tcp
+
+tags:
+  - name: auth
+    description: 账号登录。MVP 不开放注册，开户走服务端 termy-relay useradd。
+  - name: devices
+    description: 配对码、设备注册与设备管理。
+
+security:
+  - userAccessToken: []
+
+paths:
+  /v1/auth/login:
+    post:
+      tags: [auth]
+      summary: 登录并获取访问令牌
+      operationId: login
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '200':
+          description: 登录成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoginResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /v1/devices/pairing-codes:
+    post:
+      tags: [devices]
+      summary: 创建长期有效的一次性配对码
+      description: 配对码没有自动过期时间，正文只在此处返回一次。每账号最多 16 个未消费配对码。
+      operationId: createPairingCode
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/EmptyObject' }
+      responses:
+        '201':
+          description: 已创建
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/PairingCodeCreated' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /v1/devices/pairing-codes/{id}:
+    delete:
+      tags: [devices]
+      summary: 撤销未使用配对码
+      operationId: revokePairingCode
+      parameters:
+        - $ref: '#/components/parameters/PathId'
+      responses:
+        '204': { description: 已撤销，无正文 }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '409':
+          description: 配对码已被消费，无法撤销
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /v1/devices/register:
+    post:
+      tags: [devices]
+      summary: 消费配对码并换取设备令牌
+      description: |
+        只接受配对码，不接受用户令牌或设备令牌替代。服务端在单个事务内原子消费：
+        仅当 consumedAt IS NULL AND revokedAt IS NULL 时写入 consumedAt 并创建设备。
+        失败尝试不消费配对码。
+      operationId: registerDevice
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/DeviceRegisterRequest' }
+      responses:
+        '201':
+          description: 设备已绑定
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeviceRegisterResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '404':
+          description: 配对码不存在、已消费或已撤销
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/Error' }
+        '409': { $ref: '#/components/responses/Conflict' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /v1/devices:
+    get:
+      tags: [devices]
+      summary: 查询当前账号设备及在线状态
+      description: 插件按固定 15 s 间隔轮询，仅在远程模式且未连接时轮询。MVP 不分页。
+      operationId: listDevices
+      responses:
+        '200':
+          description: 设备列表
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/DeviceList' }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /v1/devices/{id}:
+    delete:
+      tags: [devices]
+      summary: 解绑设备
+      description: |
+        立即使该设备令牌失效：删除 Device 行、断开在线连接、结束进行中的 PTY 与传输，
+        并向该 Agent 发 close 4403。被解绑设备需要新配对码才能重新注册。
+      operationId: deleteDevice
+      parameters:
+        - $ref: '#/components/parameters/PathId'
+      responses:
+        '204': { description: 已解绑，无正文 }
+        '401': { $ref: '#/components/responses/Unauthorized' }
+        '403': { $ref: '#/components/responses/Forbidden' }
+        '404': { $ref: '#/components/responses/NotFound' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+components:
+  securitySchemes:
+    userAccessToken:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+      description: 15 分钟有效的用户访问令牌。MVP 不定义 refresh token。
+
+  parameters:
+    PathId:
+      name: id
+      in: path
+      required: true
+      schema: { $ref: './schema/common.schema.json#/$defs/Uuid' }
+
+  responses:
+    BadRequest:
+      description: Schema 校验失败
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Unauthorized:
+      description: 认证缺失、无效或过期
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Forbidden:
+      description: 对象不属于当前账号
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    NotFound:
+      description: 对象不存在
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    Conflict:
+      description: 状态冲突或超出配额
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    RateLimited:
+      description: 触发限流，阈值见方案 6.5
+      headers:
+        Retry-After:
+          required: true
+          description: 可重试前需等待的秒数
+          schema: { type: integer, minimum: 1 }
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+    InternalError:
+      description: 服务内部错误
+      content:
+        application/json:
+          schema: { $ref: '#/components/schemas/Error' }
+
+  schemas:
+    EmptyObject:
+      type: object
+      properties: {}
+      additionalProperties: false
+
+    Error:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code: { $ref: './schema/common.schema.json#/$defs/ErrorCode' }
+            message: { type: string, minLength: 1, maxLength: 512 }
+            requestId: { type: string, minLength: 1, maxLength: 64 }
+          required: [code, message, requestId]
+          additionalProperties: false
+      required: [error]
+      additionalProperties: false
+
+    LoginRequest:
+      type: object
+      properties:
+        login: { type: string, minLength: 1, maxLength: 254 }
+        password: { type: string, minLength: 8, maxLength: 1024 }
+      required: [login, password]
+      additionalProperties: false
+
+    LoginResponse:
+      type: object
+      properties:
+        accessToken: { type: string, minLength: 1 }
+        tokenType: { type: string, const: Bearer }
+        expiresIn: { type: integer, const: 900 }
+        user:
+          type: object
+          properties:
+            id: { $ref: './schema/common.schema.json#/$defs/Uuid' }
+            login: { type: string, minLength: 1, maxLength: 254 }
+          required: [id, login]
+          additionalProperties: false
+      required: [accessToken, tokenType, expiresIn, user]
+      additionalProperties: false
+
+    PairingCodeCreated:
+      type: object
+      properties:
+        pairingCodeId: { $ref: './schema/common.schema.json#/$defs/Uuid' }
+        pairingCode:
+          type: string
+          description: 160 bit 熵，27 字符无填充 Base64URL。只在此处返回一次。
+          pattern: '^[A-Za-z0-9_-]{27}$'
+        createdAt: { $ref: './schema/common.schema.json#/$defs/DateTime' }
+        revoked: { type: boolean, const: false }
+      required: [pairingCodeId, pairingCode, createdAt, revoked]
+      additionalProperties: false
+
+    DeviceRegisterRequest:
+      type: object
+      properties:
+        pairingCode: { type: string, pattern: '^[A-Za-z0-9_-]{27}$' }
+        deviceName: { type: string, minLength: 1, maxLength: 64 }
+        platform: { $ref: './schema/common.schema.json#/$defs/Platform' }
+        agentVersion: { $ref: './schema/common.schema.json#/$defs/Semver' }
+      required: [pairingCode, deviceName, platform, agentVersion]
+      additionalProperties: false
+
+    DeviceRegisterResponse:
+      type: object
+      properties:
+        deviceId: { $ref: './schema/common.schema.json#/$defs/Uuid' }
+        deviceToken:
+          type: string
+          description: 256 bit 随机 Base64URL，只在注册成功时返回。
+          pattern: '^[A-Za-z0-9_-]{43}$'
+        relayUrl: { type: string, format: uri, pattern: '^wss://' }
+      required: [deviceId, deviceToken, relayUrl]
+      additionalProperties: false
+
+    Device:
+      type: object
+      properties:
+        id: { $ref: './schema/common.schema.json#/$defs/Uuid' }
+        name: { type: string, minLength: 1, maxLength: 64 }
+        platform: { $ref: './schema/common.schema.json#/$defs/Platform' }
+        agentVersion: { $ref: './schema/common.schema.json#/$defs/Semver' }
+        online: { type: boolean }
+        lastSeenAt:
+          oneOf:
+            - { $ref: './schema/common.schema.json#/$defs/DateTime' }
+            - { type: 'null' }
+      required: [id, name, platform, agentVersion, online, lastSeenAt]
+      additionalProperties: false
+
+    DeviceList:
+      type: object
+      properties:
+        devices:
+          type: array
+          items: { $ref: '#/components/schemas/Device' }
+          maxItems: 32
+      required: [devices]
+      additionalProperties: false
