@@ -1698,13 +1698,14 @@ impl<'de> ::serde::Deserialize<'de> for Semver {
             })
     }
 }
-#[doc = "`ShellEventName`"]
+#[doc = "Mirrors Termy's local ShellEventType exactly, so the plugin can hand payload straight to its existing shell-event handler."]
 #[doc = r""]
 #[doc = r" <details><summary>JSON schema</summary>"]
 #[doc = r""]
 #[doc = r" ```json"]
 #[doc = "{"]
 #[doc = "  \"title\": \"ShellEventName\","]
+#[doc = "  \"description\": \"Mirrors Termy's local ShellEventType exactly, so the plugin can hand payload straight to its existing shell-event handler.\","]
 #[doc = "  \"type\": \"string\","]
 #[doc = "  \"enum\": ["]
 #[doc = "    \"prompt_start\","]
@@ -1774,6 +1775,80 @@ impl ::std::convert::TryFrom<&::std::string::String> for ShellEventName {
     }
 }
 impl ::std::convert::TryFrom<::std::string::String> for ShellEventName {
+    type Error = self::error::ConversionError;
+    fn try_from(
+        value: ::std::string::String,
+    ) -> ::std::result::Result<Self, self::error::ConversionError> {
+        value.parse()
+    }
+}
+#[doc = "Which shell-integration sequence produced the event, mirroring Termy's local ShellEventSource."]
+#[doc = r""]
+#[doc = r" <details><summary>JSON schema</summary>"]
+#[doc = r""]
+#[doc = r" ```json"]
+#[doc = "{"]
+#[doc = "  \"title\": \"ShellEventSource\","]
+#[doc = "  \"description\": \"Which shell-integration sequence produced the event, mirroring Termy's local ShellEventSource.\","]
+#[doc = "  \"type\": \"string\","]
+#[doc = "  \"enum\": ["]
+#[doc = "    \"osc133\","]
+#[doc = "    \"osc633\""]
+#[doc = "  ]"]
+#[doc = "}"]
+#[doc = r" ```"]
+#[doc = r" </details>"]
+#[derive(
+    :: serde :: Deserialize,
+    :: serde :: Serialize,
+    Clone,
+    Copy,
+    Debug,
+    Eq,
+    Hash,
+    Ord,
+    PartialEq,
+    PartialOrd,
+)]
+pub enum ShellEventSource {
+    #[serde(rename = "osc133")]
+    Osc133,
+    #[serde(rename = "osc633")]
+    Osc633,
+}
+impl ::std::fmt::Display for ShellEventSource {
+    fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
+        match *self {
+            Self::Osc133 => f.write_str("osc133"),
+            Self::Osc633 => f.write_str("osc633"),
+        }
+    }
+}
+impl ::std::str::FromStr for ShellEventSource {
+    type Err = self::error::ConversionError;
+    fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+        match value {
+            "osc133" => Ok(Self::Osc133),
+            "osc633" => Ok(Self::Osc633),
+            _ => Err("invalid value".into()),
+        }
+    }
+}
+impl ::std::convert::TryFrom<&str> for ShellEventSource {
+    type Error = self::error::ConversionError;
+    fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+        value.parse()
+    }
+}
+impl ::std::convert::TryFrom<&::std::string::String> for ShellEventSource {
+    type Error = self::error::ConversionError;
+    fn try_from(
+        value: &::std::string::String,
+    ) -> ::std::result::Result<Self, self::error::ConversionError> {
+        value.parse()
+    }
+}
+impl ::std::convert::TryFrom<::std::string::String> for ShellEventSource {
     type Error = self::error::ConversionError;
     fn try_from(
         value: ::std::string::String,
@@ -3149,14 +3224,14 @@ impl ::std::convert::TryFrom<::std::string::String> for TerminalResizeMessageTyp
         value.parse()
     }
 }
-#[doc = "Shell integration events produced by the Agent's port of rust-servers/src/pty/osc_scanner.rs. Mirrors the local ShellEvent so remote mode keeps cwd tracking and command boundaries (doc 5.2, 7.1)."]
+#[doc = "Shell integration events produced by the Agent's port of rust-servers/src/pty/osc_scanner.rs. The payload is shape-identical to Termy's local ShellEvent so the plugin can forward it to the existing handler unchanged. cwd is deliberately absent: the plugin derives it by parsing the xterm buffer (extractCwdFromPromptLines), and the terminal output bytes that parsing needs are forwarded verbatim, so cwd tracking already works in remote mode without protocol support."]
 #[doc = r""]
 #[doc = r" <details><summary>JSON schema</summary>"]
 #[doc = r""]
 #[doc = r" ```json"]
 #[doc = "{"]
 #[doc = "  \"title\": \"TerminalShellEventMessage\","]
-#[doc = "  \"description\": \"Shell integration events produced by the Agent's port of rust-servers/src/pty/osc_scanner.rs. Mirrors the local ShellEvent so remote mode keeps cwd tracking and command boundaries (doc 5.2, 7.1).\","]
+#[doc = "  \"description\": \"Shell integration events produced by the Agent's port of rust-servers/src/pty/osc_scanner.rs. The payload is shape-identical to Termy's local ShellEvent so the plugin can forward it to the existing handler unchanged. cwd is deliberately absent: the plugin derives it by parsing the xterm buffer (extractCwdFromPromptLines), and the terminal output bytes that parsing needs are forwarded verbatim, so cwd tracking already works in remote mode without protocol support.\","]
 #[doc = "  \"type\": \"object\","]
 #[doc = "  \"required\": ["]
 #[doc = "    \"deviceId\","]
@@ -3173,26 +3248,11 @@ impl ::std::convert::TryFrom<::std::string::String> for TerminalResizeMessageTyp
 #[doc = "    \"payload\": {"]
 #[doc = "      \"type\": \"object\","]
 #[doc = "      \"required\": ["]
-#[doc = "        \"cwd\","]
-#[doc = "        \"event\","]
 #[doc = "        \"exitCode\","]
-#[doc = "        \"source\""]
+#[doc = "        \"source\","]
+#[doc = "        \"type\""]
 #[doc = "      ],"]
 #[doc = "      \"properties\": {"]
-#[doc = "        \"cwd\": {"]
-#[doc = "          \"oneOf\": ["]
-#[doc = "            {"]
-#[doc = "              \"type\": \"string\","]
-#[doc = "              \"maxLength\": 4096"]
-#[doc = "            },"]
-#[doc = "            {"]
-#[doc = "              \"type\": \"null\""]
-#[doc = "            }"]
-#[doc = "          ]"]
-#[doc = "        },"]
-#[doc = "        \"event\": {"]
-#[doc = "          \"$ref\": \"#/$defs/ShellEventName\""]
-#[doc = "        },"]
 #[doc = "        \"exitCode\": {"]
 #[doc = "          \"oneOf\": ["]
 #[doc = "            {"]
@@ -3206,9 +3266,10 @@ impl ::std::convert::TryFrom<::std::string::String> for TerminalResizeMessageTyp
 #[doc = "          ]"]
 #[doc = "        },"]
 #[doc = "        \"source\": {"]
-#[doc = "          \"type\": \"string\","]
-#[doc = "          \"maxLength\": 32,"]
-#[doc = "          \"minLength\": 1"]
+#[doc = "          \"$ref\": \"#/$defs/ShellEventSource\""]
+#[doc = "        },"]
+#[doc = "        \"type\": {"]
+#[doc = "          \"$ref\": \"#/$defs/ShellEventName\""]
 #[doc = "        }"]
 #[doc = "      },"]
 #[doc = "      \"additionalProperties\": false"]
@@ -3263,26 +3324,11 @@ impl TerminalShellEventMessage {
 #[doc = "{"]
 #[doc = "  \"type\": \"object\","]
 #[doc = "  \"required\": ["]
-#[doc = "    \"cwd\","]
-#[doc = "    \"event\","]
 #[doc = "    \"exitCode\","]
-#[doc = "    \"source\""]
+#[doc = "    \"source\","]
+#[doc = "    \"type\""]
 #[doc = "  ],"]
 #[doc = "  \"properties\": {"]
-#[doc = "    \"cwd\": {"]
-#[doc = "      \"oneOf\": ["]
-#[doc = "        {"]
-#[doc = "          \"type\": \"string\","]
-#[doc = "          \"maxLength\": 4096"]
-#[doc = "        },"]
-#[doc = "        {"]
-#[doc = "          \"type\": \"null\""]
-#[doc = "        }"]
-#[doc = "      ]"]
-#[doc = "    },"]
-#[doc = "    \"event\": {"]
-#[doc = "      \"$ref\": \"#/$defs/ShellEventName\""]
-#[doc = "    },"]
 #[doc = "    \"exitCode\": {"]
 #[doc = "      \"oneOf\": ["]
 #[doc = "        {"]
@@ -3296,9 +3342,10 @@ impl TerminalShellEventMessage {
 #[doc = "      ]"]
 #[doc = "    },"]
 #[doc = "    \"source\": {"]
-#[doc = "      \"type\": \"string\","]
-#[doc = "      \"maxLength\": 32,"]
-#[doc = "      \"minLength\": 1"]
+#[doc = "      \"$ref\": \"#/$defs/ShellEventSource\""]
+#[doc = "    },"]
+#[doc = "    \"type\": {"]
+#[doc = "      \"$ref\": \"#/$defs/ShellEventName\""]
 #[doc = "    }"]
 #[doc = "  },"]
 #[doc = "  \"additionalProperties\": false"]
@@ -3308,155 +3355,15 @@ impl TerminalShellEventMessage {
 #[derive(:: serde :: Deserialize, :: serde :: Serialize, Clone, Debug)]
 #[serde(deny_unknown_fields)]
 pub struct TerminalShellEventMessagePayload {
-    pub cwd: ::std::option::Option<TerminalShellEventMessagePayloadCwd>,
-    pub event: ShellEventName,
     #[serde(rename = "exitCode")]
     pub exit_code: ::std::option::Option<i32>,
-    pub source: TerminalShellEventMessagePayloadSource,
+    pub source: ShellEventSource,
+    #[serde(rename = "type")]
+    pub type_: ShellEventName,
 }
 impl TerminalShellEventMessagePayload {
     pub fn builder() -> builder::TerminalShellEventMessagePayload {
         Default::default()
-    }
-}
-#[doc = "`TerminalShellEventMessagePayloadCwd`"]
-#[doc = r""]
-#[doc = r" <details><summary>JSON schema</summary>"]
-#[doc = r""]
-#[doc = r" ```json"]
-#[doc = "{"]
-#[doc = "  \"type\": \"string\","]
-#[doc = "  \"maxLength\": 4096"]
-#[doc = "}"]
-#[doc = r" ```"]
-#[doc = r" </details>"]
-#[derive(:: serde :: Serialize, Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-#[serde(transparent)]
-pub struct TerminalShellEventMessagePayloadCwd(::std::string::String);
-impl ::std::ops::Deref for TerminalShellEventMessagePayloadCwd {
-    type Target = ::std::string::String;
-    fn deref(&self) -> &::std::string::String {
-        &self.0
-    }
-}
-impl ::std::convert::From<TerminalShellEventMessagePayloadCwd> for ::std::string::String {
-    fn from(value: TerminalShellEventMessagePayloadCwd) -> Self {
-        value.0
-    }
-}
-impl ::std::str::FromStr for TerminalShellEventMessagePayloadCwd {
-    type Err = self::error::ConversionError;
-    fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
-        if value.chars().count() > 4096usize {
-            return Err("longer than 4096 characters".into());
-        }
-        Ok(Self(value.to_string()))
-    }
-}
-impl ::std::convert::TryFrom<&str> for TerminalShellEventMessagePayloadCwd {
-    type Error = self::error::ConversionError;
-    fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
-        value.parse()
-    }
-}
-impl ::std::convert::TryFrom<&::std::string::String> for TerminalShellEventMessagePayloadCwd {
-    type Error = self::error::ConversionError;
-    fn try_from(
-        value: &::std::string::String,
-    ) -> ::std::result::Result<Self, self::error::ConversionError> {
-        value.parse()
-    }
-}
-impl ::std::convert::TryFrom<::std::string::String> for TerminalShellEventMessagePayloadCwd {
-    type Error = self::error::ConversionError;
-    fn try_from(
-        value: ::std::string::String,
-    ) -> ::std::result::Result<Self, self::error::ConversionError> {
-        value.parse()
-    }
-}
-impl<'de> ::serde::Deserialize<'de> for TerminalShellEventMessagePayloadCwd {
-    fn deserialize<D>(deserializer: D) -> ::std::result::Result<Self, D::Error>
-    where
-        D: ::serde::Deserializer<'de>,
-    {
-        ::std::string::String::deserialize(deserializer)?
-            .parse()
-            .map_err(|e: self::error::ConversionError| {
-                <D::Error as ::serde::de::Error>::custom(e.to_string())
-            })
-    }
-}
-#[doc = "`TerminalShellEventMessagePayloadSource`"]
-#[doc = r""]
-#[doc = r" <details><summary>JSON schema</summary>"]
-#[doc = r""]
-#[doc = r" ```json"]
-#[doc = "{"]
-#[doc = "  \"type\": \"string\","]
-#[doc = "  \"maxLength\": 32,"]
-#[doc = "  \"minLength\": 1"]
-#[doc = "}"]
-#[doc = r" ```"]
-#[doc = r" </details>"]
-#[derive(:: serde :: Serialize, Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
-#[serde(transparent)]
-pub struct TerminalShellEventMessagePayloadSource(::std::string::String);
-impl ::std::ops::Deref for TerminalShellEventMessagePayloadSource {
-    type Target = ::std::string::String;
-    fn deref(&self) -> &::std::string::String {
-        &self.0
-    }
-}
-impl ::std::convert::From<TerminalShellEventMessagePayloadSource> for ::std::string::String {
-    fn from(value: TerminalShellEventMessagePayloadSource) -> Self {
-        value.0
-    }
-}
-impl ::std::str::FromStr for TerminalShellEventMessagePayloadSource {
-    type Err = self::error::ConversionError;
-    fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
-        if value.chars().count() > 32usize {
-            return Err("longer than 32 characters".into());
-        }
-        if value.chars().count() < 1usize {
-            return Err("shorter than 1 characters".into());
-        }
-        Ok(Self(value.to_string()))
-    }
-}
-impl ::std::convert::TryFrom<&str> for TerminalShellEventMessagePayloadSource {
-    type Error = self::error::ConversionError;
-    fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
-        value.parse()
-    }
-}
-impl ::std::convert::TryFrom<&::std::string::String> for TerminalShellEventMessagePayloadSource {
-    type Error = self::error::ConversionError;
-    fn try_from(
-        value: &::std::string::String,
-    ) -> ::std::result::Result<Self, self::error::ConversionError> {
-        value.parse()
-    }
-}
-impl ::std::convert::TryFrom<::std::string::String> for TerminalShellEventMessagePayloadSource {
-    type Error = self::error::ConversionError;
-    fn try_from(
-        value: ::std::string::String,
-    ) -> ::std::result::Result<Self, self::error::ConversionError> {
-        value.parse()
-    }
-}
-impl<'de> ::serde::Deserialize<'de> for TerminalShellEventMessagePayloadSource {
-    fn deserialize<D>(deserializer: D) -> ::std::result::Result<Self, D::Error>
-    where
-        D: ::serde::Deserializer<'de>,
-    {
-        ::std::string::String::deserialize(deserializer)?
-            .parse()
-            .map_err(|e: self::error::ConversionError| {
-                <D::Error as ::serde::de::Error>::custom(e.to_string())
-            })
     }
 }
 #[doc = "`TerminalShellEventMessageProtocolVersion`"]
@@ -6911,50 +6818,20 @@ pub mod builder {
     }
     #[derive(Clone, Debug)]
     pub struct TerminalShellEventMessagePayload {
-        cwd: ::std::result::Result<
-            ::std::option::Option<super::TerminalShellEventMessagePayloadCwd>,
-            ::std::string::String,
-        >,
-        event: ::std::result::Result<super::ShellEventName, ::std::string::String>,
         exit_code: ::std::result::Result<::std::option::Option<i32>, ::std::string::String>,
-        source: ::std::result::Result<
-            super::TerminalShellEventMessagePayloadSource,
-            ::std::string::String,
-        >,
+        source: ::std::result::Result<super::ShellEventSource, ::std::string::String>,
+        type_: ::std::result::Result<super::ShellEventName, ::std::string::String>,
     }
     impl ::std::default::Default for TerminalShellEventMessagePayload {
         fn default() -> Self {
             Self {
-                cwd: Err("no value supplied for cwd".to_string()),
-                event: Err("no value supplied for event".to_string()),
                 exit_code: Err("no value supplied for exit_code".to_string()),
                 source: Err("no value supplied for source".to_string()),
+                type_: Err("no value supplied for type_".to_string()),
             }
         }
     }
     impl TerminalShellEventMessagePayload {
-        pub fn cwd<T>(mut self, value: T) -> Self
-        where
-            T: ::std::convert::TryInto<
-                ::std::option::Option<super::TerminalShellEventMessagePayloadCwd>,
-            >,
-            T::Error: ::std::fmt::Display,
-        {
-            self.cwd = value
-                .try_into()
-                .map_err(|e| format!("error converting supplied value for cwd: {e}"));
-            self
-        }
-        pub fn event<T>(mut self, value: T) -> Self
-        where
-            T: ::std::convert::TryInto<super::ShellEventName>,
-            T::Error: ::std::fmt::Display,
-        {
-            self.event = value
-                .try_into()
-                .map_err(|e| format!("error converting supplied value for event: {e}"));
-            self
-        }
         pub fn exit_code<T>(mut self, value: T) -> Self
         where
             T: ::std::convert::TryInto<::std::option::Option<i32>>,
@@ -6967,12 +6844,22 @@ pub mod builder {
         }
         pub fn source<T>(mut self, value: T) -> Self
         where
-            T: ::std::convert::TryInto<super::TerminalShellEventMessagePayloadSource>,
+            T: ::std::convert::TryInto<super::ShellEventSource>,
             T::Error: ::std::fmt::Display,
         {
             self.source = value
                 .try_into()
                 .map_err(|e| format!("error converting supplied value for source: {e}"));
+            self
+        }
+        pub fn type_<T>(mut self, value: T) -> Self
+        where
+            T: ::std::convert::TryInto<super::ShellEventName>,
+            T::Error: ::std::fmt::Display,
+        {
+            self.type_ = value
+                .try_into()
+                .map_err(|e| format!("error converting supplied value for type_: {e}"));
             self
         }
     }
@@ -6984,10 +6871,9 @@ pub mod builder {
             value: TerminalShellEventMessagePayload,
         ) -> ::std::result::Result<Self, super::error::ConversionError> {
             Ok(Self {
-                cwd: value.cwd?,
-                event: value.event?,
                 exit_code: value.exit_code?,
                 source: value.source?,
+                type_: value.type_?,
             })
         }
     }
@@ -6996,10 +6882,9 @@ pub mod builder {
     {
         fn from(value: super::TerminalShellEventMessagePayload) -> Self {
             Self {
-                cwd: Ok(value.cwd),
-                event: Ok(value.event),
                 exit_code: Ok(value.exit_code),
                 source: Ok(value.source),
+                type_: Ok(value.type_),
             }
         }
     }

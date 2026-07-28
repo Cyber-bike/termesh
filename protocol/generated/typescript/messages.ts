@@ -183,7 +183,7 @@ export interface TerminalResizeMessage {
 }
 
 /**
- * Shell integration events produced by the Agent's port of rust-servers/src/pty/osc_scanner.rs. Mirrors the local ShellEvent so remote mode keeps cwd tracking and command boundaries (doc 5.2, 7.1).
+ * Shell integration events produced by the Agent's port of rust-servers/src/pty/osc_scanner.rs. The payload is shape-identical to Termy's local ShellEvent so the plugin can forward it to the existing handler unchanged. cwd is deliberately absent: the plugin derives it by parsing the xterm buffer (extractCwdFromPromptLines), and the terminal output bytes that parsing needs are forwarded verbatim, so cwd tracking already works in remote mode without protocol support.
  */
 export interface TerminalShellEventMessage {
   protocolVersion: 1;
@@ -198,10 +198,15 @@ export interface TerminalShellEventMessage {
    */
   sessionId: string;
   payload: {
-    event: 'prompt_start' | 'command_start' | 'command_executed' | 'command_end';
-    source: string;
+    /**
+     * Mirrors Termy's local ShellEventType exactly, so the plugin can hand payload straight to its existing shell-event handler.
+     */
+    type: 'prompt_start' | 'command_start' | 'command_executed' | 'command_end';
+    /**
+     * Which shell-integration sequence produced the event, mirroring Termy's local ShellEventSource.
+     */
+    source: 'osc133' | 'osc633';
     exitCode: number | null;
-    cwd: string | null;
   };
 }
 

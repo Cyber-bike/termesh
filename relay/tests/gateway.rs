@@ -423,13 +423,14 @@ async fn a_terminal_session_routes_end_to_end() {
             "requestId": null,
             "deviceId": device_id.to_string(),
             "sessionId": session_id.to_string(),
-            "payload": { "event": "command_end", "source": "osc133", "exitCode": 0, "cwd": "/home/user" }
+            "payload": { "type": "command_end", "source": "osc133", "exitCode": 0 }
         }),
     )
     .await;
     let event = recv_json(&mut control).await;
     assert_eq!(event["type"], "terminal.shellEvent");
-    assert_eq!(event["payload"]["cwd"], "/home/user");
+    assert_eq!(event["payload"]["type"], "command_end");
+    assert_eq!(event["payload"]["source"], "osc133");
 }
 
 #[tokio::test]

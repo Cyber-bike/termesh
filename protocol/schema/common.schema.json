@@ -10,8 +10,12 @@
     },
     "UuidOrNull": {
       "oneOf": [
-        { "$ref": "#/$defs/Uuid" },
-        { "type": "null" }
+        {
+          "$ref": "#/$defs/Uuid"
+        },
+        {
+          "type": "null"
+        }
       ]
     },
     "DateTime": {
@@ -25,11 +29,17 @@
     },
     "Platform": {
       "type": "string",
-      "enum": ["windows-x64", "ubuntu-x64"]
+      "enum": [
+        "windows-x64",
+        "ubuntu-x64"
+      ]
     },
     "Capability": {
       "type": "string",
-      "enum": ["terminal", "file-transfer"]
+      "enum": [
+        "terminal",
+        "file-transfer"
+      ]
     },
     "ErrorCode": {
       "type": "string",
@@ -83,20 +93,49 @@
     "FileEntry": {
       "type": "object",
       "properties": {
-        "index": { "$ref": "#/$defs/FileIndex" },
-        "relativePath": { "$ref": "#/$defs/SafeRelativePath" },
-        "size": { "$ref": "#/$defs/FileSize" }
+        "index": {
+          "$ref": "#/$defs/FileIndex"
+        },
+        "relativePath": {
+          "$ref": "#/$defs/SafeRelativePath"
+        },
+        "size": {
+          "$ref": "#/$defs/FileSize"
+        }
       },
-      "required": ["index", "relativePath", "size"],
+      "required": [
+        "index",
+        "relativePath",
+        "size"
+      ],
       "additionalProperties": false
     },
     "ShellEventName": {
       "type": "string",
-      "enum": ["prompt_start", "command_start", "command_executed", "command_end"]
+      "enum": [
+        "prompt_start",
+        "command_start",
+        "command_executed",
+        "command_end"
+      ],
+      "description": "Mirrors Termy's local ShellEventType exactly, so the plugin can hand payload straight to its existing shell-event handler."
     },
     "TerminalCloseReason": {
       "type": "string",
-      "enum": ["user", "peer_disconnected", "shell_exited", "error"]
+      "enum": [
+        "user",
+        "peer_disconnected",
+        "shell_exited",
+        "error"
+      ]
+    },
+    "ShellEventSource": {
+      "type": "string",
+      "enum": [
+        "osc133",
+        "osc633"
+      ],
+      "description": "Which shell-integration sequence produced the event, mirroring Termy's local ShellEventSource."
     }
   }
 }
