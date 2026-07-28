@@ -8,10 +8,12 @@
     "validate": "node tools/validate.js",
     "validate:openapi": "node tools/validate-openapi.js",
     "frames": "node tools/frame-codec.test.js",
-    "generate": "node tools/generate-typescript.js",
+    "generate": "node tools/generate-typescript.js && node tools/generate-rust.js",
     "generate:check": "node tools/generate-typescript.js && git diff --exit-code -- generated/",
     "typecheck": "node tools/typecheck-fixtures.js",
-    "test": "node tools/validate.js && node tools/validate-openapi.js && node tools/frame-codec.test.js && node tools/generate-typescript.js && node tools/typecheck-fixtures.js"
+    "test": "node tools/validate.js && node tools/validate-openapi.js && node tools/frame-codec.test.js && node tools/generate-typescript.js && node tools/typecheck-fixtures.js",
+    "bundle": "node tools/bundle-schema.js",
+    "generate:rust": "node tools/generate-rust.js"
   },
   "dependencies": {
     "ajv": "8.17.1",

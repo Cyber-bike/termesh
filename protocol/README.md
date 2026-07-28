@@ -65,6 +65,14 @@ npm install && npm test
 
 `SafeRelativePath` 的正则挡住：绝对路径、`C:` 盘符、反斜杠、`..` 段、`.` 段、空段（`//`）、结尾 `/`、NUL。**Windows 保留设备名（`CON`、`NUL`、`AUX` 等）、尾随点和空格、大小写冲突不在此处**——它们依赖目标平台，按方案 10.3 属于 Agent 落盘前的最终校验。
 
+### Rust 侧为什么还要跑一遍 Schema 校验
+
+typify 只把 Schema 的一部分表达进类型系统。实测发现：`Cols` 的 `minimum: 1` 被映射成 `NonZeroU64`，但 **`maximum: 1000` 被直接丢弃**。后果是 `serde_json::from_str::<ControlMessage>` 会欣然接受 `cols: 99999`，而 Node 侧 ajv 拒绝——同一份 fixture 两端结论不一致。这是跨端 fixture 套件抓出来的，不是推测。
+
+手写一份边界检查能补上，但会与 Schema 漂移。改用 `generated/rust/src/validate.rs`：把 bundle 后的 Schema 用 `include_str!` 嵌进 crate，运行时用 `jsonschema` crate 做 Draft 2020-12 校验，与 Node 用同一份文档，参差由构造消除而非靠人工同步。控制帧上限 64 KiB 且频率低（正文走二进制帧），这点开销可接受。
+
+调用 `parse_validated(raw)` 而非裸 `serde_json::from_str`。`tests/fixtures.rs` 里的 `serde_alone_misses_numeric_upper_bounds` 反过来盯着这条：哪天 typify 开始生成上界，该测试会失败，提示这层可以重新评估。
+
 ### 帧向量
 
 `fixtures/frames/*.hex` 每个文件两行注释加一行 hex，`index.json` 汇总期望。Rust 侧解码器必须对同一组向量给出相同的接受/拒绝结论。`OffsetTracker` 实现 8.5 的分级校验：文件帧偏移不连续为致命错误，终端帧只报告。
