@@ -1,0 +1,12 @@
+{
+  "protocolVersion": 1,
+  "type": "agent.hello",
+  "requestId": "8f14e45f-ceea-467a-9f0b-1c2d3e4f5a6b",
+  "deviceId": "3d594650-3436-4c7a-9a15-9b5c3f0f4a11",
+  "sessionId": null,
+  "payload": {
+    "agentVersion": "1.0.0",
+    "platform": "ubuntu-x64",
+    "capabilities": ["terminal", "file-transfer"]
+  }
+}

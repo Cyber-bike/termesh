@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://termy.dev/protocol/1/messages/agent.helloAck.schema.json",
+  "title": "agent.helloAck (Relay -> Agent)",
+  "$ref": "../control-envelope.schema.json",
+  "type": "object",
+  "properties": {
+    "type": { "const": "agent.helloAck" },
+    "requestId": { "$ref": "../common.schema.json#/$defs/Uuid" },
+    "sessionId": { "type": "null" },
+    "payload": {
+      "type": "object",
+      "properties": {
+        "serverTime": { "$ref": "../common.schema.json#/$defs/DateTime" },
+        "heartbeatIntervalMs": { "type": "integer", "const": 20000 }
+      },
+      "required": ["serverTime", "heartbeatIntervalMs"],
+      "additionalProperties": false
+    }
+  },
+  "unevaluatedProperties": false
+}

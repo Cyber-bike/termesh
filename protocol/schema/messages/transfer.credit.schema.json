@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://termy.dev/protocol/1/messages/transfer.credit.schema.json",
+  "title": "transfer.credit (Agent -> Plugin)",
+  "description": "Credit top-up, sent after every 1 MiB flushed to disk. grantedBytes is the CUMULATIVE authorisation for the whole transfer and must increase monotonically; the receiver keeps the maximum it has seen. Upper bound is the 256 MiB per-transfer cap.",
+  "$ref": "../control-envelope.schema.json",
+  "type": "object",
+  "properties": {
+    "type": { "const": "transfer.credit" },
+    "requestId": { "type": "null" },
+    "sessionId": { "type": "null" },
+    "payload": {
+      "type": "object",
+      "properties": {
+        "transferId": { "$ref": "../common.schema.json#/$defs/Uuid" },
+        "grantedBytes": {
+          "type": "integer",
+          "minimum": 262144,
+          "maximum": 268435456
+        }
+      },
+      "required": ["transferId", "grantedBytes"],
+      "additionalProperties": false
+    }
+  },
+  "unevaluatedProperties": false
+}

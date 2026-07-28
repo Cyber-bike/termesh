@@ -1,0 +1,12 @@
+{
+  "protocolVersion": 1,
+  "type": "transfer.fileEnd",
+  "requestId": null,
+  "deviceId": "3d594650-3436-4c7a-9a15-9b5c3f0f4a11",
+  "sessionId": null,
+  "payload": {
+    "transferId": "e2f3a4b5-c6d7-4e8f-9a0b-1c2d3e4f5a6b",
+    "fileIndex": 2,
+    "sentSize": 0
+  }
+}

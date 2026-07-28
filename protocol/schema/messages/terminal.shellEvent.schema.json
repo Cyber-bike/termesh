@@ -1,0 +1,35 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://termy.dev/protocol/1/messages/terminal.shellEvent.schema.json",
+  "title": "terminal.shellEvent (Agent -> Plugin)",
+  "description": "Shell integration events produced by the Agent's port of rust-servers/src/pty/osc_scanner.rs. Mirrors the local ShellEvent so remote mode keeps cwd tracking and command boundaries (doc 5.2, 7.1).",
+  "$ref": "../control-envelope.schema.json",
+  "type": "object",
+  "properties": {
+    "type": { "const": "terminal.shellEvent" },
+    "requestId": { "type": "null" },
+    "sessionId": { "$ref": "../common.schema.json#/$defs/Uuid" },
+    "payload": {
+      "type": "object",
+      "properties": {
+        "event": { "$ref": "../common.schema.json#/$defs/ShellEventName" },
+        "source": { "type": "string", "minLength": 1, "maxLength": 32 },
+        "exitCode": {
+          "oneOf": [
+            { "type": "integer", "minimum": -2147483648, "maximum": 2147483647 },
+            { "type": "null" }
+          ]
+        },
+        "cwd": {
+          "oneOf": [
+            { "type": "string", "maxLength": 4096 },
+            { "type": "null" }
+          ]
+        }
+      },
+      "required": ["event", "source", "exitCode", "cwd"],
+      "additionalProperties": false
+    }
+  },
+  "unevaluatedProperties": false
+}

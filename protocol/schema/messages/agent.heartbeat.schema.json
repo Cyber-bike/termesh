@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://termy.dev/protocol/1/messages/agent.heartbeat.schema.json",
+  "title": "agent.heartbeat (Agent -> Relay)",
+  "description": "payload.timestamp is diagnostic only. Online/offline decisions use the server monotonic clock (doc 11.1).",
+  "$ref": "../control-envelope.schema.json",
+  "type": "object",
+  "properties": {
+    "type": { "const": "agent.heartbeat" },
+    "requestId": { "type": "null" },
+    "sessionId": { "type": "null" },
+    "payload": {
+      "type": "object",
+      "properties": {
+        "timestamp": { "$ref": "../common.schema.json#/$defs/DateTime" }
+      },
+      "required": ["timestamp"],
+      "additionalProperties": false
+    }
+  },
+  "unevaluatedProperties": false
+}

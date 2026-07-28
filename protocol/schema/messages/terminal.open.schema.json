@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://termy.dev/protocol/1/messages/terminal.open.schema.json",
+  "title": "terminal.open (Plugin -> Agent)",
+  "$ref": "../control-envelope.schema.json",
+  "type": "object",
+  "properties": {
+    "type": { "const": "terminal.open" },
+    "requestId": { "$ref": "../common.schema.json#/$defs/Uuid" },
+    "sessionId": { "type": "null" },
+    "payload": {
+      "type": "object",
+      "properties": {
+        "cols": { "$ref": "../common.schema.json#/$defs/Cols" },
+        "rows": { "$ref": "../common.schema.json#/$defs/Rows" }
+      },
+      "required": ["cols", "rows"],
+      "additionalProperties": false
+    }
+  },
+  "unevaluatedProperties": false
+}

@@ -1,0 +1,102 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://termy.dev/protocol/1/common.schema.json",
+  "title": "Termy remote protocol common definitions",
+  "$defs": {
+    "Uuid": {
+      "type": "string",
+      "pattern": "^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$",
+      "description": "Lowercase hyphenated UUID."
+    },
+    "UuidOrNull": {
+      "oneOf": [
+        { "$ref": "#/$defs/Uuid" },
+        { "type": "null" }
+      ]
+    },
+    "DateTime": {
+      "type": "string",
+      "format": "date-time",
+      "description": "UTC RFC 3339 timestamp."
+    },
+    "Semver": {
+      "type": "string",
+      "pattern": "^(0|[1-9]\\d*)\\.(0|[1-9]\\d*)\\.(0|[1-9]\\d*)(?:-[0-9A-Za-z-.]+)?(?:\\+[0-9A-Za-z-.]+)?$"
+    },
+    "Platform": {
+      "type": "string",
+      "enum": ["windows-x64", "ubuntu-x64"]
+    },
+    "Capability": {
+      "type": "string",
+      "enum": ["terminal", "file-transfer"]
+    },
+    "ErrorCode": {
+      "type": "string",
+      "enum": [
+        "AUTH_EXPIRED",
+        "PAIRING_CODE_INVALID",
+        "DEVICE_FORBIDDEN",
+        "DEVICE_OFFLINE",
+        "DEVICE_BUSY",
+        "SHELL_START_FAILED",
+        "RELAY_DISCONNECTED",
+        "INVALID_DROP",
+        "INVALID_PATH",
+        "WRITE_FAILED",
+        "TRANSFER_FAILED",
+        "QUOTA_EXCEEDED",
+        "RATE_LIMITED",
+        "BACKPRESSURE_LIMIT",
+        "SESSION_TIMEOUT",
+        "PROTOCOL_ERROR"
+      ]
+    },
+    "SafeRelativePath": {
+      "type": "string",
+      "minLength": 1,
+      "maxLength": 1024,
+      "description": "Vault-relative path. Always '/'-separated. Structural safety (no '..', no drive letter, no UNC root, no absolute form, no empty segment, no NUL) is enforced in code per doc 10.3; maxLength here counts UTF-16 code units and is an upper bound only, the 1024-byte UTF-8 limit is enforced in code.",
+      "pattern": "^(?!/)(?![A-Za-z]:)(?!.*\\\\)(?!.*//)(?!.*(^|/)\\.\\.(/|$))(?!.*(^|/)\\.(/|$))[^\\u0000]*[^\\u0000/]$"
+    },
+    "Cols": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 1000
+    },
+    "Rows": {
+      "type": "integer",
+      "minimum": 1,
+      "maximum": 500
+    },
+    "FileIndex": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 255
+    },
+    "FileSize": {
+      "type": "integer",
+      "minimum": 0,
+      "maximum": 67108864,
+      "description": "Per-file byte limit, 64 MiB (doc 4.12 / 8.4)."
+    },
+    "FileEntry": {
+      "type": "object",
+      "properties": {
+        "index": { "$ref": "#/$defs/FileIndex" },
+        "relativePath": { "$ref": "#/$defs/SafeRelativePath" },
+        "size": { "$ref": "#/$defs/FileSize" }
+      },
+      "required": ["index", "relativePath", "size"],
+      "additionalProperties": false
+    },
+    "ShellEventName": {
+      "type": "string",
+      "enum": ["prompt_start", "command_start", "command_executed", "command_end"]
+    },
+    "TerminalCloseReason": {
+      "type": "string",
+      "enum": ["user", "peer_disconnected", "shell_exited", "error"]
+    }
+  }
+}

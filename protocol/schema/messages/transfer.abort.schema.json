@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://termy.dev/protocol/1/messages/transfer.abort.schema.json",
+  "title": "transfer.abort (Plugin -> Agent)",
+  "description": "Plugin-side abort: read failure, user cancel, or leaving remote mode. The Agent stops accepting frames for this transferId, closes the open file handle and replies transfer.result with success=false. Partial files may remain.",
+  "$ref": "../control-envelope.schema.json",
+  "type": "object",
+  "properties": {
+    "type": { "const": "transfer.abort" },
+    "requestId": { "type": "null" },
+    "sessionId": { "type": "null" },
+    "payload": {
+      "type": "object",
+      "properties": {
+        "transferId": { "$ref": "../common.schema.json#/$defs/Uuid" },
+        "code": { "$ref": "../common.schema.json#/$defs/ErrorCode" }
+      },
+      "required": ["transferId", "code"],
+      "additionalProperties": false
+    }
+  },
+  "unevaluatedProperties": false
+}

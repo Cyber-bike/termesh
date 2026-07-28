@@ -1,0 +1,39 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://termy.dev/protocol/1/control-envelope.schema.json",
+  "title": "Termy control message envelope",
+  "description": "Base envelope per doc 8.3. This schema is intentionally open at the top level: every concrete message schema in messages/ references it and closes the object with unevaluatedProperties:false, which is the Draft 2020-12 idiom for 'additionalProperties:false across composition'. Never validate against this file alone.",
+  "type": "object",
+  "properties": {
+    "protocolVersion": {
+      "type": "integer",
+      "const": 1
+    },
+    "type": {
+      "type": "string",
+      "enum": [
+        "agent.hello",
+        "agent.helloAck",
+        "agent.heartbeat",
+        "terminal.open",
+        "terminal.opened",
+        "terminal.resize",
+        "terminal.close",
+        "terminal.error",
+        "terminal.shellEvent",
+        "transfer.start",
+        "transfer.accepted",
+        "transfer.credit",
+        "transfer.fileEnd",
+        "transfer.complete",
+        "transfer.abort",
+        "transfer.result"
+      ]
+    },
+    "requestId": { "$ref": "common.schema.json#/$defs/UuidOrNull" },
+    "deviceId": { "$ref": "common.schema.json#/$defs/Uuid" },
+    "sessionId": { "$ref": "common.schema.json#/$defs/UuidOrNull" },
+    "payload": { "type": "object" }
+  },
+  "required": ["protocolVersion", "type", "requestId", "deviceId", "sessionId", "payload"]
+}

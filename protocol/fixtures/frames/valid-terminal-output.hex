@@ -1,0 +1,3 @@
+# kind=0x02, fileIndex must be 0xFFFFFFFF
+# expect: accept
+544d0102000000000007c9e0f1a2b3c44d5e9f60718293a4b5c6ffffffff000000000000000068656c6c6f0d0a

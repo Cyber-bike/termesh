@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://termy.dev/protocol/1/messages/agent.hello.schema.json",
+  "title": "agent.hello (Agent -> Relay)",
+  "$ref": "../control-envelope.schema.json",
+  "type": "object",
+  "properties": {
+    "type": { "const": "agent.hello" },
+    "requestId": { "$ref": "../common.schema.json#/$defs/Uuid" },
+    "sessionId": { "type": "null" },
+    "payload": {
+      "type": "object",
+      "properties": {
+        "agentVersion": { "$ref": "../common.schema.json#/$defs/Semver" },
+        "platform": { "$ref": "../common.schema.json#/$defs/Platform" },
+        "capabilities": {
+          "type": "array",
+          "items": { "$ref": "../common.schema.json#/$defs/Capability" },
+          "minItems": 1,
+          "maxItems": 2,
+          "uniqueItems": true
+        }
+      },
+      "required": ["agentVersion", "platform", "capabilities"],
+      "additionalProperties": false
+    }
+  },
+  "unevaluatedProperties": false
+}

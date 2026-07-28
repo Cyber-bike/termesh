@@ -1,0 +1,11 @@
+{
+  "protocolVersion": 1,
+  "type": "agent.helloAck",
+  "requestId": "8f14e45f-ceea-467a-9f0b-1c2d3e4f5a6b",
+  "deviceId": "3d594650-3436-4c7a-9a15-9b5c3f0f4a11",
+  "sessionId": null,
+  "payload": {
+    "serverTime": "2026-07-28T09:00:00Z",
+    "heartbeatIntervalMs": 20000
+  }
+}

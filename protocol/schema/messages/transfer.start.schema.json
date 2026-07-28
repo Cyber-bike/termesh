@@ -1,0 +1,29 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://termy.dev/protocol/1/messages/transfer.start.schema.json",
+  "title": "transfer.start (Plugin -> Agent)",
+  "description": "File transfer is independent of any terminal session, so sessionId is null. entries[].index must run 0..n-1 with no gaps and rootNote must equal entries[0].relativePath; both are cross-field rules enforced in code, not expressible here.",
+  "$ref": "../control-envelope.schema.json",
+  "type": "object",
+  "properties": {
+    "type": { "const": "transfer.start" },
+    "requestId": { "$ref": "../common.schema.json#/$defs/Uuid" },
+    "sessionId": { "type": "null" },
+    "payload": {
+      "type": "object",
+      "properties": {
+        "transferId": { "$ref": "../common.schema.json#/$defs/Uuid" },
+        "rootNote": { "$ref": "../common.schema.json#/$defs/SafeRelativePath" },
+        "entries": {
+          "type": "array",
+          "items": { "$ref": "../common.schema.json#/$defs/FileEntry" },
+          "minItems": 1,
+          "maxItems": 256
+        }
+      },
+      "required": ["transferId", "rootNote", "entries"],
+      "additionalProperties": false
+    }
+  },
+  "unevaluatedProperties": false
+}

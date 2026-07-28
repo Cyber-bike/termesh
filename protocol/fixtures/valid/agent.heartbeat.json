@@ -1,0 +1,8 @@
+{
+  "protocolVersion": 1,
+  "type": "agent.heartbeat",
+  "requestId": null,
+  "deviceId": "3d594650-3436-4c7a-9a15-9b5c3f0f4a11",
+  "sessionId": null,
+  "payload": { "timestamp": "2026-07-28T09:00:20Z" }
+}

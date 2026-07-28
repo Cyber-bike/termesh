@@ -1,0 +1,30 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://termy.dev/protocol/1/messages/transfer.result.schema.json",
+  "title": "transfer.result (Agent -> Plugin)",
+  "description": "Terminal outcome of one transfer. Not a direct response to transfer.start (that is transfer.accepted), so requestId is null and correlation is by transferId. code is null exactly when success is true - a cross-field rule enforced in code.",
+  "$ref": "../control-envelope.schema.json",
+  "type": "object",
+  "properties": {
+    "type": { "const": "transfer.result" },
+    "requestId": { "type": "null" },
+    "sessionId": { "type": "null" },
+    "payload": {
+      "type": "object",
+      "properties": {
+        "transferId": { "$ref": "../common.schema.json#/$defs/Uuid" },
+        "success": { "type": "boolean" },
+        "code": {
+          "oneOf": [
+            { "$ref": "../common.schema.json#/$defs/ErrorCode" },
+            { "type": "null" }
+          ]
+        },
+        "message": { "type": "string", "maxLength": 512 }
+      },
+      "required": ["transferId", "success", "code", "message"],
+      "additionalProperties": false
+    }
+  },
+  "unevaluatedProperties": false
+}

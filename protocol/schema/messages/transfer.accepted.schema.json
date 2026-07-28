@@ -1,0 +1,27 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://termy.dev/protocol/1/messages/transfer.accepted.schema.json",
+  "title": "transfer.accepted (Agent -> Plugin)",
+  "description": "Direct response to transfer.start. grantedBytes is the initial credit window (doc 8.6): the plugin may not send file frames before this message, and never more than grantedBytes cumulative bytes.",
+  "$ref": "../control-envelope.schema.json",
+  "type": "object",
+  "properties": {
+    "type": { "const": "transfer.accepted" },
+    "requestId": { "$ref": "../common.schema.json#/$defs/Uuid" },
+    "sessionId": { "type": "null" },
+    "payload": {
+      "type": "object",
+      "properties": {
+        "transferId": { "$ref": "../common.schema.json#/$defs/Uuid" },
+        "grantedBytes": {
+          "type": "integer",
+          "minimum": 262144,
+          "maximum": 4194304
+        }
+      },
+      "required": ["transferId", "grantedBytes"],
+      "additionalProperties": false
+    }
+  },
+  "unevaluatedProperties": false
+}

@@ -1,0 +1,62 @@
+[
+  {
+    "name": "valid-terminal-output",
+    "expect": "accept",
+    "note": "kind=0x02, fileIndex must be 0xFFFFFFFF"
+  },
+  {
+    "name": "valid-file-chunk",
+    "expect": "accept",
+    "note": "offset above 2^32 exercises the u64 field"
+  },
+  {
+    "name": "valid-empty-payload",
+    "expect": "accept",
+    "note": "zero-length payload, header only"
+  },
+  {
+    "name": "invalid-bad-magic",
+    "expect": "reject",
+    "note": "bad magic"
+  },
+  {
+    "name": "invalid-bad-version",
+    "expect": "reject",
+    "note": "unsupported frame version"
+  },
+  {
+    "name": "invalid-unknown-kind",
+    "expect": "reject",
+    "note": "unknown kind"
+  },
+  {
+    "name": "invalid-nonzero-flags",
+    "expect": "reject",
+    "note": "flags must be 0"
+  },
+  {
+    "name": "invalid-nonzero-reserved",
+    "expect": "reject",
+    "note": "reserved byte must be 0"
+  },
+  {
+    "name": "invalid-length-mismatch",
+    "expect": "reject",
+    "note": "does not match"
+  },
+  {
+    "name": "invalid-terminal-with-file-index",
+    "expect": "reject",
+    "note": "terminal frames must set fileIndex"
+  },
+  {
+    "name": "invalid-truncated-header",
+    "expect": "reject",
+    "note": "truncated header"
+  },
+  {
+    "name": "invalid-file-index-too-large",
+    "expect": "reject",
+    "note": "fileIndex 256 exceeds the 256-file batch"
+  }
+]

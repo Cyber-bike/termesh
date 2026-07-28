@@ -1,0 +1,24 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://termy.dev/protocol/1/messages/transfer.fileEnd.schema.json",
+  "title": "transfer.fileEnd (Plugin -> Agent)",
+  "description": "Marks the end of one file. sentSize is authoritative for the success check (doc 10.4); a zero value means an empty file, for which no chunk frame is sent and the Agent must still create and close a 0-byte file.",
+  "$ref": "../control-envelope.schema.json",
+  "type": "object",
+  "properties": {
+    "type": { "const": "transfer.fileEnd" },
+    "requestId": { "type": "null" },
+    "sessionId": { "type": "null" },
+    "payload": {
+      "type": "object",
+      "properties": {
+        "transferId": { "$ref": "../common.schema.json#/$defs/Uuid" },
+        "fileIndex": { "$ref": "../common.schema.json#/$defs/FileIndex" },
+        "sentSize": { "$ref": "../common.schema.json#/$defs/FileSize" }
+      },
+      "required": ["transferId", "fileIndex", "sentSize"],
+      "additionalProperties": false
+    }
+  },
+  "unevaluatedProperties": false
+}

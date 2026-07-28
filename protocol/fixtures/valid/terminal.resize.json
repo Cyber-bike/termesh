@@ -1,0 +1,8 @@
+{
+  "protocolVersion": 1,
+  "type": "terminal.resize",
+  "requestId": null,
+  "deviceId": "3d594650-3436-4c7a-9a15-9b5c3f0f4a11",
+  "sessionId": "c9e0f1a2-b3c4-4d5e-9f60-718293a4b5c6",
+  "payload": { "cols": 100, "rows": 24 }
+}

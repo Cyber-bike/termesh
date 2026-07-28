@@ -1,0 +1,23 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://termy.dev/protocol/1/messages/terminal.error.schema.json",
+  "title": "terminal.error (Agent or Relay -> Plugin)",
+  "description": "sessionId is null when the failure happens before a session exists (DEVICE_OFFLINE, DEVICE_BUSY, SHELL_START_FAILED in response to terminal.open); requestId echoes the failed request when there is one. message must be redacted per doc 8.8.6.",
+  "$ref": "../control-envelope.schema.json",
+  "type": "object",
+  "properties": {
+    "type": { "const": "terminal.error" },
+    "requestId": { "$ref": "../common.schema.json#/$defs/UuidOrNull" },
+    "sessionId": { "$ref": "../common.schema.json#/$defs/UuidOrNull" },
+    "payload": {
+      "type": "object",
+      "properties": {
+        "code": { "$ref": "../common.schema.json#/$defs/ErrorCode" },
+        "message": { "type": "string", "minLength": 1, "maxLength": 512 }
+      },
+      "required": ["code", "message"],
+      "additionalProperties": false
+    }
+  },
+  "unevaluatedProperties": false
+}

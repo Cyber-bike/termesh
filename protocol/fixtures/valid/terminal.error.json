@@ -1,0 +1,8 @@
+{
+  "protocolVersion": 1,
+  "type": "terminal.error",
+  "requestId": "b7c1a2d3-4e5f-4a6b-8c9d-0e1f2a3b4c5d",
+  "deviceId": "3d594650-3436-4c7a-9a15-9b5c3f0f4a11",
+  "sessionId": null,
+  "payload": { "code": "DEVICE_BUSY", "message": "Device already has an active session" }
+}

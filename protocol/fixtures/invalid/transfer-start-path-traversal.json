@@ -1,0 +1,1 @@
+{ "protocolVersion": 1, "type": "transfer.start", "requestId": "d1e2f3a4-b5c6-4d7e-8f90-a1b2c3d4e5f6", "deviceId": "3d594650-3436-4c7a-9a15-9b5c3f0f4a11", "sessionId": null, "payload": { "transferId": "e2f3a4b5-c6d7-4e8f-9a0b-1c2d3e4f5a6b", "rootNote": "../escape.md", "entries": [ { "index": 0, "relativePath": "../escape.md", "size": 10 } ] } }

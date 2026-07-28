@@ -1,0 +1,22 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://termy.dev/protocol/1/messages/terminal.opened.schema.json",
+  "title": "terminal.opened (Agent -> Plugin)",
+  "description": "Direct response to terminal.open: requestId matches, and the envelope carries the sessionId minted by the Agent (doc 8.8.3).",
+  "$ref": "../control-envelope.schema.json",
+  "type": "object",
+  "properties": {
+    "type": { "const": "terminal.opened" },
+    "requestId": { "$ref": "../common.schema.json#/$defs/Uuid" },
+    "sessionId": { "$ref": "../common.schema.json#/$defs/Uuid" },
+    "payload": {
+      "type": "object",
+      "properties": {
+        "shell": { "type": "string", "minLength": 1, "maxLength": 260 }
+      },
+      "required": ["shell"],
+      "additionalProperties": false
+    }
+  },
+  "unevaluatedProperties": false
+}

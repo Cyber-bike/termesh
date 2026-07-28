@@ -1,0 +1,28 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "$id": "https://termy.dev/protocol/1/messages/terminal.close.schema.json",
+  "title": "terminal.close (bidirectional)",
+  "description": "Plugin sends it to end a session (reason=user). Agent sends it when the shell exits (reason=shell_exited, exitCode set) or the peer went away.",
+  "$ref": "../control-envelope.schema.json",
+  "type": "object",
+  "properties": {
+    "type": { "const": "terminal.close" },
+    "requestId": { "type": "null" },
+    "sessionId": { "$ref": "../common.schema.json#/$defs/Uuid" },
+    "payload": {
+      "type": "object",
+      "properties": {
+        "reason": { "$ref": "../common.schema.json#/$defs/TerminalCloseReason" },
+        "exitCode": {
+          "oneOf": [
+            { "type": "integer", "minimum": -2147483648, "maximum": 2147483647 },
+            { "type": "null" }
+          ]
+        }
+      },
+      "required": ["reason", "exitCode"],
+      "additionalProperties": false
+    }
+  },
+  "unevaluatedProperties": false
+}
