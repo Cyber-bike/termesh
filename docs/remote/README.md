@@ -29,6 +29,7 @@ Agent 主动外连，**不监听公网端口**。Relay 只转发，不持久化�
 
 | 文档 | 给谁看 |
 | --- | --- |
+| [building.md](building.md) | 从源码构建四个产物。含哪个产物必须在哪台机器上编 |
 | [operations.md](operations.md) | 部署 Relay、安装 Agent、CLI 参考、排障 |
 | [privacy-and-limits.md](privacy-and-limits.md) | 使用者。隐私披露和已知限制 |
 | [plugin-handover.md](plugin-handover.md) | 接手插件端改造的人。含已踩过的坑 |
@@ -54,6 +55,8 @@ pnpm test:remote
 ```
 
 工具链由 `rust-toolchain.toml` 锁定。协议类型是生成的并已提交，CI 会重新生成并 diff——改了 Schema 记得跑 `cd protocol && npm run generate && node scripts/sync-protocol.js`。
+
+出 release 产物、以及 Windows Agent 与插件怎么构建，见 [building.md](building.md)。
 
 ---
 
