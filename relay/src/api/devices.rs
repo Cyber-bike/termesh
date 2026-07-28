@@ -227,9 +227,9 @@ pub async fn list_devices(
             name: d.name,
             platform: d.platform,
             agent_version: d.agent_version,
-            // Filled in by the gateway's connection registry once it exists;
-            // until then no agent can be connected, so false is accurate.
-            online: false,
+            // Doc 4.11: online status comes from the in-memory registry, which
+            // is why the plugin polls this endpoint instead of being pushed to.
+            online: state.registry.is_online(d.id),
             last_seen_at: d.last_seen_at.map(|t| t.to_rfc3339()),
         })
         .collect();

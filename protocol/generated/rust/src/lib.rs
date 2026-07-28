@@ -9,6 +9,7 @@
 //! is `#[serde(untagged)]`: without a typed `type` field, serde would pick the
 //! first variant whose shape happens to fit.
 
+pub mod frame;
 pub mod messages;
 pub mod validate;
 

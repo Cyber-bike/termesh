@@ -13,6 +13,7 @@ use axum::Router;
 
 use crate::config::Config;
 use crate::db::Db;
+use crate::gateway::registry::Registry;
 use crate::ratelimit::RateLimiter;
 
 #[derive(Clone)]
@@ -20,11 +21,19 @@ pub struct AppState {
     pub db: Db,
     pub config: Arc<Config>,
     pub limiter: Arc<RateLimiter>,
+    /// Live connections, sessions and transfer routes. Single node, in memory
+    /// only (doc 11.1).
+    pub registry: Arc<Registry>,
 }
 
 impl AppState {
     pub fn new(db: Db, config: Config) -> Self {
-        Self { db, config: Arc::new(config), limiter: Arc::new(RateLimiter::new()) }
+        Self {
+            db,
+            config: Arc::new(config),
+            limiter: Arc::new(RateLimiter::new()),
+            registry: Arc::new(Registry::new()),
+        }
     }
 }
 
@@ -37,5 +46,7 @@ pub fn router(state: AppState) -> Router {
         .route("/v1/devices/register", post(devices::register_device))
         .route("/v1/devices", get(devices::list_devices))
         .route("/v1/devices/{id}", delete(devices::delete_device))
+        .route("/v1/control/ws", get(crate::gateway::control::control_ws))
+        .route("/v1/agent/ws", get(crate::gateway::agent::agent_ws))
         .with_state(state)
 }
