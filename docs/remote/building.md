@@ -137,7 +137,7 @@ cargo test --manifest-path protocol/generated/rust/Cargo.toml   # 14
 cargo test --manifest-path relay/Cargo.toml               # 71
 cargo test --manifest-path agent/Cargo.toml               # 33
 pnpm test:remote                                          # 52，需要 Node 22
-./e2e-run.sh                                              # 8 项，起真 relay + 真 agent
+npm --prefix e2e ci && ./e2e-run.sh                       # 8 项，起真 relay + 真 agent
 ```
 
 CI 跑的门槛还包括：
@@ -147,7 +147,9 @@ cargo fmt --manifest-path relay/Cargo.toml --check
 cargo clippy --manifest-path relay/Cargo.toml --all-targets -- -D warnings   # agent 同理
 ```
 
-**`e2e-run.sh` 的两个硬编码限制**：脚本里写死了 `cd /root/termy-remote`，换路径要改；它用的是 **debug** 产物（`target/debug/`），所以跑它之前需要先有一次不带 `--release` 的构建。
+**`e2e-run.sh` 用的是 debug 产物**（`target/debug/`），跑它之前需要先有一次不带 `--release` 的构建；缺二进制或缺驱动依赖时脚本会直接告诉你该跑哪条命令。路径全部相对脚本自身，在任意 cwd 下调用都可以。
+
+驱动的 `ws` 依赖装在 `e2e/` 而不是仓库根——根上装不了：`@xterm/addon-canvas@0.7.0` 声明的 peer 是 `@xterm/xterm@^5`，而根依赖是 `^6`，npm 即使 `--no-save` 也要解析整棵树，必然 ERESOLVE 失败。
 
 ---
 

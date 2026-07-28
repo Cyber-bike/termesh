@@ -1,0 +1,8 @@
+{
+  "name": "termy-e2e-driver",
+  "private": true,
+  "description": "Isolated dependency root for the end-to-end driver. Installing ws into the plugin root fails: @xterm/addon-canvas@0.7.0 declares a peer on @xterm/xterm@^5 while the root is on ^6, and npm resolves the whole tree even with --no-save.",
+  "dependencies": {
+    "ws": "8.20.1"
+  }
+}

@@ -166,8 +166,11 @@ jobs:
           cargo build --manifest-path relay/Cargo.toml
           cargo build --manifest-path agent/Cargo.toml
 
+      # Installed under e2e/, not the plugin root: @xterm/addon-canvas@0.7.0
+      # declares a peer on @xterm/xterm@^5 while the root is on ^6, and npm
+      # resolves the whole tree even with --no-save, so a root install fails.
       - name: Install driver dependencies
-        run: npm install --no-save ws@8.20.1
+        run: npm --prefix e2e ci
 
       # Starts a relay and an agent, then drives a real terminal session and a
       # real transfer through the control socket. This is the test that caught
