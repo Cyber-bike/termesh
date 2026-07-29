@@ -4,7 +4,7 @@
  */
 
 import type { App } from 'obsidian';
-import { PluginSettingTab, setIcon } from 'obsidian';
+import { Notice, PluginSettingTab, Setting, setIcon } from 'obsidian';
 import type TerminalPlugin from '../main';
 import { TerminalSettingsRenderer } from './renderers/terminalSettingsRenderer';
 import type { RendererContext } from './types';
@@ -18,6 +18,7 @@ export class TerminalSettingTab extends PluginSettingTab {
   plugin: TerminalPlugin;
   private terminalRenderer: TerminalSettingsRenderer;
   private expandedSections: Set<string> = new Set();
+  private pairingCode: { id: string; code: string } | null = null;
 
   constructor(app: App, plugin: TerminalPlugin) {
     super(app, plugin);
@@ -48,6 +49,68 @@ export class TerminalSettingTab extends PluginSettingTab {
 
     // Render terminal settings
     this.terminalRenderer.render(context);
+    this.renderRemoteSettings(contentEl);
+  }
+
+  private renderRemoteSettings(containerEl: HTMLElement): void {
+    const section = containerEl.createDiv({ cls: 'terminal-settings-card' });
+    new Setting(section).setName(t('remote.title')).setHeading();
+    const settings = this.plugin.settings.remoteConnection;
+    const service = this.plugin.getRemoteService();
+    let login = '';
+    let password = '';
+
+    new Setting(section).setName(t('remote.relayUrl')).setDesc(t('remote.relayUrlDesc')).addText((text) => {
+      text.setValue(settings.relayUrl).onChange((value) => {
+        settings.relayUrl = value;
+        void this.plugin.saveSettings();
+      });
+    });
+    new Setting(section).setName(t('remote.loginName')).addText((text) => text.onChange((value) => { login = value; }));
+    new Setting(section).setName(t('remote.password')).addText((text) => {
+      text.inputEl.type = 'password';
+      text.onChange((value) => { password = value; });
+    });
+    new Setting(section)
+      .addButton((button) => button.setButtonText(t('remote.login')).onClick(async () => {
+        try { await service.login(login, password); this.display(); }
+        catch (error) { new Notice(error instanceof Error ? error.message : String(error), 5000); }
+      }))
+      .addButton((button) => button.setButtonText(t('remote.logout')).onClick(() => {
+        service.logout();
+        this.display();
+      }));
+
+    const pairing = new Setting(section).setName(t('remote.pairingCode'));
+    pairing.descEl.setText(this.pairingCode?.code ?? '');
+    pairing.addButton((button) => button.setButtonText(t('remote.createPairingCode')).onClick(async () => {
+      try {
+        const created = await service.createPairingCode();
+        this.pairingCode = { id: created.pairingCodeId, code: created.pairingCode };
+        this.display();
+      } catch (error) { new Notice(error instanceof Error ? error.message : String(error), 5000); }
+    }));
+    pairing.addButton((button) => button.setButtonText(t('remote.revokePairingCode')).setDisabled(!this.pairingCode).onClick(async () => {
+      if (!this.pairingCode) return;
+      try { await service.revokePairingCode(this.pairingCode.id); this.pairingCode = null; this.display(); }
+      catch (error) { new Notice(error instanceof Error ? error.message : String(error), 5000); }
+    }));
+
+    new Setting(section).setName(t('remote.devices')).addButton((button) => button
+      .setButtonText(t('remote.refreshDevices')).onClick(async () => {
+        try { await service.refreshDevices(); this.display(); }
+        catch (error) { new Notice(error instanceof Error ? error.message : String(error), 5000); }
+      }));
+    const devices = service.getSnapshot().devices;
+    if (devices.length === 0) section.createDiv({ text: t('remote.noDevices') });
+    for (const device of devices) {
+      new Setting(section).setName(device.name)
+        .setDesc(`${device.platform} · ${device.online ? t('remote.states.Connected') : t('remote.offline')}`)
+        .addButton((button) => button.setButtonText(t('common.delete')).onClick(async () => {
+          try { await service.deleteDevice(device.id); this.display(); }
+          catch (error) { new Notice(error instanceof Error ? error.message : String(error), 5000); }
+        }));
+    }
   }
 
   /**

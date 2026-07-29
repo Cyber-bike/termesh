@@ -2,6 +2,7 @@ import type { View, WorkspaceLeaf } from 'obsidian';
 import { addIcon, FileSystemAdapter, Modal, Notice, Plugin, normalizePath, setIcon, setTooltip } from 'obsidian';
 import {
   DEFAULT_PRESET_SCRIPTS,
+  DEFAULT_REMOTE_CONNECTION_SETTINGS,
   DEFAULT_TERMINAL_SETTINGS,
   type PresetScript,
   type PresetWorkflowAction,
@@ -14,6 +15,7 @@ import type { TerminalService } from './services/terminal/terminalService';
 import type { ServerManager } from './services/server/serverManager';
 import type { ClaudeCodeIdeBridge } from './services/claudeCode/ideBridge';
 import type { AgentContextBridge } from './services/context/agentContextBridge';
+import { RemoteService } from './services/remote/remoteService';
 import { TERMINAL_VIEW_TYPE, TerminalView } from './ui/terminal/terminalView';
 import { ChangelogModal } from './ui/changelog/changelogModal';
 import { i18n, t } from './i18n';
@@ -95,6 +97,7 @@ export default class TerminalPlugin extends Plugin {
   // Lazily initialized services
   private _serverManager: ServerManager | null = null;
   private _terminalService: TerminalService | null = null;
+  private _remoteService: RemoteService | null = null;
   private _claudeCodeIdeBridge: ClaudeCodeIdeBridge | null = null;
   private _agentContextBridge: AgentContextBridge | null = null;
   private _changelogContentCache: string | null = null;
@@ -184,11 +187,22 @@ export default class TerminalPlugin extends Plugin {
             ...(this._agentContextBridge?.getTerminalEnv() ?? {}),
           }),
           () => this.saveSettings(),
+          this.getRemoteService(),
         );
       
       debugLog('[TerminalPlugin] TerminalService initialized');
     }
     return this._terminalService;
+  }
+
+  getRemoteService(): RemoteService {
+    if (!this._remoteService) {
+      this._remoteService = new RemoteService(
+        () => this.settings.remoteConnection,
+        () => this.settings.serverConnection.offlineMode,
+      );
+    }
+    return this._remoteService;
   }
 
   /**
@@ -288,6 +302,9 @@ export default class TerminalPlugin extends Plugin {
         errorLog('[TerminalPlugin] Failed to shutdown TerminalService:', error);
       }
     }
+
+    this._remoteService?.dispose();
+    this._remoteService = null;
 
     // Stop the server
     if (this._serverManager) {
@@ -418,6 +435,7 @@ export default class TerminalPlugin extends Plugin {
       },
       // Ensure the serverConnection config exists
       serverConnection: this.normalizeServerConnectionSettings(loaded?.serverConnection),
+      remoteConnection: this.normalizeRemoteConnectionSettings(loaded?.remoteConnection),
       // Ensure the presetScripts config exists
       presetScripts: normalizedPresetScripts,
     };
@@ -429,6 +447,7 @@ export default class TerminalPlugin extends Plugin {
   async saveSettings() {
     this.settings.presetScripts = this.normalizePresetScripts(this.settings.presetScripts);
     this.settings.serverConnection = this.normalizeServerConnectionSettings(this.settings.serverConnection);
+    this.settings.remoteConnection = this.normalizeRemoteConnectionSettings(this.settings.remoteConnection);
     await this.saveData(this.settings);
     
     // Update debug mode
@@ -448,6 +467,7 @@ export default class TerminalPlugin extends Plugin {
     if (this._terminalService) {
       this._terminalService.updateSettings(this.settings);
     }
+    this._remoteService?.updateConfiguration();
 
     // Register newly added preset script commands
     this.registerPresetScriptCommands();
@@ -493,6 +513,27 @@ export default class TerminalPlugin extends Plugin {
         : 'cloudflare-r2',
       offlineMode: Boolean(serverConnection?.offlineMode),
     };
+  }
+
+  private normalizeRemoteConnectionSettings(
+    value: Partial<TerminalSettings['remoteConnection']> | null | undefined
+  ): TerminalSettings['remoteConnection'] {
+    let relayUrl = DEFAULT_REMOTE_CONNECTION_SETTINGS.relayUrl;
+    try {
+      const candidate = new URL(value?.relayUrl?.trim() || relayUrl);
+      if (candidate.protocol === 'https:') {
+        candidate.pathname = '/';
+        candidate.search = '';
+        candidate.hash = '';
+        relayUrl = candidate.toString().replace(/\/$/, '');
+      }
+    } catch {
+      // Keep the safe default for malformed persisted values.
+    }
+    const deviceId = typeof value?.deviceId === 'string' && value.deviceId.trim()
+      ? value.deviceId.trim()
+      : null;
+    return { relayUrl, deviceId };
   }
 
   /**

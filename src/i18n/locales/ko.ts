@@ -27,6 +27,10 @@ export const ko: TranslationKeys = {
     unloadedMessage: 'Termy 플러그인 언로드 완료',
   },
 
+  remote: {
+    title: 'Remote terminal', relayUrl: 'Relay URL', relayUrlDesc: 'HTTPS endpoint used for remote terminals', loginName: 'Login name', password: 'Password', login: 'Log in', logout: 'Log out', pairingCode: 'Pairing code', createPairingCode: 'Create pairing code', revokePairingCode: 'Revoke pairing code', devices: 'Devices', refreshDevices: 'Refresh devices', noDevices: 'No paired devices', mode: 'Terminal mode', local: 'Local', remote: 'Remote', device: 'Device', selectDevice: 'Select a device', offline: 'Offline', connect: 'Connect', disconnect: 'Disconnect', notConnected: 'Connect to a remote device before sending a note.', dropSingleMarkdown: 'Drop one Markdown note from this vault.', transferComplete: 'Note transfer complete.', transferFailed: 'Note transfer failed: {{message}}', states: { LocalMode: 'Local', RemoteIdle: 'Remote idle', Connecting: 'Connecting', Connected: 'Connected', Transferring: 'Transferring', Error: 'Error' },
+  },
+
   terminal: {
     defaultTitle: '터미널',
     loading: '터미널 로딩 중...',

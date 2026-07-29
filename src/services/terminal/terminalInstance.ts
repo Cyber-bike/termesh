@@ -8,8 +8,9 @@ import { debugLog, debugWarn, errorLog } from '@/utils/logger';
 import { getHomeDir, getPlatform, isWindows } from '@/utils/platform';
 import { t } from '@/i18n';
 import type { ServerManager } from '@/services/server/serverManager';
-import type { PtyClient } from '@/services/server/ptyClient';
 import type { PtyConfig, ShellEvent, ShellEventSource } from '@/services/server/types';
+import { LocalTerminalTransport } from '@/services/remote/localTransport';
+import type { Disposable, TerminalTransport } from '@/services/remote/transport';
 import type { DefaultShellOption } from './terminalService';
 import { EnhancedKeyboardProtocol, formatPastedTerminalText } from './enhancedKeyboardProtocol';
 import {
@@ -163,17 +164,15 @@ export class TerminalInstance {
   private renderer: CanvasAddon | WebglAddon | null = null;
   private rendererType: 'canvas' | 'webgl' | null = null;
   
-  // Use PtyClient instead of a direct WebSocket
-  private ptyClient: PtyClient | null = null;
+  private transport: TerminalTransport | null = null;
   
   // Session ID (multi-session support)
   private sessionId: string | null = null;
   
-  // Event unsubscribe callbacks
-  private outputUnsubscribe: (() => void) | null = null;
-  private exitUnsubscribe: (() => void) | null = null;
-  private errorUnsubscribe: (() => void) | null = null;
-  private shellEventUnsubscribe: (() => void) | null = null;
+  private outputSubscription: Disposable | null = null;
+  private exitSubscription: Disposable | null = null;
+  private errorSubscription: Disposable | null = null;
+  private shellEventSubscription: Disposable | null = null;
   
   private containerEl: HTMLElement | null = null;
   private options: TerminalOptions;
@@ -533,19 +532,13 @@ export class TerminalInstance {
     if (this.isInitialized || this.isDestroyed) return;
 
     try {
-      // Load xterm.js modules dynamically
-      await this.initXterm();
-      
       // Ensure the server is running
       await serverManager.ensureServer();
-      
-      await this.initializePtySession(serverManager, this.options.cwd);
-      if (this.isDestroyed) return;
-      
-      this.setupXtermHandlers();
-      this.isInitialized = true;
-      
-      debugLog('[Terminal] 终端已初始化');
+      const transport = new LocalTerminalTransport(
+        serverManager.pty(),
+        this.buildPtyConfig(this.options.cwd),
+      );
+      await this.initializeWithTransport(transport);
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : String(error);
       errorLog('[Terminal] Init failed:', error);
@@ -556,14 +549,46 @@ export class TerminalInstance {
     }
   }
 
+  async initializeWithTransport(transport: TerminalTransport): Promise<void> {
+    if (this.isInitialized || this.isDestroyed) return;
+
+    try {
+      await this.initXterm();
+      this.resetSessionProtocolState();
+      const session = await transport.open({
+        cols: this.xterm.cols,
+        rows: this.xterm.rows,
+        cwd: this.options.cwd,
+      });
+      if (this.isDestroyed) {
+        await transport.close();
+        return;
+      }
+      this.transport = transport;
+      this.sessionId = session.sessionId;
+      this.setupTransportHandlers();
+      this.setupXtermHandlers();
+      this.isInitialized = true;
+      debugLog('[Terminal] 终端已初始化');
+    } catch (error) {
+      try { await transport.close(); } catch { /* ignore cleanup failures */ }
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      errorLog('[Terminal] Transport init failed:', error);
+      if (this.xterm) {
+        this.xterm.write(`\r\n\x1b[1;31m[Error] ${errorMessage}\x1b[0m\r\n`);
+      }
+      throw new Error(t('terminalInstance.startFailed', { message: errorMessage }));
+    }
+  }
+
   /**
    * Set up PtyClient event handlers (session-level)
    */
-  private setupPtyClientHandlers(): void {
-    if (!this.ptyClient || !this.sessionId) return;
+  private setupTransportHandlers(): void {
+    if (!this.transport || !this.sessionId) return;
     
     // Handle output data (session-level)
-    this.outputUnsubscribe = this.ptyClient.onSessionOutput(this.sessionId, (data: Uint8Array) => {
+    this.outputSubscription = this.transport.onData((data: Uint8Array) => {
       const rawText = new TextDecoder().decode(data);
       const filteredText = filterSynchronizedOutputScrollbackPurge(
         rawText,
@@ -575,19 +600,19 @@ export class TerminalInstance {
     });
     
     // Handle exit events (session-level)
-    this.exitUnsubscribe = this.ptyClient.onSessionExit(this.sessionId, (code: number) => {
-      debugLog('[Terminal] PTY 会话退出, code:', code);
-      this.xterm.write(`\r\n\x1b[33m[会话已结束, 退出码: ${code}]\x1b[0m\r\n`);
+    this.exitSubscription = this.transport.onExit((event) => {
+      debugLog('[Terminal] PTY 会话退出, code:', event.exitCode);
+      this.xterm.write(`\r\n\x1b[33m[会话已结束, 退出码: ${event.exitCode ?? 'unknown'}]\x1b[0m\r\n`);
     });
     
     // Handle error events (session-level)
-    this.errorUnsubscribe = this.ptyClient.onSessionError(this.sessionId, (code: string, message: string) => {
+    this.errorSubscription = this.transport.onError((code: string, message: string) => {
       errorLog('[Terminal] PTY 错误:', code, message);
       this.xterm.write(`\r\n\x1b[1;31m[错误] ${message}\x1b[0m\r\n`);
     });
 
     // Handle shell integration events
-    this.shellEventUnsubscribe = this.ptyClient.onSessionShellEvent(this.sessionId, (event: ShellEvent) => {
+    this.shellEventSubscription = this.transport.onShellEvent((event: ShellEvent) => {
       this.handleShellEvent(event);
     });
   }
@@ -603,24 +628,26 @@ export class TerminalInstance {
       shell_args: this.options.shellArgs,
       cwd,
       env: terminalEnv,
-      cols: this.xterm.cols,
-      rows: this.xterm.rows,
+      cols: this.xterm?.cols ?? 80,
+      rows: this.xterm?.rows ?? 24,
     };
   }
 
   private async initializePtySession(serverManager: ServerManager, cwd: string | undefined): Promise<void> {
-    const ptyClient = serverManager.pty();
     this.resetSessionProtocolState();
-    const sessionId = await ptyClient.init(this.buildPtyConfig(cwd));
+    const transport = new LocalTerminalTransport(serverManager.pty(), this.buildPtyConfig(cwd));
+    const session = await transport.open({
+      cols: this.xterm.cols,
+      rows: this.xterm.rows,
+      cwd,
+    });
     if (this.isDestroyed) {
-      ptyClient.destroySession(sessionId);
+      await transport.close();
       return;
     }
-
-    this.ptyClient = ptyClient;
-    this.sessionId = sessionId;
-    debugLog('[Terminal] 获取到 session_id:', this.sessionId);
-    this.setupPtyClientHandlers();
+    this.transport = transport;
+    this.sessionId = session.sessionId;
+    this.setupTransportHandlers();
   }
 
   private resetSessionProtocolState(): void {
@@ -630,16 +657,22 @@ export class TerminalInstance {
     this.synchronizedOutputCompatibilityState = createSynchronizedOutputCompatibilityState();
   }
 
-  private disposePtyClientHandlers(): void {
-    this.outputUnsubscribe?.();
-    this.exitUnsubscribe?.();
-    this.errorUnsubscribe?.();
-    this.shellEventUnsubscribe?.();
+  private writeToTransport(data: string): void {
+    if (this.transport) {
+      this.transport.write(new TextEncoder().encode(data));
+    }
+  }
 
-    this.outputUnsubscribe = null;
-    this.exitUnsubscribe = null;
-    this.errorUnsubscribe = null;
-    this.shellEventUnsubscribe = null;
+  private disposeTransportHandlers(): void {
+    this.outputSubscription?.dispose();
+    this.exitSubscription?.dispose();
+    this.errorSubscription?.dispose();
+    this.shellEventSubscription?.dispose();
+
+    this.outputSubscription = null;
+    this.exitSubscription = null;
+    this.errorSubscription = null;
+    this.shellEventSubscription = null;
   }
 
   private setupXtermHandlers(): void {
@@ -651,8 +684,8 @@ export class TerminalInstance {
         this.flushPendingInput();
       },
       writeBinary: (data) => {
-        if (this.ptyClient && this.sessionId) {
-          this.ptyClient.writeBinary(this.sessionId, data);
+        if (this.transport) {
+          this.transport.write(data);
         }
       },
       hasSelection: () => this.xterm.hasSelection(),
@@ -813,9 +846,7 @@ export class TerminalInstance {
     this.pendingInput = [];
     this.inputFlushTimer = null;
 
-    if (this.ptyClient && this.sessionId) {
-      this.ptyClient.write(this.sessionId, merged);
-    }
+    this.writeToTransport(merged);
   }
 
   private updateWin32InputMode(data: string): void {
@@ -831,8 +862,8 @@ export class TerminalInstance {
    * Send a resize message
    */
   private sendResize(cols: number, rows: number): void {
-    if (this.ptyClient && this.sessionId) {
-      this.ptyClient.resize(this.sessionId, cols, rows);
+    if (this.transport) {
+      this.transport.resize(cols, rows);
     }
   }
 
@@ -883,7 +914,9 @@ export class TerminalInstance {
     this.xterm.write('\x1b[32m[连接已恢复，正在恢复终端会话...]\x1b[0m\r\n');
 
     try {
-      this.disposePtyClientHandlers();
+      this.disposeTransportHandlers();
+      await this.transport?.close();
+      this.transport = null;
       this.sessionId = null;
       this.clearPendingInput();
 
@@ -924,16 +957,14 @@ export class TerminalInstance {
     this.commandMarkers = [];
 
     // Unsubscribe from events
-    this.disposePtyClientHandlers();
+    this.disposeTransportHandlers();
     for (const disposable of this.parserDisposables) {
       try { disposable.dispose(); } catch { /* ignore */ }
     }
     this.parserDisposables = [];
 
     // Destroy the PTY session
-    if (this.ptyClient && this.sessionId) {
-      this.ptyClient.destroySession(this.sessionId);
-    }
+    void this.transport?.close();
 
     this.detach();
 
@@ -944,7 +975,7 @@ export class TerminalInstance {
     this.rendererType = null;
 
     // Clear references
-    this.ptyClient = null;
+    this.transport = null;
     this.sessionId = null;
 
     try { this.xterm.dispose(); } catch { /* ignore */ }
@@ -1829,13 +1860,15 @@ export class TerminalInstance {
    * Write data to the terminal
    */
   write(data: string): void {
-    if (this.ptyClient && this.sessionId) {
-      this.ptyClient.write(this.sessionId, data);
-    }
+    this.writeToTransport(data);
   }
 
   sendText(data: string): void {
     this.write(data);
+  }
+
+  setInputEnabled(enabled: boolean): void {
+    if (this.xterm) this.xterm.options.disableStdin = !enabled;
   }
 
   pasteText(text: string): void {
@@ -1866,7 +1899,7 @@ export class TerminalInstance {
   }
 
   isAlive(): boolean {
-    return !this.isDestroyed && this.ptyClient !== null && this.ptyClient.isConnected();
+    return !this.isDestroyed && this.transport !== null;
   }
 
   getTitle(): string { return this.titleState.getTitle(); }
@@ -2202,16 +2235,12 @@ export class TerminalInstance {
    */
   private clearScreen(): void {
     // First send Ctrl+C to interrupt the current input
-    if (this.ptyClient && this.sessionId) {
-      this.ptyClient.write(this.sessionId, '\x03');
-    }
+    this.writeToTransport('\x03');
     
     // Wait briefly for the interrupt to take effect, then send the clear command
     window.setTimeout(() => {
       const clearCommand = isWindows() ? 'cls\r' : 'clear\r';
-      if (this.ptyClient && this.sessionId) {
-        this.ptyClient.write(this.sessionId, clearCommand);
-      }
+      this.writeToTransport(clearCommand);
       debugLog('[Terminal] Screen cleared');
     }, 50);
   }
@@ -2222,17 +2251,13 @@ export class TerminalInstance {
    */
   clearBuffer(): void {
     // First send Ctrl+C to interrupt the current input
-    if (this.ptyClient && this.sessionId) {
-      this.ptyClient.write(this.sessionId, '\x03');
-    }
+    this.writeToTransport('\x03');
     
     // Wait briefly for the interrupt to take effect
     window.setTimeout(() => {
       // Send the clear command to the shell
       const clearCommand = isWindows() ? 'cls\r' : 'clear\r';
-      if (this.ptyClient && this.sessionId) {
-        this.ptyClient.write(this.sessionId, clearCommand);
-      }
+      this.writeToTransport(clearCommand);
       
       // Clear xterm.js scrollback and state
       this.xterm.clear();

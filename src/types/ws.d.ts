@@ -8,11 +8,18 @@ declare module 'ws' {
     static readonly OPEN: number;
     readonly readyState: number;
 
-    close(code?: number, data?: string): void;
-    send(data: string, cb?: (error?: Error) => void): void;
+    constructor(
+      address: string,
+      protocols?: string | string[],
+      options?: { headers?: Record<string, string> },
+    );
 
-    on(event: 'message', listener: (data: RawData) => void): this;
-    on(event: 'close', listener: () => void): this;
+    close(code?: number, data?: string): void;
+    send(data: string | Buffer | ArrayBuffer | ArrayBufferView, cb?: (error?: Error) => void): void;
+
+    on(event: 'open', listener: () => void): this;
+    on(event: 'message', listener: (data: RawData, isBinary: boolean) => void): this;
+    on(event: 'close', listener: (code: number, reason: Buffer) => void): this;
     on(event: 'error', listener: (error: Error) => void): this;
   }
 

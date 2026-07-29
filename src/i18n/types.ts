@@ -37,6 +37,42 @@ export interface TranslationKeys {
     unloadedMessage: string;
   };
 
+  remote: {
+    title: string;
+    relayUrl: string;
+    relayUrlDesc: string;
+    loginName: string;
+    password: string;
+    login: string;
+    logout: string;
+    pairingCode: string;
+    createPairingCode: string;
+    revokePairingCode: string;
+    devices: string;
+    refreshDevices: string;
+    noDevices: string;
+    mode: string;
+    local: string;
+    remote: string;
+    device: string;
+    selectDevice: string;
+    offline: string;
+    connect: string;
+    disconnect: string;
+    notConnected: string;
+    dropSingleMarkdown: string;
+    transferComplete: string;
+    transferFailed: string;
+    states: {
+      LocalMode: string;
+      RemoteIdle: string;
+      Connecting: string;
+      Connected: string;
+      Transferring: string;
+      Error: string;
+    };
+  };
+
   // Terminal
   terminal: {
     defaultTitle: string;

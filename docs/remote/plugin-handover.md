@@ -15,19 +15,20 @@
 | `protocol/` | 16 条消息 Schema、OpenAPI、38 条 fixtures、12 条帧向量、TS/Rust 类型生成 | `cd protocol && npm test` |
 | `relay/` | 6 个 HTTPS 接口 + WSS 网关（路由、背压、心跳、归属校验） | `cargo test --manifest-path relay/Cargo.toml`（71 项） |
 | `agent/` | CLI、配置、单实例锁、退避重连、PTY、进程树终止、文件接收 | `cargo test --manifest-path agent/Cargo.toml`（33 项） |
-| `src/services/remote/*.ts`（纯逻辑） | 帧编解码、路径安全、附件收集、信用窗口、发送流程、状态机 | `pnpm test:remote`（52 项） |
+| `src/services/remote/*.ts` | 帧编解码、Relay 客户端、远程 Transport、设备轮询、附件收集与发送、状态机 | `pnpm test:remote`（63 项） |
+| 插件端 Obsidian 集成 | Transport 收敛、远程工具栏、拖拽分流、登录/配对/设备设置 | `pnpm test:terminal`、`pnpm lint:obsidian`、`pnpm build` |
 | 端到端 | 真实终端命令 + 真实文件传输 | `./e2e-run.sh`（8 项检查） |
 
 `src/protocol/generated/messages.ts` 是从 `protocol/` 生成后同步过来的，**不要手改**；改了 CI 的 `sync-protocol.js --check` 会失败。
 
-### 未完成
+### 已完成，待真机验收
 
-1. `TerminalInstance` 收敛到 Transport 接口
-2. `TerminalView` 的拖拽分流与远程 UI
-3. `relayClient.ts`——HTTPS 登录 + 控制 WSS 连接管理
-4. 设置面板（服务器地址、登录、配对码生成、设备列表）
+1. `TerminalInstance` 已收敛到 Transport 接口，本地终端 133 项回归测试通过
+2. `TerminalView` 已接入拖拽分流、远程状态机、设备选择与连接 UI
+3. `relayClient.ts` 已实现 HTTPS 登录、设备 API 与控制 WSS 连接管理
+4. 设置面板已实现服务器地址、登录、配对码和设备管理
 
-这四项全部重度依赖 Obsidian 运行时，在无桌面 Linux 上写完一行也验证不了，所以留给你。
+自动化验证已通过：`pnpm test:terminal`（133 项）、`pnpm test:remote`（63 项）、`pnpm lint:obsidian`、`pnpm build`。仍需按第 5 节在真实 Obsidian、Windows 和 Ubuntu 设备上完成运行时验收。
 
 ---
 
@@ -106,7 +107,7 @@ terminalView.ts:570  private async buildDroppedInput(...)     ← 它负责解�
 
 ---
 
-## 3. 待实现部分
+## 3. 已实现部分与验收要点
 
 ### 3.1 `LocalTerminalTransport`（先做这个）
 

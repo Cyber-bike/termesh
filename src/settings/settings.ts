@@ -102,6 +102,9 @@ export interface TerminalSettings {
   // Server connection settings
   serverConnection: ServerConnectionSettings;
 
+  // Remote relay settings. Authentication remains runtime-only.
+  remoteConnection: RemoteConnectionSettings;
+
   // Preset scripts
   presetScripts: PresetScript[];
 
@@ -164,6 +167,16 @@ export interface ServerConnectionSettings {
   binaryDownloadSource: BinaryDownloadSource;
   offlineMode: boolean;
 }
+
+export interface RemoteConnectionSettings {
+  relayUrl: string;
+  deviceId: string | null;
+}
+
+export const DEFAULT_REMOTE_CONNECTION_SETTINGS: RemoteConnectionSettings = {
+  relayUrl: 'https://termy.changqiu.xyz',
+  deviceId: null,
+};
 
 /**
  * Default server connection settings
@@ -355,6 +368,7 @@ export const DEFAULT_TERMINAL_SETTINGS: TerminalSettings = {
     showInStatusBar: false,
   },
   serverConnection: { ...DEFAULT_SERVER_CONNECTION_SETTINGS },
+  remoteConnection: { ...DEFAULT_REMOTE_CONNECTION_SETTINGS },
   presetScripts: [...DEFAULT_PRESET_SCRIPTS],
   hideUnavailableAiLaunchers: false,
   checkAiLauncherUpdates: true,

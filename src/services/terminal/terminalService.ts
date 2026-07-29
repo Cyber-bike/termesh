@@ -23,6 +23,7 @@ import { t } from '@/i18n';
 import type { ServerManager } from '@/services/server/serverManager';
 import type { PtyClient } from '@/services/server/ptyClient';
 import { getSelectableShellTypes } from './shellProfiles';
+import type { RemoteService } from '@/services/remote/remoteService';
 
 // Preload the TerminalInstance module to avoid dynamic import latency when creating the first terminal
 let terminalInstanceModule: typeof import('./terminalInstance') | null = null;
@@ -55,6 +56,7 @@ export class TerminalService {
   private serverManager: ServerManager;
   private getTerminalEnvironment: () => Record<string, string>;
   private saveSettings: () => Promise<void>;
+  private remoteService: RemoteService;
   
   // Terminal instance registry
   private terminals: Map<string, TerminalInstance> = new Map();
@@ -68,12 +70,14 @@ export class TerminalService {
     serverManager: ServerManager,
     getTerminalEnvironment: () => Record<string, string> = () => ({}),
     saveSettings: () => Promise<void> = () => Promise.resolve(),
+    remoteService: RemoteService,
   ) {
     this.app = app;
     this.settings = settings;
     this.serverManager = serverManager;
     this.getTerminalEnvironment = getTerminalEnvironment;
     this.saveSettings = saveSettings;
+    this.remoteService = remoteService;
     
     // Listen for server events
     this.setupServerEventHandlers();
@@ -183,10 +187,9 @@ export class TerminalService {
    * @returns The created terminal instance
    * @throws Error if terminal creation fails
    */
-  async createTerminal(): Promise<TerminalInstance> {
+  async createTerminal(remote = false): Promise<TerminalInstance> {
     try {
-      // Ensure the server is running
-      await this.serverManager.ensureServer();
+      if (!remote) await this.serverManager.ensureServer();
       
       debugLog('[TerminalService] 创建终端');
 
@@ -240,8 +243,11 @@ export class TerminalService {
         textOpacity: this.settings.textOpacity,
       });
       
-      // Initialize the terminal through ServerManager
-      await terminal.initializeWithServerManager(this.serverManager);
+      if (remote) {
+        await terminal.initializeWithTransport(this.remoteService.createTerminalTransport());
+      } else {
+        await terminal.initializeWithServerManager(this.serverManager);
+      }
       
       this.terminals.set(terminal.id, terminal);
       
@@ -254,6 +260,19 @@ export class TerminalService {
       
       throw error;
     }
+  }
+
+  getRemoteService(): RemoteService {
+    return this.remoteService;
+  }
+
+  getSelectedRemoteDeviceId(): string | null {
+    return this.settings.remoteConnection.deviceId;
+  }
+
+  async setSelectedRemoteDeviceId(deviceId: string | null): Promise<void> {
+    this.settings.remoteConnection.deviceId = deviceId;
+    await this.saveSettings();
   }
 
   /**

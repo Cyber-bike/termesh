@@ -27,19 +27,31 @@ export interface TransferOutcome {
 }
 
 export class TransferSender {
+  private readonly channel: ControlChannel;
+  private readonly deviceId: string;
+  readonly transferId: string;
+  private readonly files: CollectedFile[];
+  private readonly readFile: (path: string) => Promise<Uint8Array>;
+  private readonly callbacks: TransferCallbacks;
   private readonly window: CreditWindow;
   private settle: ((outcome: TransferOutcome) => void) | null = null;
   private finished = false;
 
   constructor(
-    private readonly channel: ControlChannel,
-    private readonly deviceId: string,
-    readonly transferId: string,
-    private readonly files: CollectedFile[],
-    private readonly readFile: (path: string) => Promise<Uint8Array>,
+    channel: ControlChannel,
+    deviceId: string,
+    transferId: string,
+    files: CollectedFile[],
+    readFile: (path: string) => Promise<Uint8Array>,
     initialCredit: number,
-    private readonly callbacks: TransferCallbacks = {}
+    callbacks: TransferCallbacks = {}
   ) {
+    this.channel = channel;
+    this.deviceId = deviceId;
+    this.transferId = transferId;
+    this.files = files;
+    this.readFile = readFile;
+    this.callbacks = callbacks;
     this.window = new CreditWindow(initialCredit);
   }
 
@@ -60,13 +72,16 @@ export class TransferSender {
 
   /** Ends the transfer locally, e.g. the connection dropped. */
   abandon(message: string): void {
-    this.channel.sendJson(
-      envelope('transfer.abort', this.deviceId, {
-        transferId: this.transferId,
-        code: 'TRANSFER_FAILED',
-      })
-    );
-    this.complete({ success: false, code: 'TRANSFER_FAILED', message });
+    try {
+      this.channel.sendJson(
+        envelope('transfer.abort', this.deviceId, {
+          transferId: this.transferId,
+          code: 'TRANSFER_FAILED',
+        })
+      );
+    } finally {
+      this.complete({ success: false, code: 'TRANSFER_FAILED', message });
+    }
   }
 
   /**

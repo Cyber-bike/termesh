@@ -44,13 +44,15 @@ export class CreditWindow {
 
   /** Blocks until `bytes` fit inside the window. */
   async reserve(bytes: number): Promise<void> {
-    if (this.failure) throw this.failure;
+    const initialFailure = this.failure;
+    if (initialFailure !== null) throw initialFailure;
 
     while (this.sent + bytes > this.granted) {
       await new Promise<void>((resolve) => {
         this.waiters.push(resolve);
       });
-      if (this.failure) throw this.failure;
+      const failure = this.failure;
+      if (failure !== null) throw failure;
     }
 
     this.sent += bytes;

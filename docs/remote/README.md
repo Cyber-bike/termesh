@@ -68,8 +68,8 @@ pnpm test:remote
 | 协议契约 | ✅ 三端一致性由共享 fixtures 与帧向量保证 |
 | Relay | ✅ 6 个接口 + WSS 网关，71 项测试 |
 | Agent | ✅ 全部功能，33 项测试 |
-| 插件端纯逻辑 | ✅ 52 项测试 |
-| 插件端 Obsidian 集成 | ❌ 见 [plugin-handover.md](plugin-handover.md) |
+| 插件端远程逻辑 | ✅ 63 项测试 |
+| 插件端 Obsidian 集成 | ✅ 已实现，待真机验收；见 [plugin-handover.md](plugin-handover.md) |
 | 端到端（Linux 本机） | ✅ 8 项检查 |
 | 真机验收（§16） | ❌ 需要 Windows 与 Ubuntu 实机 |
 

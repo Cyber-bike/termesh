@@ -27,6 +27,10 @@ export const zhCN: TranslationKeys = {
     unloadedMessage: 'Termy 插件已卸载',
   },
 
+  remote: {
+    title: '远程终端', relayUrl: 'Relay 地址', relayUrlDesc: '远程终端使用的 HTTPS 服务地址', loginName: '登录名', password: '密码', login: '登录', logout: '退出登录', pairingCode: '配对码', createPairingCode: '生成配对码', revokePairingCode: '撤销配对码', devices: '设备', refreshDevices: '刷新设备', noDevices: '暂无已配对设备', mode: '终端模式', local: '本地', remote: '远程', device: '设备', selectDevice: '选择设备', offline: '离线', connect: '连接', disconnect: '断开', notConnected: '请先连接远程设备再发送笔记。', dropSingleMarkdown: '请从当前仓库拖入一个 Markdown 笔记。', transferComplete: '笔记传输完成。', transferFailed: '笔记传输失败：{{message}}', states: { LocalMode: '本地', RemoteIdle: '远程待机', Connecting: '连接中', Connected: '已连接', Transferring: '传输中', Error: '错误' },
+  },
+
   terminal: {
     defaultTitle: 'Terminal',
     loading: '正在加载终端...',

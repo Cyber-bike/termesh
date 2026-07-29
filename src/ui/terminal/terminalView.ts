@@ -44,6 +44,9 @@ import { debugLog, errorLog } from '../../utils/logger';
 import { clamp, normalizeBackgroundPosition, normalizeBackgroundSize, toCssUrl } from '../../utils/styleUtils';
 import { t } from '../../i18n';
 import { RenameTerminalModal } from './renameTerminalModal';
+import { capabilities, transition, type RemoteState } from '../../services/remote/remoteState';
+import { createVaultLinkSource, readVaultFile } from '../../services/remote/vaultLinkSource';
+import type { Disposable } from '../../services/remote/transport';
 type XtermTerminal = import('@xterm/xterm').Terminal;
 
 export const TERMINAL_VIEW_TYPE = 'terminal-view';
@@ -71,6 +74,9 @@ export class TerminalView extends ItemView {
   private initPromise: Promise<TerminalInstance> | null = null;
   private initResolve: ((terminal: TerminalInstance) => void) | null = null;
   private initReject: ((error: Error) => void) | null = null;
+  private remoteState: RemoteState = 'LocalMode';
+  private remoteToolbar: HTMLElement | null = null;
+  private remoteSubscription: Disposable | null = null;
 
   private readonly fs: FsModule;
   private readonly path: PathModule;
@@ -146,6 +152,10 @@ export class TerminalView extends ItemView {
     this.searchContainer = container.createDiv('terminal-search-container');
     this.createSearchUI();
 
+    this.remoteToolbar = container.createDiv('terminal-remote-toolbar');
+    this.bindRemoteService();
+    this.renderRemoteToolbar();
+
     this.terminalContainer = container.createDiv('terminal-container');
     this.ensureDropHint();
     this.hideDropHint();
@@ -159,6 +169,18 @@ export class TerminalView extends ItemView {
       }
     }, 0);
     return Promise.resolve();
+  }
+
+  private bindRemoteService(): void {
+    this.remoteSubscription?.dispose();
+    this.remoteSubscription = this.terminalService?.getRemoteService().onDidChange(() => {
+      const snapshot = this.terminalService?.getRemoteService().getSnapshot();
+      if (this.remoteState !== 'LocalMode' && snapshot && !snapshot.connected && snapshot.error) {
+        this.setRemoteState(transition(this.remoteState, { type: 'connectionLost' }));
+      } else {
+        this.renderRemoteToolbar();
+      }
+    }) ?? null;
   }
 
   /**
@@ -265,6 +287,9 @@ export class TerminalView extends ItemView {
     this.titleChangeCleanup = null;
     this.searchStateCleanup?.();
     this.searchStateCleanup = null;
+    this.remoteSubscription?.dispose();
+    this.remoteSubscription = null;
+    this.terminalService?.getRemoteService().setRemoteMode(false);
     this.removeDropHandlers?.();
     this.removeDropHandlers = null;
     this.dragEnterDepth = 0;
@@ -316,6 +341,8 @@ export class TerminalView extends ItemView {
 
   setTerminalService(terminalService: TerminalService): void {
     this.terminalService = terminalService;
+    this.bindRemoteService();
+    this.renderRemoteToolbar();
   }
 
   handleHostWindowChanged(options: TerminalAttachOptions = {}): void {
@@ -555,6 +582,14 @@ export class TerminalView extends ItemView {
   }
 
   private async handleDrop(dataTransfer: DataTransfer | null): Promise<void> {
+    if (this.remoteState === 'Connected') {
+      await this.handleRemoteDrop(dataTransfer);
+      return;
+    }
+    if (this.remoteState !== 'LocalMode') {
+      new Notice(t('remote.notConnected'));
+      return;
+    }
     const input = await this.buildDroppedInput(dataTransfer);
     if (!input) {
       debugLog('[Terminal DnD] No usable file path or text in drop payload');
@@ -565,6 +600,134 @@ export class TerminalView extends ItemView {
 
     debugLog('[Terminal DnD] Inject input:', input.text);
     await this.writeInputToTerminal(input.text, input.usePaste);
+  }
+
+  private async handleRemoteDrop(dataTransfer: DataTransfer | null): Promise<void> {
+    const file = this.resolveDroppedMarkdownFile(dataTransfer);
+    if (!file) {
+      new Notice(t('remote.dropSingleMarkdown'));
+      return;
+    }
+
+    this.setRemoteState(transition(this.remoteState, { type: 'dropNote' }));
+    try {
+      const outcome = await this.terminalService?.getRemoteService().transfer(
+        createVaultLinkSource(this.app, file),
+        (path) => readVaultFile(this.app, path),
+      );
+      if (!outcome?.success) throw new Error(outcome?.message ?? 'Transfer failed');
+      new Notice(t('remote.transferComplete'));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      new Notice(t('remote.transferFailed', { message }), 5000);
+    } finally {
+      this.setRemoteState(transition(this.remoteState, { type: 'transferFinished' }));
+    }
+  }
+
+  private resolveDroppedMarkdownFile(dataTransfer: DataTransfer | null): TFile | null {
+    if (!dataTransfer || dataTransfer.files.length > 1) return null;
+    const candidates = [
+      dataTransfer.getData('text/plain'),
+      dataTransfer.getData('text/uri-list'),
+      ...Array.from(dataTransfer.files).map((file) => file.name),
+    ];
+    for (const candidate of candidates) {
+      const path = candidate.trim().replace(/^\[\[/, '').replace(/\]\]$/, '').split('#')[0];
+      if (!path.toLowerCase().endsWith('.md')) continue;
+      const direct = this.app.vault.getAbstractFileByPath(normalizeVaultPath(path));
+      if (direct instanceof TFile && direct.extension.toLowerCase() === 'md') return direct;
+      const linked = this.app.metadataCache.getFirstLinkpathDest(path, '');
+      if (linked instanceof TFile && linked.extension.toLowerCase() === 'md') return linked;
+    }
+    return null;
+  }
+
+  private setRemoteState(state: RemoteState): void {
+    this.remoteState = state;
+    this.terminalInstance?.setInputEnabled(capabilities(state).input);
+    this.renderRemoteToolbar();
+  }
+
+  private renderRemoteToolbar(): void {
+    const toolbar = this.remoteToolbar;
+    const service = this.terminalService;
+    if (!toolbar || !service) return;
+    toolbar.empty();
+    const remoteService = service.getRemoteService();
+    const snapshot = remoteService.getSnapshot();
+    const ability = capabilities(this.remoteState);
+
+    const mode = toolbar.createEl('select', { attr: { 'aria-label': t('remote.mode') } });
+    mode.createEl('option', { text: t('remote.local'), value: 'local' });
+    mode.createEl('option', { text: t('remote.remote'), value: 'remote' });
+    mode.value = this.remoteState === 'LocalMode' ? 'local' : 'remote';
+    mode.addEventListener('change', () => void this.switchTerminalMode(mode.value === 'remote'));
+
+    const devices = toolbar.createEl('select', { attr: { 'aria-label': t('remote.device') } });
+    devices.createEl('option', { text: t('remote.selectDevice'), value: '' });
+    for (const device of snapshot.devices) {
+      devices.createEl('option', {
+        text: `${device.name}${device.online ? '' : ` (${t('remote.offline')})`}`,
+        value: device.id,
+      });
+    }
+    devices.value = service.getSelectedRemoteDeviceId() ?? '';
+    devices.disabled = !ability.deviceSelection;
+    devices.addEventListener('change', () => {
+      void service.setSelectedRemoteDeviceId(devices.value || null);
+      this.setRemoteState(transition(this.remoteState, { type: 'chooseDevice' }));
+    });
+
+    const connectionButton = toolbar.createEl('button', {
+      text: snapshot.connected ? t('remote.disconnect') : t('remote.connect'),
+    });
+    connectionButton.disabled = this.remoteState === 'LocalMode'
+      || this.remoteState === 'Connecting'
+      || (!snapshot.connected && !service.getSelectedRemoteDeviceId());
+    connectionButton.addEventListener('click', () => void this.toggleRemoteConnection());
+    toolbar.createSpan({ text: t(`remote.states.${this.remoteState}`) });
+  }
+
+  private async switchTerminalMode(remote: boolean): Promise<void> {
+    const service = this.terminalService;
+    if (!service) return;
+    if (this.terminalInstance) {
+      await service.destroyTerminal(this.terminalInstance.id);
+      this.terminalInstance = null;
+    }
+    service.getRemoteService().setRemoteMode(remote);
+    this.setRemoteState(transition(this.remoteState, { type: remote ? 'switchToRemote' : 'switchToLocal' }));
+    if (!remote) await this.replaceTerminal(false);
+  }
+
+  private async toggleRemoteConnection(): Promise<void> {
+    const service = this.terminalService;
+    if (!service) return;
+    const remoteService = service.getRemoteService();
+    if (remoteService.getSnapshot().connected) {
+      if (this.terminalInstance) await service.destroyTerminal(this.terminalInstance.id);
+      this.terminalInstance = null;
+      remoteService.disconnect();
+      this.setRemoteState(transition(this.remoteState, { type: 'disconnect' }));
+      return;
+    }
+    this.setRemoteState(transition(this.remoteState, { type: 'connect' }));
+    try {
+      await remoteService.connect();
+      await this.replaceTerminal(true);
+      this.setRemoteState(transition(this.remoteState, { type: 'opened' }));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      this.setRemoteState(transition(this.remoteState, { type: 'openFailed' }));
+      new Notice(message, 5000);
+    }
+  }
+
+  private async replaceTerminal(remote: boolean): Promise<void> {
+    if (!this.terminalService) return;
+    const terminal = await this.terminalService.createTerminal(remote);
+    this.adoptTerminalInstance(terminal);
   }
 
   private async buildDroppedInput(dataTransfer: DataTransfer | null): Promise<{ text: string; usePaste: boolean } | null> {
