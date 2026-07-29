@@ -4,8 +4,10 @@ import test from 'node:test';
 import {
   CODEX_LAUNCH_COMMAND,
   DEFAULT_PRESET_SCRIPTS,
+  DEFAULT_REMOTE_CONNECTION_SETTINGS,
   OPENCODE_LAUNCH_COMMAND,
   isContextAwarePresetScript,
+  normalizeRemoteRelayUrl,
 } from './settings.ts';
 
 test('Codex built-in launcher starts Codex without prompt injection', () => {
@@ -39,4 +41,13 @@ test('built-in context-aware workflow marker covers all built-ins', () => {
     .map((script) => script.id);
 
   assert.deepEqual(contextAwareIds, ['claude-code', 'codex', 'opencode']);
+});
+
+test('remote relay URL migrates the legacy download host', () => {
+  assert.equal(DEFAULT_REMOTE_CONNECTION_SETTINGS.relayUrl, 'https://bjev.duckdns.org');
+  assert.equal(
+    normalizeRemoteRelayUrl('https://termy.changqiu.xyz'),
+    DEFAULT_REMOTE_CONNECTION_SETTINGS.relayUrl,
+  );
+  assert.equal(normalizeRemoteRelayUrl('https://relay.example.com/base?ignored=1'), 'https://relay.example.com');
 });

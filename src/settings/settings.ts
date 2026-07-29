@@ -173,10 +173,30 @@ export interface RemoteConnectionSettings {
   deviceId: string | null;
 }
 
+export const LEGACY_REMOTE_RELAY_URL = 'https://termy.changqiu.xyz';
+
 export const DEFAULT_REMOTE_CONNECTION_SETTINGS: RemoteConnectionSettings = {
-  relayUrl: 'https://termy.changqiu.xyz',
+  relayUrl: 'https://bjev.duckdns.org',
   deviceId: null,
 };
+
+export function normalizeRemoteRelayUrl(value: string | null | undefined): string {
+  let relayUrl = DEFAULT_REMOTE_CONNECTION_SETTINGS.relayUrl;
+  try {
+    const candidate = new URL(value?.trim() || relayUrl);
+    if (candidate.protocol === 'https:') {
+      candidate.pathname = '/';
+      candidate.search = '';
+      candidate.hash = '';
+      relayUrl = candidate.toString().replace(/\/$/, '');
+    }
+  } catch {
+    // Keep the safe default for malformed persisted values.
+  }
+  return relayUrl === LEGACY_REMOTE_RELAY_URL
+    ? DEFAULT_REMOTE_CONNECTION_SETTINGS.relayUrl
+    : relayUrl;
+}
 
 /**
  * Default server connection settings

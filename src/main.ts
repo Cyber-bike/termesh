@@ -2,8 +2,8 @@ import type { View, WorkspaceLeaf } from 'obsidian';
 import { addIcon, FileSystemAdapter, Modal, Notice, Plugin, normalizePath, setIcon, setTooltip } from 'obsidian';
 import {
   DEFAULT_PRESET_SCRIPTS,
-  DEFAULT_REMOTE_CONNECTION_SETTINGS,
   DEFAULT_TERMINAL_SETTINGS,
+  normalizeRemoteRelayUrl,
   type PresetScript,
   type PresetWorkflowAction,
   type TerminalSettings,
@@ -16,6 +16,8 @@ import type { ServerManager } from './services/server/serverManager';
 import type { ClaudeCodeIdeBridge } from './services/claudeCode/ideBridge';
 import type { AgentContextBridge } from './services/context/agentContextBridge';
 import { RemoteService } from './services/remote/remoteService';
+import { RelayClient } from './services/remote/relayClient';
+import { requestWithObsidian } from './services/remote/obsidianRelayRequest';
 import { TERMINAL_VIEW_TYPE, TerminalView } from './ui/terminal/terminalView';
 import { ChangelogModal } from './ui/changelog/changelogModal';
 import { i18n, t } from './i18n';
@@ -200,6 +202,9 @@ export default class TerminalPlugin extends Plugin {
       this._remoteService = new RemoteService(
         () => this.settings.remoteConnection,
         () => this.settings.serverConnection.offlineMode,
+        {
+          createClient: (relayUrl) => new RelayClient(relayUrl, { fetch: requestWithObsidian }),
+        },
       );
     }
     return this._remoteService;
@@ -518,18 +523,7 @@ export default class TerminalPlugin extends Plugin {
   private normalizeRemoteConnectionSettings(
     value: Partial<TerminalSettings['remoteConnection']> | null | undefined
   ): TerminalSettings['remoteConnection'] {
-    let relayUrl = DEFAULT_REMOTE_CONNECTION_SETTINGS.relayUrl;
-    try {
-      const candidate = new URL(value?.relayUrl?.trim() || relayUrl);
-      if (candidate.protocol === 'https:') {
-        candidate.pathname = '/';
-        candidate.search = '';
-        candidate.hash = '';
-        relayUrl = candidate.toString().replace(/\/$/, '');
-      }
-    } catch {
-      // Keep the safe default for malformed persisted values.
-    }
+    const relayUrl = normalizeRemoteRelayUrl(value?.relayUrl);
     const deviceId = typeof value?.deviceId === 'string' && value.deviceId.trim()
       ? value.deviceId.trim()
       : null;

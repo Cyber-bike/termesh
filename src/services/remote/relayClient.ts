@@ -90,14 +90,14 @@ export interface RelayClientDependencies {
   ) => WebSocketLike;
 }
 
-interface RelayHttpResponse {
+export interface RelayHttpResponse {
   readonly ok: boolean;
   readonly status: number;
   json(): Promise<unknown>;
 }
 
 const defaultDependencies: RelayClientDependencies = {
-  fetch: requestWithObsidian,
+  fetch: () => Promise.reject(new Error('Relay request adapter is not configured')),
   now: Date.now,
   createWebSocket: (url, protocol, headers) => new WebSocket(url, protocol, { headers }),
 };
@@ -334,24 +334,4 @@ function rawDataToText(data: RawData): string {
 function subscribe<T>(handlers: Set<T>, handler: T): Disposable {
   handlers.add(handler);
   return toDisposable(() => handlers.delete(handler));
-}
-
-async function requestWithObsidian(input: URL, init: RequestInit): Promise<RelayHttpResponse> {
-  const { requestUrl } = await import('obsidian');
-  const headers: Record<string, string> = {};
-  new Headers(init.headers).forEach((value, key) => {
-    headers[key] = value;
-  });
-  const response = await requestUrl({
-    url: input.toString(),
-    method: init.method,
-    body: typeof init.body === 'string' ? init.body : undefined,
-    headers,
-    throw: false,
-  });
-  return {
-    ok: response.status >= 200 && response.status < 300,
-    status: response.status,
-    json: () => Promise.resolve(response.json as unknown),
-  };
 }
