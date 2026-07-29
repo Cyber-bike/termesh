@@ -156,8 +156,21 @@ walkObjects(doc.components.schemas, 'components/schemas');
 // --- consistency with the WSS side -----------------------------------------
 
 const common = JSON.parse(fs.readFileSync(path.join(ROOT, 'schema', 'common.schema.json'), 'utf8'));
-const loginExpires = doc.components.schemas.LoginResponse.properties.expiresIn.const;
-if (loginExpires !== 900) fail(`LoginResponse.expiresIn should be 900 (15 min per doc 6.2), got ${loginExpires}`);
+// Doc 6.2 says 900. That is now the relay's default rather than a fixed value,
+// because a client holding no credentials cannot survive a 15 minute token, so
+// what the contract has to pin is the range a client must be prepared to see -
+// and above all that it stays an integer count of seconds.
+const loginExpires = doc.components.schemas.LoginResponse.properties.expiresIn;
+if (loginExpires.const !== undefined) {
+  fail('LoginResponse.expiresIn must not be a const: the lifetime is deployment-configurable');
+}
+if (loginExpires.type !== 'integer') fail(`LoginResponse.expiresIn should be an integer, got ${loginExpires.type}`);
+if (loginExpires.minimum !== 60 || loginExpires.maximum !== 86400) {
+  fail(
+    'LoginResponse.expiresIn should allow 60..86400 to match the relay\'s ' +
+      `TERMY_ACCESS_TOKEN_TTL_SECS bounds, got ${loginExpires.minimum}..${loginExpires.maximum}`
+  );
+}
 
 const maxDevices = doc.components.schemas.DeviceList.properties.devices.maxItems;
 if (maxDevices !== 32) fail(`DeviceList.devices.maxItems should match the 32-device quota, got ${maxDevices}`);

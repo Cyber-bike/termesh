@@ -22,6 +22,10 @@ struct Harness {
 }
 
 async fn harness() -> Harness {
+    harness_with_token_ttl(900).await
+}
+
+async fn harness_with_token_ttl(access_token_ttl_secs: i64) -> Harness {
     let dir = tempfile::tempdir().unwrap();
     let db = Db::connect(&dir.path().join("relay.db")).await.unwrap();
 
@@ -31,7 +35,7 @@ async fn harness() -> Harness {
         pepper: b"test-pepper-at-least-32-bytes-long!!".to_vec(),
         jwt_secret: b"test-jwt-secret-at-least-32-bytes!!!".to_vec(),
         relay_url: "wss://relay.test/v1/agent/ws".to_string(),
-        access_token_ttl_secs: 900,
+        access_token_ttl_secs,
     };
 
     Harness {
@@ -156,6 +160,28 @@ async fn login_returns_a_usable_token() {
     let token = body["accessToken"].as_str().unwrap();
     let (status, _) = h.get("/v1/devices", Some(token)).await;
     assert_eq!(status, StatusCode::OK);
+}
+
+/// The relay used to hard-code 900. Deployments now set the lifetime through
+/// TERMY_ACCESS_TOKEN_TTL_SECS, and both the response field and the token's own
+/// exp claim have to follow it - otherwise a client trusts expiresIn and keeps
+/// using a token the relay has already stopped accepting, or discards one that
+/// is still good.
+#[tokio::test]
+async fn login_reports_the_configured_token_lifetime() {
+    let h = harness_with_token_ttl(43_200).await;
+    h.create_user("alice", "hunter2hunter2").await;
+
+    let (status, body) = h
+        .post(
+            "/v1/auth/login",
+            json!({"login": "alice", "password": "hunter2hunter2"}),
+            None,
+        )
+        .await;
+
+    assert_eq!(status, StatusCode::OK);
+    assert_eq!(body["expiresIn"], 43_200);
 }
 
 #[tokio::test]

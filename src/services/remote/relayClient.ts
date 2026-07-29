@@ -13,7 +13,8 @@ const CONTROL_PATH = '/v1/control/ws';
 export interface LoginResponse {
   accessToken: string;
   tokenType: 'Bearer';
-  expiresIn: 900;
+  /** Seconds, set by the relay's TERMY_ACCESS_TOKEN_TTL_SECS. Not a constant. */
+  expiresIn: number;
   user: { id: string; login: string };
 }
 
