@@ -244,7 +244,11 @@ components:
       properties:
         accessToken: { type: string, minLength: 1 }
         tokenType: { type: string, const: Bearer }
-        expiresIn: { type: integer, const: 900 }
+        # Doc 6.2 specifies 900. The deployment sets it via
+        # TERMY_ACCESS_TOKEN_TTL_SECS because a client that stores no
+        # credentials cannot survive a 15 minute token, so the contract states
+        # the permitted range rather than pinning the documented default.
+        expiresIn: { type: integer, minimum: 60, maximum: 86400 }
         user:
           type: object
           properties:

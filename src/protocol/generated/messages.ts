@@ -104,6 +104,7 @@ export interface TerminalErrorMessage {
   payload: {
     code:
       | 'AUTH_EXPIRED'
+      | 'AUTH_INVALID'
       | 'PAIRING_CODE_INVALID'
       | 'DEVICE_FORBIDDEN'
       | 'DEVICE_OFFLINE'
@@ -118,7 +119,8 @@ export interface TerminalErrorMessage {
       | 'RATE_LIMITED'
       | 'BACKPRESSURE_LIMIT'
       | 'SESSION_TIMEOUT'
-      | 'PROTOCOL_ERROR';
+      | 'PROTOCOL_ERROR'
+      | 'INTERNAL_ERROR';
     message: string;
   };
 }
@@ -229,6 +231,7 @@ export interface TransferAbortMessage {
     transferId: string;
     code:
       | 'AUTH_EXPIRED'
+      | 'AUTH_INVALID'
       | 'PAIRING_CODE_INVALID'
       | 'DEVICE_FORBIDDEN'
       | 'DEVICE_OFFLINE'
@@ -243,7 +246,8 @@ export interface TransferAbortMessage {
       | 'RATE_LIMITED'
       | 'BACKPRESSURE_LIMIT'
       | 'SESSION_TIMEOUT'
-      | 'PROTOCOL_ERROR';
+      | 'PROTOCOL_ERROR'
+      | 'INTERNAL_ERROR';
   };
 }
 
@@ -355,6 +359,7 @@ export interface TransferResultMessage {
     code:
       | (
           | 'AUTH_EXPIRED'
+          | 'AUTH_INVALID'
           | 'PAIRING_CODE_INVALID'
           | 'DEVICE_FORBIDDEN'
           | 'DEVICE_OFFLINE'
@@ -370,6 +375,7 @@ export interface TransferResultMessage {
           | 'BACKPRESSURE_LIMIT'
           | 'SESSION_TIMEOUT'
           | 'PROTOCOL_ERROR'
+          | 'INTERNAL_ERROR'
         )
       | null;
     message: string;

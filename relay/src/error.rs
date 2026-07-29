@@ -29,6 +29,7 @@ pub enum StartupError {
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum ErrorCode {
     AuthExpired,
+    AuthInvalid,
     PairingCodeInvalid,
     DeviceForbidden,
     QuotaExceeded,
@@ -41,6 +42,7 @@ impl ErrorCode {
     pub fn as_str(self) -> &'static str {
         match self {
             Self::AuthExpired => "AUTH_EXPIRED",
+            Self::AuthInvalid => "AUTH_INVALID",
             Self::PairingCodeInvalid => "PAIRING_CODE_INVALID",
             Self::DeviceForbidden => "DEVICE_FORBIDDEN",
             Self::QuotaExceeded => "QUOTA_EXCEEDED",
@@ -79,13 +81,27 @@ impl AppError {
         Self::new(StatusCode::BAD_REQUEST, ErrorCode::ProtocolError, message)
     }
 
-    /// Wrong credentials, missing or expired token. Deliberately one variant:
-    /// distinguishing "no such user" from "wrong password" would enumerate accounts.
+    /// A token that is missing, malformed or past its expiry. Login failures do
+    /// NOT use this - see `invalid_credentials`.
     pub fn unauthorized() -> Self {
         Self::new(
             StatusCode::UNAUTHORIZED,
             ErrorCode::AuthExpired,
-            "Authentication failed or the access token has expired",
+            "The access token is missing, invalid or expired",
+        )
+    }
+
+    /// A rejected login. Still one variant for "no such user" and "wrong
+    /// password" - telling those apart would enumerate accounts - but kept
+    /// separate from `unauthorized` because nothing has expired when a password
+    /// is simply wrong, and the client always knows which call it made. Saying
+    /// "or the access token has expired" to someone who just typed a password
+    /// sends them hunting for a session problem that does not exist.
+    pub fn invalid_credentials() -> Self {
+        Self::new(
+            StatusCode::UNAUTHORIZED,
+            ErrorCode::AuthInvalid,
+            "Incorrect login or password",
         )
     }
 

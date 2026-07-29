@@ -34,7 +34,7 @@ class MockClient {
   connection = new MockConnection();
   devices: Device[] = [{ id: DEVICE_ID, name: 'Example', platform: 'windows-x64', agentVersion: '1.0.0', online: true, lastSeenAt: null }];
 
-  async login(): Promise<{ accessToken: string; tokenType: 'Bearer'; expiresIn: 900; user: { id: string; login: string } }> {
+  async login(): Promise<{ accessToken: string; tokenType: 'Bearer'; expiresIn: number; user: { id: string; login: string } }> {
     this.loginCalls += 1;
     return { accessToken: 'token', tokenType: 'Bearer', expiresIn: 900, user: { id: DEVICE_ID, login: 'example' } };
   }

@@ -45,6 +45,7 @@
       "type": "string",
       "enum": [
         "AUTH_EXPIRED",
+        "AUTH_INVALID",
         "PAIRING_CODE_INVALID",
         "DEVICE_FORBIDDEN",
         "DEVICE_OFFLINE",
@@ -59,7 +60,8 @@
         "RATE_LIMITED",
         "BACKPRESSURE_LIMIT",
         "SESSION_TIMEOUT",
-        "PROTOCOL_ERROR"
+        "PROTOCOL_ERROR",
+        "INTERNAL_ERROR"
       ]
     },
     "SafeRelativePath": {
