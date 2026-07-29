@@ -11,7 +11,10 @@ declare module 'ws' {
     constructor(
       address: string,
       protocols?: string | string[],
-      options?: { headers?: Record<string, string> },
+      // `agent` is passed straight through to https.request; false means "do
+      // not use the global agent", which is what keeps a stale pooled socket
+      // from being reused for the upgrade.
+      options?: { headers?: Record<string, string>; agent?: false },
     );
 
     close(code?: number, data?: string): void;

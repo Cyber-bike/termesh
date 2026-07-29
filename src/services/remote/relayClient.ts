@@ -99,7 +99,15 @@ export interface RelayHttpResponse {
 const defaultDependencies: RelayClientDependencies = {
   fetch: () => Promise.reject(new Error('Relay request adapter is not configured')),
   now: Date.now,
-  createWebSocket: (url, protocol, headers) => new WebSocket(url, protocol, { headers }),
+  // `agent: false` forces a fresh socket. ws issues the upgrade through
+  // https.request, which without this reuses https.globalAgent - and since
+  // Node 19 that agent keeps connections alive by default, so Electron hands
+  // back a pooled socket the peer closed long ago. The upgrade writes fine and
+  // the read returns RST: "read ECONNRESET" from TLSWrap.onStreamRead with no
+  // SYN on the wire. Pooling an Upgrade request is wrong regardless, because
+  // the connection stops being HTTP the moment the server answers 101.
+  createWebSocket: (url, protocol, headers) =>
+    new WebSocket(url, protocol, { headers, agent: false }),
 };
 
 export class RelayClient {
