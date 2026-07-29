@@ -1128,6 +1128,7 @@ impl ::std::fmt::Display for DateTime {
 #[doc = "  \"type\": \"string\","]
 #[doc = "  \"enum\": ["]
 #[doc = "    \"AUTH_EXPIRED\","]
+#[doc = "    \"AUTH_INVALID\","]
 #[doc = "    \"PAIRING_CODE_INVALID\","]
 #[doc = "    \"DEVICE_FORBIDDEN\","]
 #[doc = "    \"DEVICE_OFFLINE\","]
@@ -1142,7 +1143,8 @@ impl ::std::fmt::Display for DateTime {
 #[doc = "    \"RATE_LIMITED\","]
 #[doc = "    \"BACKPRESSURE_LIMIT\","]
 #[doc = "    \"SESSION_TIMEOUT\","]
-#[doc = "    \"PROTOCOL_ERROR\""]
+#[doc = "    \"PROTOCOL_ERROR\","]
+#[doc = "    \"INTERNAL_ERROR\""]
 #[doc = "  ]"]
 #[doc = "}"]
 #[doc = r" ```"]
@@ -1162,6 +1164,8 @@ impl ::std::fmt::Display for DateTime {
 pub enum ErrorCode {
     #[serde(rename = "AUTH_EXPIRED")]
     AuthExpired,
+    #[serde(rename = "AUTH_INVALID")]
+    AuthInvalid,
     #[serde(rename = "PAIRING_CODE_INVALID")]
     PairingCodeInvalid,
     #[serde(rename = "DEVICE_FORBIDDEN")]
@@ -1192,11 +1196,14 @@ pub enum ErrorCode {
     SessionTimeout,
     #[serde(rename = "PROTOCOL_ERROR")]
     ProtocolError,
+    #[serde(rename = "INTERNAL_ERROR")]
+    InternalError,
 }
 impl ::std::fmt::Display for ErrorCode {
     fn fmt(&self, f: &mut ::std::fmt::Formatter<'_>) -> ::std::fmt::Result {
         match *self {
             Self::AuthExpired => f.write_str("AUTH_EXPIRED"),
+            Self::AuthInvalid => f.write_str("AUTH_INVALID"),
             Self::PairingCodeInvalid => f.write_str("PAIRING_CODE_INVALID"),
             Self::DeviceForbidden => f.write_str("DEVICE_FORBIDDEN"),
             Self::DeviceOffline => f.write_str("DEVICE_OFFLINE"),
@@ -1212,6 +1219,7 @@ impl ::std::fmt::Display for ErrorCode {
             Self::BackpressureLimit => f.write_str("BACKPRESSURE_LIMIT"),
             Self::SessionTimeout => f.write_str("SESSION_TIMEOUT"),
             Self::ProtocolError => f.write_str("PROTOCOL_ERROR"),
+            Self::InternalError => f.write_str("INTERNAL_ERROR"),
         }
     }
 }
@@ -1220,6 +1228,7 @@ impl ::std::str::FromStr for ErrorCode {
     fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
         match value {
             "AUTH_EXPIRED" => Ok(Self::AuthExpired),
+            "AUTH_INVALID" => Ok(Self::AuthInvalid),
             "PAIRING_CODE_INVALID" => Ok(Self::PairingCodeInvalid),
             "DEVICE_FORBIDDEN" => Ok(Self::DeviceForbidden),
             "DEVICE_OFFLINE" => Ok(Self::DeviceOffline),
@@ -1235,6 +1244,7 @@ impl ::std::str::FromStr for ErrorCode {
             "BACKPRESSURE_LIMIT" => Ok(Self::BackpressureLimit),
             "SESSION_TIMEOUT" => Ok(Self::SessionTimeout),
             "PROTOCOL_ERROR" => Ok(Self::ProtocolError),
+            "INTERNAL_ERROR" => Ok(Self::InternalError),
             _ => Err("invalid value".into()),
         }
     }

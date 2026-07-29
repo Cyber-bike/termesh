@@ -60,11 +60,11 @@ pub async fn login(
     // enumerates valid logins.
     let Some(user) = user else {
         let _ = crypto::verify_password(DUMMY_PHC, &body.password);
-        return Err(AppError::unauthorized());
+        return Err(AppError::invalid_credentials());
     };
 
     if !crypto::verify_password(&user.password_digest, &body.password) {
-        return Err(AppError::unauthorized());
+        return Err(AppError::invalid_credentials());
     }
 
     let token = issue_access_token(

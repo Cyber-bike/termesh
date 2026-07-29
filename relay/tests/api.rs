@@ -184,6 +184,51 @@ async fn login_reports_the_configured_token_lifetime() {
     assert_eq!(body["expiresIn"], 43_200);
 }
 
+/// A rejected login and an unusable token both return 401, but they are not the
+/// same problem and the client always knows which call it made. Reporting "the
+/// access token has expired" to someone who just mistyped a password sends them
+/// looking for a session fault that does not exist - which is exactly what
+/// happened during the first real deployment.
+#[tokio::test]
+async fn a_bad_password_and_a_bad_token_report_different_codes() {
+    let h = harness().await;
+    h.create_user("alice", "hunter2hunter2").await;
+
+    let (status, body) = h
+        .post(
+            "/v1/auth/login",
+            json!({"login": "alice", "password": "not-the-password"}),
+            None,
+        )
+        .await;
+    assert_eq!(status, StatusCode::UNAUTHORIZED);
+    assert_eq!(body["error"]["code"], "AUTH_INVALID");
+    let message = body["error"]["message"].as_str().unwrap();
+    assert!(
+        !message.contains("expired"),
+        "a wrong password must not be reported as an expiry: {message}"
+    );
+
+    // An unknown account is reported identically, or the endpoint enumerates
+    // valid logins.
+    let (status, unknown) = h
+        .post(
+            "/v1/auth/login",
+            json!({"login": "nobody", "password": "not-the-password"}),
+            None,
+        )
+        .await;
+    assert_eq!(status, StatusCode::UNAUTHORIZED);
+    // requestId is per-request by design, so compare only what a caller could
+    // use to tell the two cases apart.
+    assert_eq!(unknown["error"]["code"], body["error"]["code"]);
+    assert_eq!(unknown["error"]["message"], body["error"]["message"]);
+
+    let (status, body) = h.get("/v1/devices", Some("not-a-token")).await;
+    assert_eq!(status, StatusCode::UNAUTHORIZED);
+    assert_eq!(body["error"]["code"], "AUTH_EXPIRED");
+}
+
 #[tokio::test]
 async fn login_rejects_bad_credentials_identically() {
     let h = harness().await;
