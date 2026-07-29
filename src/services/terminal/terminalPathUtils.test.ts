@@ -10,6 +10,7 @@ import {
   joinTerminalPaths,
   normalizeDroppedEntryPath,
   normalizeDroppedEntryReference,
+  normalizeDroppedMarkdownLinkpath,
   normalizeTerminalRawToken,
   normalizeTerminalReferencePath,
   normalizeTerminalToken,
@@ -35,6 +36,16 @@ test('normalizeTerminalRawToken strips wrappers without decoding URL separators'
 test('normalizeVaultPath canonicalizes vault-style separators and relative segments', () => {
   assert.equal(normalizeVaultPath(' /folder\\child/../note.md '), 'folder/note.md');
   assert.equal(normalizeVaultPath('\\folder\\nested\\file.ts'), 'folder/nested/file.ts');
+});
+
+test('normalizeDroppedMarkdownLinkpath accepts Obsidian drag references', () => {
+  assert.equal(normalizeDroppedMarkdownLinkpath('[[notes/demo|Demo]]'), 'notes/demo');
+  assert.equal(normalizeDroppedMarkdownLinkpath('[[notes/demo.md#Heading]]'), 'notes/demo.md');
+  assert.equal(
+    normalizeDroppedMarkdownLinkpath('obsidian://open?vault=example-vault&file=notes%2Fdemo.md'),
+    'notes/demo.md'
+  );
+  assert.equal(normalizeDroppedMarkdownLinkpath('# URI list comment'), null);
 });
 
 test('normalizeTerminalReferencePath removes diff prefixes and matches the target platform', () => {

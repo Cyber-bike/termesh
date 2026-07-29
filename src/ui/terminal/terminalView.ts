@@ -31,6 +31,7 @@ import {
   isAbsoluteTerminalPath,
   joinTerminalPaths,
   normalizeDroppedEntryReference,
+  normalizeDroppedMarkdownLinkpath,
   normalizeTerminalRawToken,
   normalizeTerminalReferencePath,
   normalizeTerminalToken,
@@ -631,10 +632,10 @@ export class TerminalView extends ItemView {
       dataTransfer.getData('text/plain'),
       dataTransfer.getData('text/uri-list'),
       ...Array.from(dataTransfer.files).map((file) => file.name),
-    ];
+    ].flatMap((candidate) => candidate.split(/\r?\n/));
     for (const candidate of candidates) {
-      const path = candidate.trim().replace(/^\[\[/, '').replace(/\]\]$/, '').split('#')[0];
-      if (!path.toLowerCase().endsWith('.md')) continue;
+      const path = normalizeDroppedMarkdownLinkpath(candidate);
+      if (!path) continue;
       const direct = this.app.vault.getAbstractFileByPath(normalizeVaultPath(path));
       if (direct instanceof TFile && direct.extension.toLowerCase() === 'md') return direct;
       const linked = this.app.metadataCache.getFirstLinkpathDest(path, '');

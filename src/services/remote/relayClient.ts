@@ -154,27 +154,35 @@ export class RelayClient {
     const token = this.requireAccessToken();
     const url = new URL(CONTROL_PATH, this.baseUrl);
     url.protocol = this.baseUrl.protocol === 'http:' ? 'ws:' : 'wss:';
-    const socket = this.dependencies.createWebSocket(url.toString(), CONTROL_SUBPROTOCOL, {
-      Authorization: `Bearer ${token}`,
-    });
+    const headers = { Authorization: `Bearer ${token}` };
 
+    try {
+      return await this.openControlSocket(url.toString(), headers);
+    } catch (error) {
+      if (!isConnectionResetError(error)) throw error;
+      return this.openControlSocket(url.toString(), headers);
+    }
+  }
+
+  private openControlSocket(url: string, headers: Record<string, string>): Promise<RelayControlConnection> {
+    const socket = this.dependencies.createWebSocket(url, CONTROL_SUBPROTOCOL, headers);
     return new Promise((resolve, reject) => {
       let settled = false;
       socket.on('open', () => {
+        if (settled) return;
         settled = true;
         resolve(new WebSocketControlConnection(socket));
       });
       socket.on('error', (error) => {
-        if (!settled) {
-          settled = true;
-          reject(error);
-        }
+        if (settled) return;
+        settled = true;
+        socket.close();
+        reject(error);
       });
       socket.on('close', (code, reason) => {
-        if (!settled) {
-          settled = true;
-          reject(new Error(`Relay control connection closed during handshake (${code}): ${reason.toString()}`));
-        }
+        if (settled) return;
+        settled = true;
+        reject(new Error(`Relay control connection closed during handshake (${code}): ${reason.toString()}`));
       });
     });
   }
@@ -306,6 +314,12 @@ function normalizeBaseUrl(baseUrl: string): URL {
   url.search = '';
   url.hash = '';
   return url;
+}
+
+function isConnectionResetError(error: unknown): boolean {
+  if (!(error instanceof Error)) return false;
+  const code = 'code' in error ? error.code : undefined;
+  return code === 'ECONNRESET' || /\bECONNRESET\b/.test(error.message);
 }
 
 async function relayRequestError(response: RelayHttpResponse): Promise<RelayRequestError> {

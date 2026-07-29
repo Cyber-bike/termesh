@@ -36,7 +36,7 @@ termy-protocol = { path = "../protocol/generated/rust" }
 
 # Job Object based process-tree teardown, per doc 7.5.
 [target.'cfg(windows)'.dependencies]
-windows-sys = { version = "=0.59.0", features = ["Win32_Foundation", "Win32_System_JobObjects", "Win32_System_Threading"] }
+windows-sys = { version = "=0.59.0", features = ["Win32_Foundation", "Win32_Security", "Win32_System_JobObjects", "Win32_System_Threading"] }
 
 [dev-dependencies]
 tempfile = "=3.14.0"

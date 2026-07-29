@@ -84,6 +84,22 @@ export function normalizeVaultPath(value: string): string {
   return canonical === '.' ? '' : canonical;
 }
 
+export function normalizeDroppedMarkdownLinkpath(value: string): string | null {
+  const rawValue = normalizeTerminalRawToken(value);
+  if (!rawValue || rawValue.startsWith('#')) {
+    return null;
+  }
+
+  const obsidianPath = obsidianUriToVaultPath(rawValue);
+  let linkpath = obsidianPath ?? normalizeTerminalToken(rawValue);
+  if (linkpath.startsWith('[[') && linkpath.endsWith(']]')) {
+    linkpath = linkpath.slice(2, -2);
+  }
+
+  linkpath = linkpath.split('|', 1)[0].split('#', 1)[0].trim();
+  return linkpath || null;
+}
+
 export function isAbsoluteTerminalPath(
   value: string,
   platform: TerminalPlatform = process.platform

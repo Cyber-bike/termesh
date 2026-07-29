@@ -155,6 +155,36 @@ test('control WSS uses auth and subprotocol and dispatches text and binary', asy
   assert.deepEqual(socket.closeArgs, [1000, 'client closed']);
 });
 
+test('control WSS retries once with a fresh socket after ECONNRESET', async () => {
+  const firstSocket = new MockSocket();
+  const secondSocket = new MockSocket();
+  const sockets = [firstSocket, secondSocket];
+  let attempts = 0;
+  const client = new RelayClient('https://relay.example.com', {
+    fetch: async () => loginResponse(),
+    now: () => 0,
+    createWebSocket: () => {
+      attempts += 1;
+      const socket = sockets.shift();
+      assert.ok(socket);
+      return socket;
+    },
+  });
+  await client.login('example', 'password123');
+
+  const connecting = client.connectControl();
+  const reset = Object.assign(new Error('read ECONNRESET'), { code: 'ECONNRESET' });
+  firstSocket.emit('error', reset);
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  secondSocket.emit('open');
+
+  const connection = await connecting;
+  assert.equal(attempts, 2);
+  assert.deepEqual(firstSocket.closeArgs, [undefined, undefined]);
+  connection.sendJson({ type: 'ping' });
+  assert.equal(secondSocket.sent.length, 1);
+});
+
 test('non-HTTPS relay URLs are rejected', () => {
   assert.throws(() => new RelayClient('http://relay.example.com'), /HTTPS/);
 });
