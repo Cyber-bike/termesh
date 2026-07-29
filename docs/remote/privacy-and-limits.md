@@ -46,7 +46,7 @@ Relay **不持久化**任何正文：
 
 **云端是单节点。** 服务端发版期间所有连接都会断开。Agent 会自动退避重连，Obsidian 端需要手动重连。
 
-**访问令牌 15 分钟过期。** 长时间使用远程终端时，设备列表会先失效并要求重新登录，但**当前已建立的连接不会断**。
+**访问令牌会过期，默认 15 分钟。** 过期后设备列表会失效并要求重新登录，但**当前已建立的连接不会断**——控制 WSS 只在握手时校验一次。没有 refresh token，插件也不保存密码，所以到期就得重新输一次。部署方可以用 `TERMY_ACCESS_TOKEN_TTL_SECS` 调整（见 [operations.md](operations.md) §1.2）；个人单用户部署建议设成 12 小时。
 
 ### 2.2 文件传输
 
@@ -82,6 +82,15 @@ Relay **不持久化**任何正文：
 ## 3. 出问题时
 
 **远程终端连不上**——先看设备列表里它是否在线。不在线的话去目标机上 `termy-agent status`。
+
+**远程终端里某个命令 command not found，但 SSH 进去却能用**——远程 shell 不是登录 shell。Ubuntu 把 `~/.local/bin` 加进 PATH 的那段在 `~/.profile` 里，而非登录 bash 只读 `~/.bashrc`，所以装在那儿的东西（pipx、cargo、npm 全局、Claude Code）全都找不到。新版 Agent 默认已是登录 shell；旧配置手动修：
+
+```bash
+termy-agent config set-shell /bin/bash -- -l   # 注意 -- ，否则 -l 会被当成 CLI 自己的选项
+systemctl --user restart termy-agent
+```
+
+改的是**新会话**的 shell，已经开着的远程终端要关掉重开。
 
 **目标机一直显示离线**——检查 Agent 是否在跑，以及它能否访问 Relay 的域名。`journalctl --user -u termy-agent -f`（Ubuntu）会给出重连失败的原因。
 

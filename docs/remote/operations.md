@@ -155,7 +155,7 @@ journalctl --user -u termy-agent -f
 | `config show` | 打印配置。**不打印设备令牌** |
 | `config set-name <名字>` | 改设备显示名 |
 | `config set-receive-root <绝对路径>` | 改接收目录 |
-| `config set-shell <程序> [参数...]` | 改远程 shell |
+| `config set-shell <程序> [参数...]` | 改远程 shell。**以 `-` 开头的参数要用 `--` 隔开**，否则会被当成 CLI 自己的选项：`config set-shell /bin/bash -- -l` |
 | `run` | 连接 Relay 并提供服务。持单实例锁 |
 | `status` | 读状态文件打印连接情况，不与运行中的进程通信 |
 

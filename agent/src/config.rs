@@ -32,6 +32,16 @@ pub struct Config {
 }
 
 impl Config {
+    /// Matches Termy's local terminal server, which starts a login shell
+    /// (`rust-servers/src/pty/shell.rs`, `get_shell_login_args`). Without `-l`
+    /// bash reads only `~/.bashrc`, and on Ubuntu it is `~/.profile` that puts
+    /// `~/.local/bin` on PATH - so everything installed there (pipx, cargo, npm
+    /// globals, Claude Code) is missing from the remote terminal while an SSH
+    /// session finds it fine. That mismatch is very hard to trace back to a
+    /// login shell, and a remote terminal is supposed to behave like the local
+    /// one.
+    ///
+    /// PowerShell has no login-shell concept and reads its profile either way.
     pub fn default_shell() -> ShellConfig {
         if cfg!(windows) {
             ShellConfig {
@@ -41,7 +51,7 @@ impl Config {
         } else {
             ShellConfig {
                 program: "/bin/bash".into(),
-                args: vec![],
+                args: vec!["-l".into()],
             }
         }
     }
@@ -212,6 +222,28 @@ pub fn harden_file(_path: &Path) -> Result<(), AgentError> {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    /// Regression: the agent shipped `/bin/bash` with no arguments, so the
+    /// remote terminal ran a non-login shell. On Ubuntu `~/.local/bin` is added
+    /// to PATH by `~/.profile`, which a non-login bash never reads - `claude`,
+    /// pipx shims and cargo binaries were all "command not found" remotely
+    /// while working over SSH. The local terminal server has always used a
+    /// login shell; these must agree.
+    #[test]
+    #[cfg(not(windows))]
+    fn the_default_unix_shell_is_a_login_shell() {
+        let shell = Config::default_shell();
+        assert_eq!(shell.program, "/bin/bash");
+        assert_eq!(shell.args, vec!["-l".to_string()]);
+    }
+
+    #[test]
+    #[cfg(windows)]
+    fn powershell_takes_no_login_flag() {
+        let shell = Config::default_shell();
+        assert_eq!(shell.program, "powershell.exe");
+        assert!(shell.args.is_empty());
+    }
 
     fn sample(root: &Path) -> Config {
         Config {
