@@ -34,6 +34,7 @@ Agent 主动外连，**不监听公网端口**。Relay 只转发，不持久化�
 | [privacy-and-limits.md](privacy-and-limits.md) | 使用者。隐私披露和已知限制 |
 | [plugin-handover.md](plugin-handover.md) | 接手插件端改造的人。含已踩过的坑 |
 | [plugin-agent-prompt.md](plugin-agent-prompt.md) | 给 Windows 侧编码助手的启动提示词，贴之前替换占位符 |
+| [multi-session-plan.md](multi-session-plan.md) | 支持多个并发远程终端的实现方案（尚未动工） |
 | [`protocol/README.md`](../../protocol/README.md) | 协议契约，以及落地时做的判断 |
 
 ---
