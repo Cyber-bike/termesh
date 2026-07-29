@@ -39,6 +39,26 @@ docker compose -f relay/compose.yaml up -d
 
 > `relay/Dockerfile` 与 `relay/compose.yaml` 在开发机上**没有实际构建过**（环境里没有 Docker 守护进程），首次使用前请自行构建验证一次。
 
+**小机器上别用 Docker。** 镜像内会重跑一遍 `cargo build --release`（单核约 14 分钟、峰值 633 MB，外加 `rust:bookworm` 基础镜像约 1.5 GB 磁盘），而产物与 `relay/target/release/termy-relay` 完全一致。Docker daemon 本身还要常驻 100–200 MB，relay 进程实测只占 9 MB。compose 提供的持久卷和重启策略 systemd 都有等价物：
+
+```ini
+# /etc/systemd/system/termy-relay.service 关键行
+User=termy
+EnvironmentFile=/etc/termy-relay/relay.env   # 0600 root，systemd 以 root 读取后再降权
+ExecStart=/usr/local/bin/termy-relay serve
+Restart=always
+RestartSec=5
+ProtectSystem=strict
+ReadWritePaths=/var/lib/termy-relay          # 唯一可写路径，即数据库目录
+```
+
+CLI 子命令也要读同一份环境：
+
+```bash
+set -a; . /etc/termy-relay/relay.env; set +a
+sudo -u termy -E termy-relay useradd alice
+```
+
 ### 1.4 反向代理
 
 最低要求：
@@ -47,7 +67,16 @@ docker compose -f relay/compose.yaml up -d
 - 关闭响应缓冲
 - `proxy_read_timeout` ≥ 60 s（大于 Agent 的 50 s 离线判定窗口）
 
-nginx 片段：
+nginx 片段。`$connection_upgrade` **必须先在 `http` 块里定义 map**，少了这段 nginx 直接起不来（unknown variable）——放 `/etc/nginx/conf.d/upgrade.conf` 即可：
+
+```nginx
+map $http_upgrade $connection_upgrade {
+    default upgrade;
+    ''      close;
+}
+```
+
+然后在 server 块里：
 
 ```nginx
 location / {
