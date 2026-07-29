@@ -11,7 +11,7 @@ on:
       - 'src/protocol/**'
       - 'rust-toolchain.toml'
       - 'e2e-run.sh'
-      - 'e2e-driver.js'
+      - 'e2e/**'
       - '.github/workflows/remote-mvp.yml'
   pull_request:
     branches: [main, develop]
@@ -107,7 +107,11 @@ jobs:
     steps:
       - uses: actions/checkout@v5
       - uses: dtolnay/rust-toolchain@stable
+      # There is no Cargo workspace at the repo root, so the default lookup
+      # would find nothing to cache.
       - uses: Swatinem/rust-cache@v2
+        with:
+          workspaces: protocol/generated/rust
       - uses: actions/setup-node@v6
         with:
           node-version: '22'

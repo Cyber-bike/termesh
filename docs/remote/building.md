@@ -140,6 +140,22 @@ pnpm test:remote                                          # 52，需要 Node 22
 npm --prefix e2e ci && ./e2e-run.sh                       # 8 项，起真 relay + 真 agent
 ```
 
+**所有测试都必须在仓库根目录下运行**——插件端的 `frameCodec.test.ts` 和 `pathSafety.test.ts` 用 `process.cwd()` 定位 `protocol/fixtures/`，换个 cwd 会报 ENOENT 或"missing shared fixture"，看起来像失败，其实只是路径找不到。
+
+手头只有 Node 18、跑不了 `test:remote` 时，可以借 `protocol/` 里那份 TypeScript 转译后用 Node 18 跑（实测 52 项全过）：
+
+```bash
+W=$(mktemp -d)
+./protocol/node_modules/.bin/tsc src/services/remote/*.ts --outDir "$W" \
+  --module nodenext --target es2022 --moduleResolution nodenext \
+  --rewriteRelativeImportExtensions --allowImportingTsExtensions --skipLibCheck \
+  --types node --typeRoots ./protocol/node_modules/@types
+echo '{"type":"module"}' > "$W/package.json"
+node --test "$W"/*.test.js          # 注意：在仓库根下执行
+```
+
+`vaultLinkSource.ts` 会报找不到 `obsidian` 模块，可以忽略——它是 Obsidian 适配层，没有测试引用它。
+
 CI 跑的门槛还包括：
 
 ```bash
