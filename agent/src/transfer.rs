@@ -36,6 +36,7 @@ struct OpenFile {
 
 pub struct TransferSession {
     receive_root: PathBuf,
+    destination_path: PathBuf,
     entries: Vec<Entry>,
     current: Option<OpenFile>,
     finished: HashSet<usize>,
@@ -108,8 +109,12 @@ impl TransferSession {
             ));
         }
 
+        let destination_path = paths::resolve_under_root(&receive_root, root_note)
+            .map_err(|e| AgentError::Transfer(format!("{root_note}: {e}")))?;
+
         Ok(Self {
             receive_root,
+            destination_path,
             entries,
             current: None,
             finished: HashSet::new(),
@@ -121,6 +126,10 @@ impl TransferSession {
 
     pub fn entries(&self) -> &[Entry] {
         &self.entries
+    }
+
+    pub fn destination_path(&self) -> &std::path::Path {
+        &self.destination_path
     }
 
     /// Writes one chunk. Returns the new cumulative credit when the window
@@ -324,6 +333,7 @@ mod tests {
         s.complete().unwrap();
 
         assert!(s.is_complete());
+        assert_eq!(s.destination_path(), dir.path().join("notes/demo.md"));
         assert_eq!(
             std::fs::read(dir.path().join("notes/demo.md")).unwrap(),
             b"hello world"

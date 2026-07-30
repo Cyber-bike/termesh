@@ -191,7 +191,31 @@ fn process_alive(pid: u32) -> bool {
     std::path::Path::new(&format!("/proc/{pid}")).exists()
 }
 
-#[cfg(not(unix))]
+#[cfg(windows)]
+fn process_alive(pid: u32) -> bool {
+    use windows_sys::Win32::Foundation::{CloseHandle, WAIT_TIMEOUT};
+    use windows_sys::Win32::System::Threading::{
+        OpenProcess, WaitForSingleObject, PROCESS_QUERY_LIMITED_INFORMATION,
+    };
+
+    const SYNCHRONIZE_ACCESS: u32 = 0x0010_0000;
+
+    unsafe {
+        let process = OpenProcess(
+            PROCESS_QUERY_LIMITED_INFORMATION | SYNCHRONIZE_ACCESS,
+            0,
+            pid,
+        );
+        if process.is_null() {
+            return false;
+        }
+        let running = WaitForSingleObject(process, 0) == WAIT_TIMEOUT;
+        CloseHandle(process);
+        running
+    }
+}
+
+#[cfg(not(any(unix, windows)))]
 fn process_alive(_pid: u32) -> bool {
     false
 }

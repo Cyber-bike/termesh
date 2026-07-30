@@ -139,6 +139,34 @@ impl Harness {
 // --- login ------------------------------------------------------------------
 
 #[tokio::test]
+async fn registration_creates_an_account_and_returns_a_usable_token() {
+    let h = harness().await;
+
+    let (status, body) = h
+        .post(
+            "/v1/auth/register",
+            json!({"login": "new-user", "password": "hunter2hunter2"}),
+            None,
+        )
+        .await;
+
+    assert_eq!(status, StatusCode::CREATED);
+    assert_eq!(body["user"]["login"], "new-user");
+    let token = body["accessToken"].as_str().unwrap();
+    let (status, _) = h.get("/v1/devices", Some(token)).await;
+    assert_eq!(status, StatusCode::OK);
+
+    let (status, _) = h
+        .post(
+            "/v1/auth/register",
+            json!({"login": "new-user", "password": "hunter2hunter2"}),
+            None,
+        )
+        .await;
+    assert_eq!(status, StatusCode::CONFLICT);
+}
+
+#[tokio::test]
 async fn login_returns_a_usable_token() {
     let h = harness().await;
     h.create_user("alice", "hunter2hunter2").await;

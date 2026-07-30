@@ -40,7 +40,6 @@
 **功能:**
 - 构建所有平台二进制 + SHA256 校验和
 - 构建 TypeScript 插件
-- 上传二进制到 Cloudflare R2
 - 打包为带版本号的 `termy-<version>.zip`
 - 从 `CHANGELOG.md` 自动提取当前 tag 对应的发布说明
 - 创建 GitHub Release
@@ -63,13 +62,6 @@ termy-<version>.zip
 **发布说明来源:**
 - `release.yml` 会读取 `CHANGELOG.md` 中与 tag 同名的章节，例如 tag `1.0.0` 对应 `## [1.0.0]`
 - 如果找不到对应章节，Release 会失败，避免发布说明缺失或错配
-
-**R2 同步:**
-- `release.yml` 会调用 `scripts/upload-r2-assets.js`
-- Release job 固定运行在 Node 22 上，并固定使用 `wrangler@4.88.0`
-- 需要配置 GitHub Actions secrets:
-  - `CLOUDFLARE_API_TOKEN`
-  - `CLOUDFLARE_ACCOUNT_ID`
 
 ## 使用
 

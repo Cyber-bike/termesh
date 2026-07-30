@@ -4669,6 +4669,19 @@ impl ::std::convert::TryFrom<::std::string::String> for TransferFileEndMessageTy
 #[doc = "            }"]
 #[doc = "          ]"]
 #[doc = "        },"]
+#[doc = "        \"destinationPath\": {"]
+#[doc = "          \"description\": \"Absolute path of the received root note. A new Agent returns a string on success and null on failure; older Agents omit the field.\","]
+#[doc = "          \"oneOf\": ["]
+#[doc = "            {"]
+#[doc = "              \"type\": \"string\","]
+#[doc = "              \"maxLength\": 4096,"]
+#[doc = "              \"minLength\": 1"]
+#[doc = "            },"]
+#[doc = "            {"]
+#[doc = "              \"type\": \"null\""]
+#[doc = "            }"]
+#[doc = "          ]"]
+#[doc = "        },"]
 #[doc = "        \"message\": {"]
 #[doc = "          \"type\": \"string\","]
 #[doc = "          \"maxLength\": 512"]
@@ -4748,6 +4761,19 @@ impl TransferResultMessage {
 #[doc = "        }"]
 #[doc = "      ]"]
 #[doc = "    },"]
+#[doc = "    \"destinationPath\": {"]
+#[doc = "      \"description\": \"Absolute path of the received root note. A new Agent returns a string on success and null on failure; older Agents omit the field.\","]
+#[doc = "      \"oneOf\": ["]
+#[doc = "        {"]
+#[doc = "          \"type\": \"string\","]
+#[doc = "          \"maxLength\": 4096,"]
+#[doc = "          \"minLength\": 1"]
+#[doc = "        },"]
+#[doc = "        {"]
+#[doc = "          \"type\": \"null\""]
+#[doc = "        }"]
+#[doc = "      ]"]
+#[doc = "    },"]
 #[doc = "    \"message\": {"]
 #[doc = "      \"type\": \"string\","]
 #[doc = "      \"maxLength\": 512"]
@@ -4767,6 +4793,13 @@ impl TransferResultMessage {
 #[serde(deny_unknown_fields)]
 pub struct TransferResultMessagePayload {
     pub code: ::std::option::Option<ErrorCode>,
+    #[doc = "Absolute path of the received root note. A new Agent returns a string on success and null on failure; older Agents omit the field."]
+    #[serde(
+        rename = "destinationPath",
+        default,
+        skip_serializing_if = "::std::option::Option::is_none"
+    )]
+    pub destination_path: ::std::option::Option<TransferResultMessagePayloadDestinationPath>,
     pub message: TransferResultMessagePayloadMessage,
     pub success: bool,
     #[serde(rename = "transferId")]
@@ -4775,6 +4808,82 @@ pub struct TransferResultMessagePayload {
 impl TransferResultMessagePayload {
     pub fn builder() -> builder::TransferResultMessagePayload {
         Default::default()
+    }
+}
+#[doc = "`TransferResultMessagePayloadDestinationPath`"]
+#[doc = r""]
+#[doc = r" <details><summary>JSON schema</summary>"]
+#[doc = r""]
+#[doc = r" ```json"]
+#[doc = "{"]
+#[doc = "  \"type\": \"string\","]
+#[doc = "  \"maxLength\": 4096,"]
+#[doc = "  \"minLength\": 1"]
+#[doc = "}"]
+#[doc = r" ```"]
+#[doc = r" </details>"]
+#[derive(:: serde :: Serialize, Clone, Debug, Eq, Hash, Ord, PartialEq, PartialOrd)]
+#[serde(transparent)]
+pub struct TransferResultMessagePayloadDestinationPath(::std::string::String);
+impl ::std::ops::Deref for TransferResultMessagePayloadDestinationPath {
+    type Target = ::std::string::String;
+    fn deref(&self) -> &::std::string::String {
+        &self.0
+    }
+}
+impl ::std::convert::From<TransferResultMessagePayloadDestinationPath> for ::std::string::String {
+    fn from(value: TransferResultMessagePayloadDestinationPath) -> Self {
+        value.0
+    }
+}
+impl ::std::str::FromStr for TransferResultMessagePayloadDestinationPath {
+    type Err = self::error::ConversionError;
+    fn from_str(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+        if value.chars().count() > 4096usize {
+            return Err("longer than 4096 characters".into());
+        }
+        if value.chars().count() < 1usize {
+            return Err("shorter than 1 characters".into());
+        }
+        Ok(Self(value.to_string()))
+    }
+}
+impl ::std::convert::TryFrom<&str> for TransferResultMessagePayloadDestinationPath {
+    type Error = self::error::ConversionError;
+    fn try_from(value: &str) -> ::std::result::Result<Self, self::error::ConversionError> {
+        value.parse()
+    }
+}
+impl ::std::convert::TryFrom<&::std::string::String>
+    for TransferResultMessagePayloadDestinationPath
+{
+    type Error = self::error::ConversionError;
+    fn try_from(
+        value: &::std::string::String,
+    ) -> ::std::result::Result<Self, self::error::ConversionError> {
+        value.parse()
+    }
+}
+impl ::std::convert::TryFrom<::std::string::String>
+    for TransferResultMessagePayloadDestinationPath
+{
+    type Error = self::error::ConversionError;
+    fn try_from(
+        value: ::std::string::String,
+    ) -> ::std::result::Result<Self, self::error::ConversionError> {
+        value.parse()
+    }
+}
+impl<'de> ::serde::Deserialize<'de> for TransferResultMessagePayloadDestinationPath {
+    fn deserialize<D>(deserializer: D) -> ::std::result::Result<Self, D::Error>
+    where
+        D: ::serde::Deserializer<'de>,
+    {
+        ::std::string::String::deserialize(deserializer)?
+            .parse()
+            .map_err(|e: self::error::ConversionError| {
+                <D::Error as ::serde::de::Error>::custom(e.to_string())
+            })
     }
 }
 #[doc = "`TransferResultMessagePayloadMessage`"]
@@ -7861,6 +7970,10 @@ pub mod builder {
     #[derive(Clone, Debug)]
     pub struct TransferResultMessagePayload {
         code: ::std::result::Result<::std::option::Option<super::ErrorCode>, ::std::string::String>,
+        destination_path: ::std::result::Result<
+            ::std::option::Option<super::TransferResultMessagePayloadDestinationPath>,
+            ::std::string::String,
+        >,
         message: ::std::result::Result<
             super::TransferResultMessagePayloadMessage,
             ::std::string::String,
@@ -7872,6 +7985,7 @@ pub mod builder {
         fn default() -> Self {
             Self {
                 code: Err("no value supplied for code".to_string()),
+                destination_path: Ok(Default::default()),
                 message: Err("no value supplied for message".to_string()),
                 success: Err("no value supplied for success".to_string()),
                 transfer_id: Err("no value supplied for transfer_id".to_string()),
@@ -7887,6 +8001,18 @@ pub mod builder {
             self.code = value
                 .try_into()
                 .map_err(|e| format!("error converting supplied value for code: {e}"));
+            self
+        }
+        pub fn destination_path<T>(mut self, value: T) -> Self
+        where
+            T: ::std::convert::TryInto<
+                ::std::option::Option<super::TransferResultMessagePayloadDestinationPath>,
+            >,
+            T::Error: ::std::fmt::Display,
+        {
+            self.destination_path = value
+                .try_into()
+                .map_err(|e| format!("error converting supplied value for destination_path: {e}"));
             self
         }
         pub fn message<T>(mut self, value: T) -> Self
@@ -7927,6 +8053,7 @@ pub mod builder {
         ) -> ::std::result::Result<Self, super::error::ConversionError> {
             Ok(Self {
                 code: value.code?,
+                destination_path: value.destination_path?,
                 message: value.message?,
                 success: value.success?,
                 transfer_id: value.transfer_id?,
@@ -7937,6 +8064,7 @@ pub mod builder {
         fn from(value: super::TransferResultMessagePayload) -> Self {
             Self {
                 code: Ok(value.code),
+                destination_path: Ok(value.destination_path),
                 message: Ok(value.message),
                 success: Ok(value.success),
                 transfer_id: Ok(value.transfer_id),

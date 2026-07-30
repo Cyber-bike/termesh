@@ -44,8 +44,14 @@ export interface TranslationKeys {
     loginName: string;
     password: string;
     login: string;
+    loginRequired: string;
+    register: string;
+    loggedInAs: string;
     logout: string;
     pairingCode: string;
+    pairingCodeDesc: string;
+    copyPairingCode: string;
+    pairingCodeCopied: string;
     createPairingCode: string;
     revokePairingCode: string;
     devices: string;
@@ -62,6 +68,9 @@ export interface TranslationKeys {
     notConnected: string;
     dropSingleMarkdown: string;
     transferComplete: string;
+    transferCompleteAt: string;
+    copyDestinationPath: string;
+    destinationPathCopied: string;
     transferFailed: string;
     states: {
       LocalMode: string;

@@ -18,7 +18,6 @@ export class TerminalSettingTab extends PluginSettingTab {
   plugin: TerminalPlugin;
   private terminalRenderer: TerminalSettingsRenderer;
   private expandedSections: Set<string> = new Set();
-  private pairingCode: { id: string; code: string } | null = null;
 
   constructor(app: App, plugin: TerminalPlugin) {
     super(app, plugin);
@@ -53,55 +52,27 @@ export class TerminalSettingTab extends PluginSettingTab {
   }
 
   private renderRemoteSettings(containerEl: HTMLElement): void {
-    const section = containerEl.createDiv({ cls: 'terminal-settings-card' });
-    new Setting(section).setName(t('remote.title')).setHeading();
     const settings = this.plugin.settings.remoteConnection;
     const service = this.plugin.getRemoteService();
-    let login = '';
-    let password = '';
+    const snapshot = service.getSnapshot();
+    if (!snapshot.authenticated) return;
 
-    new Setting(section).setName(t('remote.relayUrl')).setDesc(t('remote.relayUrlDesc')).addText((text) => {
-      text.setValue(settings.relayUrl).onChange((value) => {
-        settings.relayUrl = value;
-        void this.plugin.saveSettings();
-      });
-    });
-    new Setting(section).setName(t('remote.loginName')).addText((text) => text.onChange((value) => { login = value; }));
-    new Setting(section).setName(t('remote.password')).addText((text) => {
-      text.inputEl.type = 'password';
-      text.onChange((value) => { password = value; });
-    });
+    const section = containerEl.createDiv({ cls: 'terminal-settings-card' });
+    new Setting(section).setName(t('remote.title')).setHeading();
+
     new Setting(section)
-      .addButton((button) => button.setButtonText(t('remote.login')).onClick(async () => {
-        try { await service.login(login, password); this.display(); }
-        catch (error) { new Notice(error instanceof Error ? error.message : String(error), 5000); }
-      }))
+      .setName(t('remote.loggedInAs', { login: settings.authSession?.login ?? '' }))
       .addButton((button) => button.setButtonText(t('remote.logout')).onClick(() => {
         service.logout();
         this.display();
       }));
-
-    const pairing = new Setting(section).setName(t('remote.pairingCode'));
-    pairing.descEl.setText(this.pairingCode?.code ?? '');
-    pairing.addButton((button) => button.setButtonText(t('remote.createPairingCode')).onClick(async () => {
-      try {
-        const created = await service.createPairingCode();
-        this.pairingCode = { id: created.pairingCodeId, code: created.pairingCode };
-        this.display();
-      } catch (error) { new Notice(error instanceof Error ? error.message : String(error), 5000); }
-    }));
-    pairing.addButton((button) => button.setButtonText(t('remote.revokePairingCode')).setDisabled(!this.pairingCode).onClick(async () => {
-      if (!this.pairingCode) return;
-      try { await service.revokePairingCode(this.pairingCode.id); this.pairingCode = null; this.display(); }
-      catch (error) { new Notice(error instanceof Error ? error.message : String(error), 5000); }
-    }));
 
     new Setting(section).setName(t('remote.devices')).addButton((button) => button
       .setButtonText(t('remote.refreshDevices')).onClick(async () => {
         try { await service.refreshDevices(); this.display(); }
         catch (error) { new Notice(error instanceof Error ? error.message : String(error), 5000); }
       }));
-    const devices = service.getSnapshot().devices;
+    const devices = snapshot.devices;
     if (devices.length === 0) section.createDiv({ text: t('remote.noDevices') });
     for (const device of devices) {
       new Setting(section).setName(device.name)
@@ -148,7 +119,7 @@ export class TerminalSettingTab extends PluginSettingTab {
     feedbackContainer.appendText(t('settings.header.feedbackText'));
     feedbackContainer.createEl('a', {
       text: t('settings.header.feedbackLink'),
-      href: 'https://github.com/ZyphrZero/Termy'
+      href: 'https://github.com/jiang-zhong-xi/ReqFirst'
     });
     feedbackContainer.createSpan({ cls: 'settings-feedback-separator', text: ' · ' });
     feedbackContainer.createEl('a', {

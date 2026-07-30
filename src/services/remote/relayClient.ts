@@ -18,6 +18,11 @@ export interface LoginResponse {
   user: { id: string; login: string };
 }
 
+export interface RelayAuthSession {
+  accessToken: string;
+  expiresAt: number;
+}
+
 export interface PairingCodeCreated {
   pairingCodeId: string;
   pairingCode: string;
@@ -53,6 +58,20 @@ export class RelayRequestError extends Error {
     this.status = status;
     this.code = code;
     this.requestId = requestId;
+  }
+}
+
+class RelayConnectionResetError extends Error {
+  readonly code = 'ECONNRESET';
+  readonly cause: unknown;
+
+  constructor(host: string, cause: unknown) {
+    super(
+      `Relay ${host} reset the secure connection twice. `
+      + 'Check that port 443 serves TLS and the reverse proxy forwards WebSocket upgrades.',
+    );
+    this.name = 'RelayConnectionResetError';
+    this.cause = cause;
   }
 }
 
@@ -123,13 +142,29 @@ export class RelayClient {
   }
 
   async login(login: string, password: string): Promise<LoginResponse> {
-    const response = await this.request<LoginResponse>('/v1/auth/login', {
+    return this.authenticate('/v1/auth/login', login, password);
+  }
+
+  async register(login: string, password: string): Promise<LoginResponse> {
+    return this.authenticate('/v1/auth/register', login, password);
+  }
+
+  private async authenticate(path: string, login: string, password: string): Promise<LoginResponse> {
+    const response = await this.request<LoginResponse>(path, {
       method: 'POST',
       body: JSON.stringify({ login, password }),
     }, false);
     this.accessToken = response.accessToken;
     this.expiresAt = this.dependencies.now() + response.expiresIn * 1000;
     return response;
+  }
+
+  restoreAuthentication(session: RelayAuthSession): void {
+    if (session.expiresAt <= this.dependencies.now()) {
+      throw new RelayRequestError(401, 'AUTH_EXPIRED', 'Relay login has expired');
+    }
+    this.accessToken = session.accessToken;
+    this.expiresAt = session.expiresAt;
   }
 
   async createPairingCode(): Promise<PairingCodeCreated> {
@@ -161,7 +196,12 @@ export class RelayClient {
       return await this.openControlSocket(url.toString(), headers);
     } catch (error) {
       if (!isConnectionResetError(error)) throw error;
-      return this.openControlSocket(url.toString(), headers);
+      try {
+        return await this.openControlSocket(url.toString(), headers);
+      } catch (retryError) {
+        if (!isConnectionResetError(retryError)) throw retryError;
+        throw new RelayConnectionResetError(this.baseUrl.host, retryError);
+      }
     }
   }
 

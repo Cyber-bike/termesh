@@ -59,4 +59,4 @@ jobs:
         run: pnpm test:remote
 
       - name: Run script tests
-        run: node --test scripts/upload-r2-assets.test.js
+        run: pnpm test:scripts

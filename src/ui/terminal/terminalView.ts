@@ -78,6 +78,8 @@ export class TerminalView extends ItemView {
   private remoteState: RemoteState = 'LocalMode';
   private remoteToolbar: HTMLElement | null = null;
   private remoteSubscription: Disposable | null = null;
+  private pairingCode: { id: string; code: string } | null = null;
+  private lastTransferDestination: string | null = null;
 
   private readonly fs: FsModule;
   private readonly path: PathModule;
@@ -617,7 +619,10 @@ export class TerminalView extends ItemView {
         (path) => readVaultFile(this.app, path),
       );
       if (!outcome?.success) throw new Error(outcome?.message ?? 'Transfer failed');
-      new Notice(t('remote.transferComplete'));
+      this.lastTransferDestination = outcome.destinationPath ?? null;
+      new Notice(this.lastTransferDestination
+        ? t('remote.transferCompleteAt', { path: this.lastTransferDestination })
+        : t('remote.transferComplete'));
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       new Notice(t('remote.transferFailed', { message }), 5000);
@@ -665,6 +670,62 @@ export class TerminalView extends ItemView {
     mode.value = this.remoteState === 'LocalMode' ? 'local' : 'remote';
     mode.addEventListener('change', () => void this.switchTerminalMode(mode.value === 'remote'));
 
+    if (this.remoteState === 'LocalMode') return;
+
+    if (!snapshot.authenticated) {
+      const relayUrlInput = toolbar.createEl('input', {
+        cls: 'terminal-remote-auth-input terminal-remote-relay-input',
+        attr: {
+          'aria-label': t('remote.relayUrl'),
+          placeholder: t('remote.relayUrl'),
+          type: 'url',
+        },
+      });
+      relayUrlInput.value = service.getRemoteRelayUrl();
+      const loginInput = toolbar.createEl('input', {
+        cls: 'terminal-remote-auth-input',
+        attr: {
+          'aria-label': t('remote.loginName'),
+          placeholder: t('remote.loginName'),
+          type: 'text',
+        },
+      });
+      const passwordInput = toolbar.createEl('input', {
+        cls: 'terminal-remote-auth-input',
+        attr: {
+          'aria-label': t('remote.password'),
+          placeholder: t('remote.password'),
+          type: 'password',
+        },
+      });
+      const loginButton = toolbar.createEl('button', { text: t('remote.login') });
+      const registerButton = toolbar.createEl('button', { text: t('remote.register') });
+      const controls = [relayUrlInput, loginInput, passwordInput, loginButton, registerButton];
+      const authenticate = async (register: boolean): Promise<void> => {
+        for (const control of controls) control.disabled = true;
+        try {
+          await service.setRemoteRelayUrl(relayUrlInput.value);
+          if (register) {
+            await remoteService.register(loginInput.value, passwordInput.value);
+          } else {
+            await remoteService.login(loginInput.value, passwordInput.value);
+          }
+        } catch (error) {
+          for (const control of controls) control.disabled = false;
+          new Notice(error instanceof Error ? error.message : String(error), 5000);
+        }
+      };
+      loginButton.addEventListener('click', () => void authenticate(false));
+      registerButton.addEventListener('click', () => void authenticate(true));
+      relayUrlInput.addEventListener('change', () => {
+        void service.setRemoteRelayUrl(relayUrlInput.value);
+      });
+      passwordInput.addEventListener('keydown', (event) => {
+        if (event.key === 'Enter') void authenticate(false);
+      });
+      return;
+    }
+
     const devices = toolbar.createEl('select', { attr: { 'aria-label': t('remote.device') } });
     devices.createEl('option', { text: t('remote.selectDevice'), value: '' });
     for (const device of snapshot.devices) {
@@ -683,11 +744,84 @@ export class TerminalView extends ItemView {
     const connectionButton = toolbar.createEl('button', {
       text: snapshot.connected ? t('remote.disconnect') : t('remote.connect'),
     });
-    connectionButton.disabled = this.remoteState === 'LocalMode'
-      || this.remoteState === 'Connecting'
+    connectionButton.disabled = this.remoteState === 'Connecting'
       || (!snapshot.connected && !service.getSelectedRemoteDeviceId());
     connectionButton.addEventListener('click', () => void this.toggleRemoteConnection());
+
+    if (this.pairingCode) {
+      toolbar.createEl('code', {
+        cls: 'terminal-remote-pairing-code',
+        text: this.pairingCode.code,
+        attr: { title: t('remote.pairingCodeDesc') },
+      });
+      const copyButton = toolbar.createEl('button', {
+        cls: 'clickable-icon',
+        attr: { 'aria-label': t('remote.copyPairingCode') },
+      });
+      setIcon(copyButton, 'copy');
+      copyButton.addEventListener('click', () => void this.copyPairingCode());
+      const revokeButton = toolbar.createEl('button', {
+        cls: 'clickable-icon',
+        attr: { 'aria-label': t('remote.revokePairingCode') },
+      });
+      setIcon(revokeButton, 'x');
+      revokeButton.addEventListener('click', () => void this.revokePairingCode());
+    } else {
+      const pairingButton = toolbar.createEl('button', { text: t('remote.createPairingCode') });
+      pairingButton.addEventListener('click', () => void this.createPairingCode(pairingButton));
+    }
+    if (this.lastTransferDestination) {
+      toolbar.createEl('code', {
+        cls: 'terminal-remote-destination-path',
+        text: this.lastTransferDestination,
+        attr: { title: this.lastTransferDestination },
+      });
+      const copyPathButton = toolbar.createEl('button', {
+        cls: 'clickable-icon',
+        attr: { 'aria-label': t('remote.copyDestinationPath') },
+      });
+      setIcon(copyPathButton, 'copy');
+      copyPathButton.addEventListener('click', () => void this.copyDestinationPath());
+    }
     toolbar.createSpan({ text: t(`remote.states.${this.remoteState}`) });
+  }
+
+  private async createPairingCode(button: HTMLButtonElement): Promise<void> {
+    const remoteService = this.terminalService?.getRemoteService();
+    if (!remoteService) return;
+    button.disabled = true;
+    try {
+      const created = await remoteService.createPairingCode();
+      this.pairingCode = { id: created.pairingCodeId, code: created.pairingCode };
+      this.renderRemoteToolbar();
+    } catch (error) {
+      button.disabled = false;
+      new Notice(error instanceof Error ? error.message : String(error), 5000);
+    }
+  }
+
+  private async copyPairingCode(): Promise<void> {
+    if (!this.pairingCode) return;
+    await navigator.clipboard.writeText(this.pairingCode.code);
+    new Notice(t('remote.pairingCodeCopied'));
+  }
+
+  private async revokePairingCode(): Promise<void> {
+    const remoteService = this.terminalService?.getRemoteService();
+    if (!remoteService || !this.pairingCode) return;
+    try {
+      await remoteService.revokePairingCode(this.pairingCode.id);
+      this.pairingCode = null;
+      this.renderRemoteToolbar();
+    } catch (error) {
+      new Notice(error instanceof Error ? error.message : String(error), 5000);
+    }
+  }
+
+  private async copyDestinationPath(): Promise<void> {
+    if (!this.lastTransferDestination) return;
+    await navigator.clipboard.writeText(this.lastTransferDestination);
+    new Notice(t('remote.destinationPathCopied'));
   }
 
   private async switchTerminalMode(remote: boolean): Promise<void> {
@@ -742,7 +876,6 @@ export class TerminalView extends ItemView {
         usePaste: false,
       };
     }
-
     const primaryTextPayload = collectPreferredDroppedTextPayload(dataTransfer);
     const fallbackTextPayload = await collectFallbackDroppedTextPayload(dataTransfer, droppedItems);
     return resolveDroppedTextInput(

@@ -74,7 +74,7 @@ Termy 不是“把一个终端嵌进 Obsidian”这么简单，它更像是把�
 ### 隐私与网络访问
 
 - Termy 不包含遥测或分析功能。
-- Termy 会在需要时下载与当前平台匹配的原生 PTY server 二进制文件。默认下载源是 `https://termy.changqiu.xyz`；也可以在设置中切换到 GitHub Releases，离线模式会禁用自动下载和更新检查。
+- Termy 会在需要时从 [GitHub Releases](https://github.com/jiang-zhong-xi/ReqFirst/releases) 下载与当前平台匹配的原生 PTY server 二进制文件；离线模式会禁用自动下载和更新检查。
 - 终端会话会运行本地 shell 命令和用户配置的工作流。这些命令可能会根据实际运行的 shell 命令或外部 CLI 读取文件、修改文件或访问网络。
 - Termy 会启动本地 WebSocket 连接，用于 PTY 后端和可选 IDE bridge。这些连接仅用于本地终端传输和编辑器上下文接力。
 - 上下文感知的 AI 启动器可以把活动笔记路径、选区、编辑器上下文以及 vault/workspace 路径传递给本地 CLI 工具。Codex 集成会在 vault 内写入本地 helper skill：`.agents/skills/termy-obsidian-context/`。
@@ -173,12 +173,12 @@ Termy 已上架官方 Obsidian Community Plugins 列表。
 
 1. 安装 [BRAT](https://github.com/TfTHacker/obsidian42-brat)。
 2. 打开 BRAT 设置，选择 **Add beta plugin**。
-3. 输入 `ZyphrZero/Termy`。
+3. 输入 `jiang-zhong-xi/ReqFirst`。
 4. 安装插件，并在 **设置 → 社区插件** 中启用。
 
 ### 手动安装
 
-1. 从 [GitHub Releases](https://github.com/ZyphrZero/Termy/releases) 下载最新发布包。
+1. 从 [GitHub Releases](https://github.com/jiang-zhong-xi/ReqFirst/releases) 下载最新发布包。
 2. 解压到当前 vault 的 `.obsidian/plugins/termy/` 目录。
 3. 重启或重新加载 Obsidian。
 4. 在 **设置 → 社区插件** 中启用 Termy。

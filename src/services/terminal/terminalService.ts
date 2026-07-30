@@ -270,6 +270,15 @@ export class TerminalService {
     return this.settings.remoteConnection.deviceId;
   }
 
+  getRemoteRelayUrl(): string {
+    return this.settings.remoteConnection.relayUrl;
+  }
+
+  async setRemoteRelayUrl(relayUrl: string): Promise<void> {
+    this.settings.remoteConnection.relayUrl = relayUrl;
+    await this.saveSettings();
+  }
+
   async setSelectedRemoteDeviceId(deviceId: string | null): Promise<void> {
     this.settings.remoteConnection.deviceId = deviceId;
     await this.saveSettings();

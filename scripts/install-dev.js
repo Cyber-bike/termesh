@@ -429,6 +429,15 @@ async function main() {
     }
   });
   log(`  binaries/${binaryName}`, 'green');
+
+  const manifest = JSON.parse(fs.readFileSync(path.join(ROOT_DIR, 'manifest.json'), 'utf8'));
+  const binaryStats = fs.statSync(destBinary);
+  const versionCachePath = path.join(binariesDir, '.termy-server.version.json');
+  fs.writeFileSync(versionCachePath, JSON.stringify({
+    version: manifest.version,
+    size: binaryStats.size,
+    mtimeMs: binaryStats.mtimeMs,
+  }));
   log('');
 
   // 6. Restart Obsidian

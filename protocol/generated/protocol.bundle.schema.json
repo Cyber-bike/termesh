@@ -1011,6 +1011,19 @@
             "message": {
               "type": "string",
               "maxLength": 512
+            },
+            "destinationPath": {
+              "description": "Absolute path of the received root note. A new Agent returns a string on success and null on failure; older Agents omit the field.",
+              "oneOf": [
+                {
+                  "type": "string",
+                  "minLength": 1,
+                  "maxLength": 4096
+                },
+                {
+                  "type": "null"
+                }
+              ]
             }
           },
           "required": [

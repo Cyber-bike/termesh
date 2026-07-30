@@ -35,6 +35,7 @@ pub mod limits {
     use super::Limit;
 
     pub const LOGIN: Limit = Limit::new(5, 60, 60);
+    pub const SIGN_UP: Limit = Limit::new(5, 3600, 3600);
     pub const CREATE_PAIRING_CODE: Limit = Limit::new(10, 3600, 300);
     pub const REGISTER_BY_IP: Limit = Limit::new(10, 60, 60);
     pub const REGISTER_BY_CODE: Limit = Limit::new(5, 3600, 3600);

@@ -3,7 +3,7 @@
  *
  * Usage:
  *   node scripts/release-notes.js --version 1.3.0
- *   node scripts/release-notes.js --version 1.3.0 --repository ZyphrZero/Termy --output release-body.md
+ *   node scripts/release-notes.js --version 1.3.0 --repository jiang-zhong-xi/ReqFirst --output release-body.md
  */
 
 import fs from 'fs';
@@ -13,7 +13,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DEFAULT_CHANGELOG_PATH = path.join(__dirname, '..', 'CHANGELOG.md');
-const DEFAULT_REPOSITORY = 'ZyphrZero/Termy';
+const DEFAULT_REPOSITORY = 'jiang-zhong-xi/ReqFirst';
 
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -104,7 +104,7 @@ export function renderReleaseBody({ version, changelogSection, repository = DEFA
     '',
     '## Full Changelog',
     '',
-    `See [CHANGELOG.md](${repoUrl}/blob/master/CHANGELOG.md) for the complete history.`,
+    `See [CHANGELOG.md](${repoUrl}/blob/main/CHANGELOG.md) for the complete history.`,
     '',
     '## Support',
     '',

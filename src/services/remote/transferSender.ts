@@ -24,6 +24,7 @@ export interface TransferOutcome {
   success: boolean;
   code: string | null;
   message: string;
+  destinationPath?: string | null;
 }
 
 export class TransferSender {

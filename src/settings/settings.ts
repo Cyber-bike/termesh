@@ -102,7 +102,7 @@ export interface TerminalSettings {
   // Server connection settings
   serverConnection: ServerConnectionSettings;
 
-  // Remote relay settings. Authentication remains runtime-only.
+  // Remote relay settings and the short-lived relay session.
   remoteConnection: RemoteConnectionSettings;
 
   // Preset scripts
@@ -131,7 +131,7 @@ export interface TerminalSettings {
  */
 export type PresetWorkflowActionType = 'terminal-command' | 'obsidian-command' | 'open-external';
 
-export type BinaryDownloadSource = 'github-release' | 'cloudflare-r2';
+export type BinaryDownloadSource = 'github-release';
 
 /**
  * Workflow action definition
@@ -171,6 +171,13 @@ export interface ServerConnectionSettings {
 export interface RemoteConnectionSettings {
   relayUrl: string;
   deviceId: string | null;
+  authSession: RemoteAuthSession | null;
+}
+
+export interface RemoteAuthSession {
+  accessToken: string;
+  expiresAt: number;
+  login: string;
 }
 
 export const LEGACY_REMOTE_RELAY_URL = 'https://termy.changqiu.xyz';
@@ -178,6 +185,7 @@ export const LEGACY_REMOTE_RELAY_URL = 'https://termy.changqiu.xyz';
 export const DEFAULT_REMOTE_CONNECTION_SETTINGS: RemoteConnectionSettings = {
   relayUrl: 'https://bjev.duckdns.org',
   deviceId: null,
+  authSession: null,
 };
 
 export function normalizeRemoteRelayUrl(value: string | null | undefined): string {
@@ -202,7 +210,7 @@ export function normalizeRemoteRelayUrl(value: string | null | undefined): strin
  * Default server connection settings
  */
 export const DEFAULT_SERVER_CONNECTION_SETTINGS: ServerConnectionSettings = {
-  binaryDownloadSource: 'cloudflare-r2',
+  binaryDownloadSource: 'github-release',
   offlineMode: false,
 };
 

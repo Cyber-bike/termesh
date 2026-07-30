@@ -379,6 +379,10 @@ export interface TransferResultMessage {
         )
       | null;
     message: string;
+    /**
+     * Absolute path of the received root note. A new Agent returns a string on success and null on failure; older Agents omit the field.
+     */
+    destinationPath?: string | null;
   };
 }
 

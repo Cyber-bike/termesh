@@ -10,6 +10,14 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Added
 - Added remote Relay login, device pairing and management, remote terminal sessions, and note-with-attachments transfer from the terminal view.
 - Added local and remote terminal transports behind one four-channel terminal interface, with device polling and explicit offline-mode enforcement.
+- Added self-service remote account registration and one-click pairing-code copy in the plugin settings.
+
+### Changed
+- Remote login sessions now survive Obsidian restarts until the Relay token expires, and remote-only device controls stay hidden in local mode.
+- Successful remote transfers now report the received root note's absolute path and keep it available to copy from the terminal toolbar.
+
+### Fixed
+- Fixed Windows Agent status always reporting that the process was not running.
 
 ## [1.4.1] - 2026-05-16
 

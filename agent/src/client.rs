@@ -468,6 +468,7 @@ async fn handle_control(
                         false,
                         Some("INVALID_PATH"),
                         &redact(&e.to_string()),
+                        None,
                     )
                     .await;
                 }
@@ -493,6 +494,7 @@ async fn handle_control(
                             false,
                             Some("TRANSFER_FAILED"),
                             &message,
+                            None,
                         )
                         .await;
                     }
@@ -507,7 +509,17 @@ async fn handle_control(
                 if id == transfer_id {
                     match active.complete() {
                         Ok(()) => {
-                            send_result(out_tx, config, transfer_id, true, None, "").await;
+                            let destination = active.destination_path().to_string_lossy();
+                            send_result(
+                                out_tx,
+                                config,
+                                transfer_id,
+                                true,
+                                None,
+                                "",
+                                Some(&destination),
+                            )
+                            .await;
                         }
                         Err(e) => {
                             active.abort();
@@ -518,6 +530,7 @@ async fn handle_control(
                                 false,
                                 Some("TRANSFER_FAILED"),
                                 &redact(&e.to_string()),
+                                None,
                             )
                             .await;
                         }
@@ -541,6 +554,7 @@ async fn handle_control(
                         false,
                         Some("TRANSFER_FAILED"),
                         "Transfer aborted by the sender; partial files may remain",
+                        None,
                     )
                     .await;
                 } else {
@@ -628,6 +642,7 @@ async fn handle_binary(
                         false,
                         Some("TRANSFER_FAILED"),
                         &message,
+                        None,
                     )
                     .await;
                     Ok(())
@@ -686,6 +701,7 @@ async fn send_result(
     success: bool,
     code: Option<&str>,
     message: &str,
+    destination_path: Option<&str>,
 ) {
     send_json(
         tx,
@@ -699,7 +715,8 @@ async fn send_result(
                 "transferId": transfer_id.to_string(),
                 "success": success,
                 "code": code,
-                "message": message
+                "message": message,
+                "destinationPath": destination_path
             }
         }),
     )

@@ -74,7 +74,7 @@ Termy is built for people who already live in Obsidian and do real work in a ter
 ### Privacy and Network Access
 
 - Termy does not include telemetry or analytics.
-- Termy downloads the matching native PTY server binary when needed. The default source is `https://termy.changqiu.xyz`; GitHub Releases can be selected in settings, and offline mode disables automatic download/update checks.
+- Termy downloads the matching native PTY server binary from [GitHub Releases](https://github.com/jiang-zhong-xi/ReqFirst/releases) when needed; offline mode disables automatic downloads and update checks.
 - Terminal sessions run local shell commands and user-configured workflows. Those commands may read files, modify files, or access the network according to the shell command or external CLI being run.
 - Termy starts local WebSocket connections for its PTY backend and optional IDE bridge. These connections are used for local terminal transport and editor-context handoff.
 - Context-aware AI launchers can pass the active note path, selection, editor context, and vault/workspace path to local CLI tools. The Codex integration writes a vault-local helper skill under `.agents/skills/termy-obsidian-context/`.
@@ -174,12 +174,12 @@ Use BRAT if you want to track the latest tagged build before it ships to the com
 
 1. Install [BRAT](https://github.com/TfTHacker/obsidian42-brat).
 2. Open BRAT settings and choose **Add beta plugin**.
-3. Enter `ZyphrZero/Termy`.
+3. Enter `jiang-zhong-xi/ReqFirst`.
 4. Install the plugin and enable it in **Settings → Community plugins**.
 
 ### Manual install
 
-1. Download the latest release from [GitHub Releases](https://github.com/ZyphrZero/Termy/releases).
+1. Download the latest release from [GitHub Releases](https://github.com/jiang-zhong-xi/ReqFirst/releases).
 2. Extract the release files into `.obsidian/plugins/termy/` inside your vault.
 3. Reload Obsidian.
 4. Enable Termy in **Settings → Community plugins**.
