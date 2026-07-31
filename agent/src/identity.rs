@@ -48,6 +48,14 @@ impl DeviceIdentity {
         self.signing_key.verifying_key().to_bytes()
     }
 
+    /// The raw 32-byte seed, for handing to `iroh::SecretKey::from_bytes` -
+    /// both types wrap the same Ed25519 construction, so the derived public
+    /// key (and therefore the `EndpointId`) is identical (`p2p` tests prove
+    /// it). Private-key material: callers must not log or persist it.
+    pub fn seed_bytes(&self) -> [u8; SEED_LEN] {
+        self.signing_key.to_bytes()
+    }
+
     /// Short hex prefix of the public key, for logs and `status` output only.
     /// This is not the connection code: the code is an iroh `NodeTicket`,
     /// produced once the networking layer encodes this key as an iroh

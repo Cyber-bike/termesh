@@ -9,6 +9,7 @@ pub mod config;
 pub mod identity;
 pub mod lock;
 pub mod osc;
+pub mod p2p;
 pub mod paths;
 pub mod pty;
 pub mod session_table;

@@ -13,7 +13,9 @@ path = "src/main.rs"
 [dependencies]
 tokio = { version = "=1.49.0", features = ["rt-multi-thread", "net", "sync", "signal", "macros", "time", "fs", "io-util", "process"] }
 tokio-tungstenite = { version = "=0.28.0", default-features = false, features = ["rustls-tls-webpki-roots", "connect"] }
-rustls = { version = "=0.23.31", default-features = false, features = ["ring", "std", "tls12"] }
+# 0.23.31 -> 0.23.43: iroh 1.0.3 requires >=0.23.33; same 0.23 line, still
+# pinned exactly.
+rustls = { version = "=0.23.43", default-features = false, features = ["ring", "std", "tls12"] }
 tokio-rustls = { version = "=0.26.4", default-features = false, features = ["ring", "tls12"] }
 webpki-roots = "=0.26.11"
 futures-util = "=0.3.31"
@@ -27,7 +29,7 @@ chrono = { version = "=0.4.42", default-features = false, features = ["std", "se
 
 clap = { version = "=4.5.40", features = ["derive"] }
 thiserror = "=2.0.18"
-tracing = "=0.1.41"
+tracing = "=0.1.44"
 tracing-subscriber = { version = "=0.3.20", features = ["env-filter"] }
 base64 = "=0.22.1"
 rand = "=0.8.5"
@@ -38,6 +40,11 @@ rand = "=0.8.5"
 ed25519-dalek = { version = "=2.1.1", features = ["rand_core"] }
 
 termy-protocol = { path = "../protocol/generated/rust" }
+
+# v2.0 P2P transport (doc 6.1, phase A). The agent side is NOT gated on the
+# A0 Electron spike - that only concerns the plugin's JS binding.
+iroh = "=1.0.3"
+iroh-tickets = "=1.0.0"
 
 # Job Object based process-tree teardown, per doc 7.5.
 [target.'cfg(windows)'.dependencies]
