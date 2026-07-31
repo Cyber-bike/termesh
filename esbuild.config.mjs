@@ -40,6 +40,7 @@ const context = await esbuild.context({
 	external: [
 		'obsidian',
 		'electron',
+		'@number0/iroh',
 		'@codemirror/*',
 		'@lezer/*',
 		...nodeBuiltins
