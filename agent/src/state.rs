@@ -29,10 +29,15 @@ pub struct AgentState {
     pub last_disconnected_at: Option<String>,
     #[serde(rename = "sessionActive")]
     pub session_active: bool,
-    /// Set when the relay rejected the device token, so `status` can say the
-    /// agent needs re-binding rather than just "disconnected" forever.
+    /// V1 leftover, kept so old state files still parse. v2.0 has no relay
+    /// account to re-bind; nothing sets this any more.
     #[serde(rename = "needsRebind", default)]
     pub needs_rebind: bool,
+    /// The connection code the running agent printed at startup (v2.0 doc
+    /// 7.3: `status` 展示连接码). Written by `run`, read by `status` - the
+    /// code embeds current addresses, so only the running process knows it.
+    #[serde(rename = "connectionCode", default)]
+    pub connection_code: Option<String>,
 }
 
 impl AgentState {
@@ -44,6 +49,7 @@ impl AgentState {
             last_disconnected_at: None,
             session_active: false,
             needs_rebind: false,
+            connection_code: None,
         }
     }
 }

@@ -198,7 +198,7 @@ async fn serve_terminal_stream(
     ) {
         Ok(spawned) => spawned,
         Err(e) => {
-            let message = format!("SHELL_START_FAILED: {}", crate::client::redact(&e.to_string()));
+            let message = format!("SHELL_START_FAILED: {}", redact(&e.to_string()));
             send_error(&mut send, &message).await;
             return;
         }
@@ -371,6 +371,25 @@ async fn send_error(send: &mut SendStream, message: &str) {
     let _ = send.finish();
 }
 
+/// Doc 8.8.6 and 13.2: error text crossing the wire must not leak local
+/// paths or anything else about the host. (Inherited verbatim from the
+/// retired V1 relay client.)
+fn redact(message: &str) -> String {
+    let mut out: String = message
+        .split_whitespace()
+        .map(|word| {
+            if word.contains('/') || word.contains('\\') {
+                "<path>".to_string()
+            } else {
+                word.to_string()
+            }
+        })
+        .collect::<Vec<_>>()
+        .join(" ");
+    out.truncate(512);
+    out
+}
+
 /// Same shape as V1's `client::spawn_output_pump`: a dedicated blocking
 /// thread owns the PTY reader, OSC-scans the bytes for shell events and
 /// forwards everything over the channel. EOF means the shell died.
@@ -415,6 +434,22 @@ mod tests {
             program: "/bin/sh".into(),
             args: vec![],
         }
+    }
+
+    #[test]
+    fn redaction_strips_paths() {
+        // Whole whitespace-separated words are replaced, punctuation and all.
+        assert_eq!(
+            redact("cannot start /usr/local/bin/fish: no such file"),
+            "cannot start <path> no such file"
+        );
+        assert_eq!(redact(r"error at C:\Users\a\shell.exe here"), "error at <path> here");
+    }
+
+    #[test]
+    fn redaction_bounds_length() {
+        let long = "x".repeat(2000);
+        assert!(redact(&long).len() <= 512);
     }
 
     fn test_identity() -> DeviceIdentity {

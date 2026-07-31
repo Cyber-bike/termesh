@@ -1,7 +1,10 @@
-//! Agent configuration file (doc 7.3).
+//! Agent configuration file (v2.0 doc 7.3).
 //!
-//! Holds the device token, so the file is created 0600 inside a 0700 directory
-//! on Unix. The token is never accepted from argv.
+//! v2.0 removed the V1 cloud fields (`deviceId`, `deviceToken`, `relayUrl`):
+//! identity is the Ed25519 keypair (doc 5.1), and there is no relay account.
+//! Every remaining field has a default, so the agent runs with no config
+//! file at all - "免账号、免配置" is the point of v2.0. The file exists only
+//! to override defaults, and is created the first time `config set-*` runs.
 
 use std::path::{Path, PathBuf};
 
@@ -18,31 +21,56 @@ pub struct ShellConfig {
 
 #[derive(Debug, Clone, Serialize, Deserialize, PartialEq, Eq)]
 pub struct Config {
-    #[serde(rename = "deviceId")]
-    pub device_id: String,
-    #[serde(rename = "deviceToken")]
-    pub device_token: String,
-    #[serde(rename = "deviceName")]
+    #[serde(rename = "deviceName", default = "default_device_name")]
     pub device_name: String,
-    #[serde(rename = "relayUrl")]
-    pub relay_url: String,
-    #[serde(rename = "receiveRoot")]
+    /// Where the Ed25519 identity lives (doc 7.3). Points at the standard
+    /// location unless overridden; `run`, `status` and `rotate-identity`
+    /// all resolve the key through this field so an override affects every
+    /// command consistently.
+    #[serde(rename = "identityKeyPath", default = "default_identity_key_path")]
+    pub identity_key_path: PathBuf,
+    /// Fallback landing directory for received files when a transfer's
+    /// session cwd is unknown (doc 7.6 rule 2).
+    #[serde(rename = "receiveRoot", default = "Config::default_receive_root")]
     pub receive_root: PathBuf,
-    /// Soft cap on concurrent remote terminal sessions (v2.0 doc §7.3).
-    /// "Soft" as in: enforced when a session is opened (the request past the
-    /// cap gets SESSION_LIMIT_REACHED, see `session_table`), never by
-    /// killing existing sessions when the value is lowered. Defaults so V1
-    /// config files, which predate the field, keep loading.
+    /// Soft cap on concurrent remote terminal sessions (doc 7.3). "Soft" as
+    /// in: enforced when a session is opened (the request past the cap gets
+    /// SESSION_LIMIT_REACHED, see `session_table`), never by killing
+    /// existing sessions when the value is lowered.
     #[serde(
         rename = "maxConcurrentSessions",
         default = "default_max_concurrent_sessions"
     )]
     pub max_concurrent_sessions: usize,
+    #[serde(default = "Config::default_shell")]
     pub shell: ShellConfig,
 }
 
 fn default_max_concurrent_sessions() -> usize {
     8
+}
+
+fn default_identity_key_path() -> PathBuf {
+    crate::identity::identity_path()
+}
+
+/// The system hostname, matching what V1's `bind` defaulted to.
+pub fn default_device_name() -> String {
+    std::fs::read_to_string("/etc/hostname")
+        .ok()
+        .map(|s| s.trim().to_string())
+        .filter(|s| !s.is_empty())
+        .or_else(|| std::env::var("COMPUTERNAME").ok())
+        .unwrap_or_else(|| "termy-agent".into())
+}
+
+impl Default for Config {
+    fn default() -> Self {
+        // Every field is serde-defaulted, so the empty object IS the default
+        // config; going through serde keeps the two definitions of "default"
+        // from drifting apart.
+        serde_json::from_str("{}").expect("the empty config must be valid")
+    }
 }
 
 impl Config {
@@ -74,19 +102,20 @@ impl Config {
         home_dir().join("TermyReceive")
     }
 
-    pub fn load(path: &Path) -> Result<Self, AgentError> {
-        let raw = std::fs::read_to_string(path).map_err(|e| {
-            AgentError::Config(format!(
-                "cannot read {}: {e}. Run `termy-agent bind --code <pairing-code>` first",
-                path.display()
-            ))
-        })?;
-
-        let config: Config = serde_json::from_str(&raw)
-            .map_err(|e| AgentError::Config(format!("{} is not valid: {e}", path.display())))?;
-
-        config.validate()?;
-        Ok(config)
+    /// Missing file = defaults (v2.0 runs configless); present file must
+    /// parse and validate. Only a present-but-broken file is an error.
+    pub fn load_or_default(path: &Path) -> Result<Self, AgentError> {
+        match std::fs::read_to_string(path) {
+            Ok(raw) => {
+                let config: Config = serde_json::from_str(&raw).map_err(|e| {
+                    AgentError::Config(format!("{} is not valid: {e}", path.display()))
+                })?;
+                config.validate()?;
+                Ok(config)
+            }
+            Err(e) if e.kind() == std::io::ErrorKind::NotFound => Ok(Self::default()),
+            Err(e) => Err(e.into()),
+        }
     }
 
     pub fn save(&self, path: &Path) -> Result<(), AgentError> {
@@ -100,8 +129,8 @@ impl Config {
         let json = serde_json::to_string_pretty(self)
             .map_err(|e| AgentError::Config(format!("cannot serialise config: {e}")))?;
 
-        // Write to a temp file and rename, so an interrupted save cannot leave a
-        // half-written config that locks the agent out of its own device.
+        // Write to a temp file and rename, so an interrupted save cannot leave
+        // a half-written config behind.
         let tmp = path.with_extension("json.tmp");
         std::fs::write(&tmp, json.as_bytes())?;
         harden_file(&tmp)?;
@@ -111,24 +140,6 @@ impl Config {
     }
 
     fn validate(&self) -> Result<(), AgentError> {
-        if uuid::Uuid::parse_str(&self.device_id).is_err() {
-            return Err(AgentError::Config("deviceId is not a UUID".into()));
-        }
-        if self.device_token.is_empty() {
-            return Err(AgentError::Config("deviceToken is empty".into()));
-        }
-        let plaintext_allowed = allow_insecure() && self.relay_url.starts_with("ws://");
-        if !self.relay_url.starts_with("wss://") && !plaintext_allowed {
-            {
-                return Err(AgentError::Config(
-                    "relayUrl must start with wss://; the agent verifies certificates against \
-                     webpki-roots and will not connect over ws://. Set \
-                     TERMY_AGENT_ALLOW_INSECURE=1 to permit a plaintext relay for local \
-                     development only"
-                        .into(),
-                ));
-            }
-        }
         if self.device_name.is_empty() || self.device_name.chars().count() > 64 {
             return Err(AgentError::Config(
                 "deviceName must be 1..64 characters".into(),
@@ -198,15 +209,6 @@ pub fn config_path() -> PathBuf {
     config_dir().join("config.json")
 }
 
-/// Escape hatch for local development against a relay with no TLS in front.
-///
-/// Production always terminates TLS at a reverse proxy (doc 6.1), so plaintext
-/// is refused by default. Without this there is no way to run the agent against
-/// a relay on localhost, which makes the whole stack untestable end to end.
-pub fn allow_insecure() -> bool {
-    std::env::var("TERMY_AGENT_ALLOW_INSECURE").is_ok_and(|v| v == "1")
-}
-
 pub fn home_dir() -> PathBuf {
     std::env::var_os("HOME")
         .or_else(|| std::env::var_os("USERPROFILE"))
@@ -268,14 +270,32 @@ mod tests {
 
     fn sample(root: &Path) -> Config {
         Config {
-            device_id: "3d594650-3436-4c7a-9a15-9b5c3f0f4a11".into(),
-            device_token: "a".repeat(43),
             device_name: "build-server".into(),
-            relay_url: "wss://relay.example.com/v1/agent/ws".into(),
+            identity_key_path: root.join("identity.json"),
             receive_root: root.join("TermyReceive"),
             max_concurrent_sessions: 8,
             shell: Config::default_shell(),
         }
+    }
+
+    #[test]
+    fn a_missing_config_file_yields_the_defaults() {
+        let dir = tempfile::tempdir().unwrap();
+        let config = Config::load_or_default(&dir.path().join("absent.json")).unwrap();
+
+        assert_eq!(config, Config::default());
+        assert_eq!(config.max_concurrent_sessions, 8);
+        assert!(!config.device_name.is_empty(), "hostname default must apply");
+        assert!(config.receive_root.is_absolute());
+    }
+
+    #[test]
+    fn a_present_but_broken_config_is_an_error_not_a_silent_default() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("config.json");
+        std::fs::write(&path, b"not json").unwrap();
+
+        assert!(Config::load_or_default(&path).is_err());
     }
 
     #[test]
@@ -285,7 +305,35 @@ mod tests {
         let config = sample(dir.path());
 
         config.save(&path).unwrap();
-        assert_eq!(Config::load(&path).unwrap(), config);
+        assert_eq!(Config::load_or_default(&path).unwrap(), config);
+    }
+
+    /// A V1 config file still has deviceId/deviceToken/relayUrl in it. Those
+    /// keys are simply ignored on load - an upgrade must not brick the agent
+    /// over fields that no longer exist.
+    #[test]
+    fn a_leftover_v1_config_loads_with_its_cloud_fields_ignored() {
+        let dir = tempfile::tempdir().unwrap();
+        let path = dir.path().join("config.json");
+        std::fs::write(
+            &path,
+            format!(
+                r#"{{
+                    "deviceId": "3d594650-3436-4c7a-9a15-9b5c3f0f4a11",
+                    "deviceToken": "secret",
+                    "relayUrl": "wss://relay.example.com",
+                    "deviceName": "upgraded-box",
+                    "receiveRoot": {:?},
+                    "shell": {{ "program": "/bin/bash", "args": ["-l"] }}
+                }}"#,
+                dir.path().join("TermyReceive")
+            ),
+        )
+        .unwrap();
+
+        let config = Config::load_or_default(&path).unwrap();
+        assert_eq!(config.device_name, "upgraded-box");
+        assert_eq!(config.max_concurrent_sessions, 8, "new field defaults in");
     }
 
     #[cfg(unix)]
@@ -304,16 +352,8 @@ mod tests {
             .mode()
             & 0o777;
 
-        assert_eq!(file_mode, 0o600, "config holds the device token");
+        assert_eq!(file_mode, 0o600);
         assert_eq!(dir_mode, 0o700);
-    }
-
-    #[test]
-    fn rejects_a_plaintext_relay_url() {
-        let dir = tempfile::tempdir().unwrap();
-        let mut config = sample(dir.path());
-        config.relay_url = "ws://relay.example.com".into();
-        assert!(config.save(&dir.path().join("c.json")).is_err());
     }
 
     #[test]
@@ -322,18 +362,6 @@ mod tests {
         let mut config = sample(dir.path());
         config.receive_root = PathBuf::from("relative/dir");
         assert!(config.save(&dir.path().join("c.json")).is_err());
-    }
-
-    /// V1 config files predate maxConcurrentSessions; they must keep
-    /// loading, with the doc §7.3 default of 8 applied.
-    #[test]
-    fn a_config_without_max_concurrent_sessions_defaults_to_eight() {
-        let dir = tempfile::tempdir().unwrap();
-        let mut value = serde_json::to_value(sample(dir.path())).unwrap();
-        value.as_object_mut().unwrap().remove("maxConcurrentSessions");
-
-        let config: Config = serde_json::from_value(value).unwrap();
-        assert_eq!(config.max_concurrent_sessions, 8);
     }
 
     #[test]
@@ -366,13 +394,13 @@ mod tests {
         sample(dir.path()).save(&path).unwrap();
 
         let mut broken = sample(dir.path());
-        broken.relay_url = "ws://nope".into();
+        broken.max_concurrent_sessions = 0;
         assert!(broken.save(&path).is_err());
 
         // The original survives because validation runs before any write.
         assert_eq!(
-            Config::load(&path).unwrap().relay_url,
-            "wss://relay.example.com/v1/agent/ws"
+            Config::load_or_default(&path).unwrap().max_concurrent_sessions,
+            8
         );
     }
 }

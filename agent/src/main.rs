@@ -1,19 +1,21 @@
-//! termy-agent: outbound agent for the Termy remote MVP.
+//! termy-agent: the target-side daemon of Termy's remote terminal (v2.0).
 //!
-//! Everything except `run` is a one-shot operator command. The device token is
-//! never accepted as an argument (doc 7.3).
+//! No account, no pairing service: the agent's identity is a local Ed25519
+//! keypair (doc 5.1) and pairing is "copy the connection code it prints"
+//! (doc 5.2). Everything except `run` is a one-shot operator command.
 
 use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
 
-use termy_agent::client;
 use termy_agent::config::{self, Config};
-use termy_agent::identity::{self, DeviceIdentity};
+use termy_agent::identity::DeviceIdentity;
+use termy_agent::p2p::{self, EndpointProfile};
+use termy_agent::serve::{self, ServeOptions};
 use termy_agent::{lock, state};
 
 #[derive(Parser)]
-#[command(name = "termy-agent", version, about = "Termy remote MVP agent")]
+#[command(name = "termy-agent", version, about = "Termy remote terminal agent")]
 struct Cli {
     #[command(subcommand)]
     command: Command,
@@ -21,25 +23,20 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Command {
-    /// Consume a pairing code and bind this machine to the account.
-    Bind {
-        #[arg(long)]
-        code: String,
-        /// Relay base URL, e.g. https://relay.example.com
-        #[arg(long)]
-        relay: String,
-        /// Defaults to the system hostname.
-        #[arg(long)]
-        name: Option<String>,
-    },
     /// Inspect or change stored settings.
     #[command(subcommand)]
     Config(ConfigCommand),
-    /// Connect to the relay and serve terminal and file requests.
-    Run,
+    /// Print the connection code and serve control ends over iroh.
+    Run {
+        /// Bind to 127.0.0.1 only, with relays and address publishing
+        /// disabled. For local development: nothing leaves this machine and
+        /// nothing is announced to the discovery network.
+        #[arg(long)]
+        loopback: bool,
+    },
     /// Print what the running agent last recorded.
     Status,
-    /// Regenerate the device identity (v2.0 doc 5.3). The previous connection
+    /// Regenerate the device identity (doc 5.3). The previous connection
     /// code stops working immediately; every control end must re-pair with
     /// the new code.
     RotateIdentity {
@@ -80,33 +77,23 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
     let path = config::config_path();
 
     match cli.command {
-        Command::Bind { code, relay, name } => {
-            let device_name = name.unwrap_or_else(default_device_name);
-            let config = client::bind(&relay, &code, &device_name).await?;
-            config.save(&path)?;
-            config.ensure_receive_root()?;
-
-            println!("bound as device {} ({device_name})", config.device_id);
-            println!("config written to {}", path.display());
-            println!("receive root: {}", config.receive_root.display());
-            println!("next: start the agent with `termy-agent run`");
-            Ok(())
-        }
-
         Command::Config(command) => {
-            let mut config = Config::load(&path)?;
+            let mut config = Config::load_or_default(&path)?;
             match command {
                 ConfigCommand::Show => {
-                    // Never print the token.
-                    println!("deviceId     {}", config.device_id);
-                    println!("deviceName   {}", config.device_name);
-                    println!("relayUrl     {}", config.relay_url);
-                    println!("receiveRoot  {}", config.receive_root.display());
+                    println!("deviceName             {}", config.device_name);
+                    println!("identityKeyPath        {}", config.identity_key_path.display());
+                    println!("receiveRoot            {}", config.receive_root.display());
+                    println!("maxConcurrentSessions  {}", config.max_concurrent_sessions);
                     println!(
-                        "shell        {} {}",
+                        "shell                  {} {}",
                         config.shell.program,
                         config.shell.args.join(" ")
                     );
+                    if !path.exists() {
+                        println!();
+                        println!("(all defaults; no config file at {})", path.display());
+                    }
                     return Ok(());
                 }
                 ConfigCommand::SetName { name } => config.device_name = name,
@@ -114,7 +101,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     config.receive_root = std::path::PathBuf::from(path)
                 }
                 ConfigCommand::SetShell { program, args } => {
-                    config.shell = termy_agent::config::ShellConfig { program, args }
+                    config.shell = config::ShellConfig { program, args }
                 }
             }
             config.save(&path)?;
@@ -123,75 +110,113 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
             Ok(())
         }
 
-        Command::Run => {
-            // Doc 7.6: refuse to start a second instance, otherwise the two take
-            // turns evicting each other from the relay.
+        Command::Run { loopback } => {
+            // Doc 7.7: one agent per identity, otherwise two processes would
+            // fight over the same EndpointId.
             let _guard = lock::acquire(&lock::lock_path())?;
 
-            let config = Config::load(&path)?;
+            let config = Config::load_or_default(&path)?;
             config.ensure_receive_root()?;
+            let identity = DeviceIdentity::load_or_create(&config.identity_key_path)?;
 
-            tracing::info!(
-                device = %config.device_name,
-                receive_root = %config.receive_root.display(),
-                "starting termy-agent"
-            );
-            client::run(config).await?;
+            let profile = if loopback {
+                EndpointProfile::Loopback
+            } else {
+                EndpointProfile::Production
+            };
+            let endpoint = p2p::bind_endpoint(&identity, profile).await?;
+
+            let code = if loopback {
+                p2p::connection_code(p2p::loopback_addr(&endpoint))
+            } else {
+                // The code embeds the addresses a controller can dial, which
+                // production endpoints learn from the relay handshake and
+                // address watchers; give that a moment rather than printing
+                // a code with no reachable address in it.
+                if tokio::time::timeout(std::time::Duration::from_secs(20), endpoint.online())
+                    .await
+                    .is_err()
+                {
+                    eprintln!(
+                        "warning: no relay reachable after 20s; the connection code may \
+                         only contain local addresses"
+                    );
+                }
+                p2p::connection_code(endpoint.addr())
+            };
+
+            println!("device    {} ({})", config.device_name, identity.fingerprint());
+            println!();
+            println!("connection code (paste it in Termy's \"添加设备\"):");
+            println!();
+            println!("  {code}");
+            println!();
+            println!("waiting for a controller; press Ctrl-C to stop");
+
+            let mut agent_state = state::AgentState::new();
+            agent_state.connection = state::ConnectionState::Connecting;
+            agent_state.connection_code = Some(code);
+            let _ = state::write(&state::state_path(), &agent_state);
+
+            let options = ServeOptions {
+                shell: config.shell.clone(),
+                max_concurrent_sessions: config.max_concurrent_sessions,
+            };
+
+            tokio::select! {
+                _ = serve::serve(endpoint.clone(), options) => {}
+                _ = tokio::signal::ctrl_c() => {
+                    println!("shutting down");
+                    endpoint.close().await;
+                }
+            }
+
+            agent_state.connection = state::ConnectionState::Disconnected;
+            agent_state.connection_code = None;
+            let _ = state::write(&state::state_path(), &agent_state);
             Ok(())
         }
 
         Command::Status => {
+            let config = Config::load_or_default(&path)?;
+
+            match DeviceIdentity::load_or_create(&config.identity_key_path) {
+                Ok(identity) => println!("identity   {}", identity.fingerprint()),
+                Err(err) => println!("identity   error: {err}"),
+            }
+
             let state_file = state::state_path();
             match state::read(&state_file) {
                 None => {
-                    println!(
-                        "no state file at {}; the agent has not run yet",
-                        state_file.display()
-                    );
+                    println!("agent      never run (no state at {})", state_file.display());
                 }
                 Some(state) => {
                     let running = process_alive(state.pid);
                     println!(
-                        "pid           {} ({})",
+                        "agent      pid {} ({})",
                         state.pid,
                         if running { "running" } else { "not running" }
                     );
-                    println!("connection    {:?}", state.connection);
-                    println!(
-                        "last connect  {}",
-                        state.last_connected_at.unwrap_or_else(|| "never".into())
-                    );
-                    println!(
-                        "last drop     {}",
-                        state.last_disconnected_at.unwrap_or_else(|| "never".into())
-                    );
-                    println!(
-                        "session       {}",
-                        if state.session_active {
-                            "active"
-                        } else {
-                            "idle"
+                    match (running, state.connection_code) {
+                        (true, Some(code)) => {
+                            println!("code       {code}");
                         }
-                    );
-                    if state.needs_rebind {
-                        println!();
-                        println!(
-                            "the relay rejected this device token; run `termy-agent bind` again"
-                        );
+                        (true, None) => {
+                            println!("code       unavailable (agent started before it was recorded)");
+                        }
+                        (false, _) => {
+                            println!("code       none (start the agent with `termy-agent run`)");
+                        }
                     }
                 }
-            }
-
-            match DeviceIdentity::load_or_create(&identity::identity_path()) {
-                Ok(identity) => println!("identity       {}", identity.fingerprint()),
-                Err(err) => println!("identity       error: {err}"),
             }
             Ok(())
         }
 
         Command::RotateIdentity { yes } => {
-            let path = identity::identity_path();
-            let previous = DeviceIdentity::load_or_create(&path)?;
+            let config = Config::load_or_default(&path)?;
+            let identity_path = &config.identity_key_path;
+            let previous = DeviceIdentity::load_or_create(identity_path)?;
 
             if !yes {
                 println!(
@@ -205,8 +230,12 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                 }
             }
 
-            let rotated = DeviceIdentity::rotate(&path)?;
-            println!("identity rotated: {} -> {}", previous.fingerprint(), rotated.fingerprint());
+            let rotated = DeviceIdentity::rotate(identity_path)?;
+            println!(
+                "identity rotated: {} -> {}",
+                previous.fingerprint(),
+                rotated.fingerprint()
+            );
             println!("start the agent to print the new connection code: `termy-agent run`");
             Ok(())
         }
@@ -225,15 +254,6 @@ fn confirm(prompt: &str) -> std::io::Result<bool> {
     let mut line = String::new();
     std::io::stdin().read_line(&mut line)?;
     Ok(matches!(line.trim().to_lowercase().as_str(), "y" | "yes"))
-}
-
-fn default_device_name() -> String {
-    std::fs::read_to_string("/etc/hostname")
-        .ok()
-        .map(|s| s.trim().to_string())
-        .filter(|s| !s.is_empty())
-        .or_else(|| std::env::var("COMPUTERNAME").ok())
-        .unwrap_or_else(|| "termy-agent".into())
 }
 
 #[cfg(unix)]
