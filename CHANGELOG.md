@@ -7,6 +7,8 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+## [1.4.2] - 2026-07-31
+
 ### Added
 - Added remote Relay login, device pairing and management, remote terminal sessions, and note-with-attachments transfer from the terminal view.
 - Added local and remote terminal transports behind one four-channel terminal interface, with device polling and explicit offline-mode enforcement.
@@ -18,6 +20,7 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Fixed
 - Fixed Windows Agent status always reporting that the process was not running.
+- Fixed macOS x64 Release builds installing the cross-compilation target into a different Rust toolchain than the pinned toolchain used by Cargo.
 
 ## [1.4.1] - 2026-05-16
 
