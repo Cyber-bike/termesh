@@ -74,7 +74,7 @@ Termy 不是“把一个终端嵌进 Obsidian”这么简单，它更像是把�
 ### 隐私与网络访问
 
 - Termy 不包含遥测或分析功能。
-- Termy 会在需要时从 [GitHub Releases](https://github.com/jiang-zhong-xi/ReqFirst/releases) 下载与当前平台匹配的原生 PTY server 二进制文件；离线模式会禁用自动下载和更新检查。
+- [GitHub Releases](https://github.com/jiang-zhong-xi/ReqFirst/releases) 提供的完整安装包已包含所有受支持平台的原生 PTY server 二进制文件。
 - 终端会话会运行本地 shell 命令和用户配置的工作流。这些命令可能会根据实际运行的 shell 命令或外部 CLI 读取文件、修改文件或访问网络。
 - Termy 会启动本地 WebSocket 连接，用于 PTY 后端和可选 IDE bridge。这些连接仅用于本地终端传输和编辑器上下文接力。
 - 上下文感知的 AI 启动器可以把活动笔记路径、选区、编辑器上下文以及 vault/workspace 路径传递给本地 CLI 工具。Codex 集成会在 vault 内写入本地 helper skill：`.agents/skills/termy-obsidian-context/`。
@@ -160,21 +160,6 @@ Termy 不是“把一个终端嵌进 Obsidian”这么简单，它更像是把�
 > Termy 使用原生 PTY 后端，因此仅支持 Obsidian 桌面端。
 
 ### 通过 Obsidian 社区插件市场安装（推荐）
-
-Termy 已上架官方 Obsidian Community Plugins 列表。
-
-1. 打开 **设置 → 社区插件**，如已开启 **受限模式（Restricted mode）** 请先关闭。
-2. 点击 **浏览（Browse）**，搜索 `Termy`。
-3. 依次点击 **安装（Install）** 与 **启用（Enable）**。
-
-### 使用 BRAT 安装（提前体验最新版）
-
-如果想在版本进入社区市场之前抢先体验，可以使用 BRAT 跟随最新 tag。
-
-1. 安装 [BRAT](https://github.com/TfTHacker/obsidian42-brat)。
-2. 打开 BRAT 设置，选择 **Add beta plugin**。
-3. 输入 `jiang-zhong-xi/ReqFirst`。
-4. 安装插件，并在 **设置 → 社区插件** 中启用。
 
 ### 手动安装
 

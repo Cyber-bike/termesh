@@ -278,9 +278,6 @@ jobs:
 
       - name: Prepare release assets
         run: |
-          # BRAT 需要的三个核心文件（直接上传，不打包）
-          # main.js, manifest.json, styles.css 已在根目录
-          
           # 设置二进制文件执行权限
           chmod +x binaries/termy-server-darwin-* || true
           chmod +x binaries/termy-server-linux-* || true
@@ -297,20 +294,7 @@ jobs:
         uses: softprops/action-gh-release@v3
         with:
           files: |
-            main.js
-            manifest.json
-            styles.css
             termy-${{ github.ref_name }}.zip
-            binaries/termy-server-win32-x64.exe
-            binaries/termy-server-win32-x64.exe.sha256
-            binaries/termy-server-darwin-arm64
-            binaries/termy-server-darwin-arm64.sha256
-            binaries/termy-server-darwin-x64
-            binaries/termy-server-darwin-x64.sha256
-            binaries/termy-server-linux-x64
-            binaries/termy-server-linux-x64.sha256
-            binaries/termy-server-linux-arm64
-            binaries/termy-server-linux-arm64.sha256
             release-assets/termy-agent-win32-x64.exe
             release-assets/termy-agent-win32-x64.exe.sha256
             release-assets/termy-agent-linux-x64
