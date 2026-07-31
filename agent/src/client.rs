@@ -771,6 +771,7 @@ pub async fn bind(
             .ok_or_else(|| AgentError::Protocol("register response has no relayUrl".into()))?
             .to_string(),
         receive_root: Config::default_receive_root(),
+        max_concurrent_sessions: 8,
         shell: Config::default_shell(),
     })
 }

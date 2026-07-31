@@ -9,6 +9,7 @@ use clap::{Parser, Subcommand};
 
 use termy_agent::client;
 use termy_agent::config::{self, Config};
+use termy_agent::identity::{self, DeviceIdentity};
 use termy_agent::{lock, state};
 
 #[derive(Parser)]
@@ -38,6 +39,14 @@ enum Command {
     Run,
     /// Print what the running agent last recorded.
     Status,
+    /// Regenerate the device identity (v2.0 doc 5.3). The previous connection
+    /// code stops working immediately; every control end must re-pair with
+    /// the new code.
+    RotateIdentity {
+        /// Skip the interactive confirmation prompt.
+        #[arg(long)]
+        yes: bool,
+    },
 }
 
 #[derive(Subcommand)]
@@ -172,9 +181,50 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
                     }
                 }
             }
+
+            match DeviceIdentity::load_or_create(&identity::identity_path()) {
+                Ok(identity) => println!("identity       {}", identity.fingerprint()),
+                Err(err) => println!("identity       error: {err}"),
+            }
+            Ok(())
+        }
+
+        Command::RotateIdentity { yes } => {
+            let path = identity::identity_path();
+            let previous = DeviceIdentity::load_or_create(&path)?;
+
+            if !yes {
+                println!(
+                    "this invalidates the current connection code (identity {}); \
+                     every control end must re-pair with the new code.",
+                    previous.fingerprint()
+                );
+                if !confirm("continue? [y/N] ")? {
+                    println!("aborted");
+                    return Ok(());
+                }
+            }
+
+            let rotated = DeviceIdentity::rotate(&path)?;
+            println!("identity rotated: {} -> {}", previous.fingerprint(), rotated.fingerprint());
+            println!("start the agent to print the new connection code: `termy-agent run`");
             Ok(())
         }
     }
+}
+
+/// Reads a single line from stdin and treats `y`/`yes` (case-insensitive) as
+/// confirmation. Anything else, including EOF, is a decline - rotation must
+/// never proceed on an ambiguous answer.
+fn confirm(prompt: &str) -> std::io::Result<bool> {
+    use std::io::Write;
+
+    print!("{prompt}");
+    std::io::stdout().flush()?;
+
+    let mut line = String::new();
+    std::io::stdin().read_line(&mut line)?;
+    Ok(matches!(line.trim().to_lowercase().as_str(), "y" | "yes"))
 }
 
 fn default_device_name() -> String {

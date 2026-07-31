@@ -28,7 +28,21 @@ pub struct Config {
     pub relay_url: String,
     #[serde(rename = "receiveRoot")]
     pub receive_root: PathBuf,
+    /// Soft cap on concurrent remote terminal sessions (v2.0 doc §7.3).
+    /// "Soft" as in: enforced when a session is opened (the request past the
+    /// cap gets SESSION_LIMIT_REACHED, see `session_table`), never by
+    /// killing existing sessions when the value is lowered. Defaults so V1
+    /// config files, which predate the field, keep loading.
+    #[serde(
+        rename = "maxConcurrentSessions",
+        default = "default_max_concurrent_sessions"
+    )]
+    pub max_concurrent_sessions: usize,
     pub shell: ShellConfig,
+}
+
+fn default_max_concurrent_sessions() -> usize {
+    8
 }
 
 impl Config {
@@ -123,6 +137,13 @@ impl Config {
         if !self.receive_root.is_absolute() {
             return Err(AgentError::Config(
                 "receiveRoot must be an absolute path".into(),
+            ));
+        }
+        // The upper bound guards against a typo (80 -> 800) quietly removing
+        // the resource cap this field exists to provide.
+        if self.max_concurrent_sessions == 0 || self.max_concurrent_sessions > 256 {
+            return Err(AgentError::Config(
+                "maxConcurrentSessions must be 1..=256".into(),
             ));
         }
         if self.shell.program.is_empty() {
@@ -252,6 +273,7 @@ mod tests {
             device_name: "build-server".into(),
             relay_url: "wss://relay.example.com/v1/agent/ws".into(),
             receive_root: root.join("TermyReceive"),
+            max_concurrent_sessions: 8,
             shell: Config::default_shell(),
         }
     }
@@ -300,6 +322,31 @@ mod tests {
         let mut config = sample(dir.path());
         config.receive_root = PathBuf::from("relative/dir");
         assert!(config.save(&dir.path().join("c.json")).is_err());
+    }
+
+    /// V1 config files predate maxConcurrentSessions; they must keep
+    /// loading, with the doc §7.3 default of 8 applied.
+    #[test]
+    fn a_config_without_max_concurrent_sessions_defaults_to_eight() {
+        let dir = tempfile::tempdir().unwrap();
+        let mut value = serde_json::to_value(sample(dir.path())).unwrap();
+        value.as_object_mut().unwrap().remove("maxConcurrentSessions");
+
+        let config: Config = serde_json::from_value(value).unwrap();
+        assert_eq!(config.max_concurrent_sessions, 8);
+    }
+
+    #[test]
+    fn rejects_a_session_cap_of_zero_or_an_absurd_one() {
+        let dir = tempfile::tempdir().unwrap();
+
+        let mut zero = sample(dir.path());
+        zero.max_concurrent_sessions = 0;
+        assert!(zero.save(&dir.path().join("zero.json")).is_err());
+
+        let mut absurd = sample(dir.path());
+        absurd.max_concurrent_sessions = 800;
+        assert!(absurd.save(&dir.path().join("absurd.json")).is_err());
     }
 
     #[test]

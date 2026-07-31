@@ -32,6 +32,11 @@ tracing-subscriber = { version = "=0.3.20", features = ["env-filter"] }
 base64 = "=0.22.1"
 rand = "=0.8.5"
 
+# Device identity keypair (v2.0 doc 5.1/7.1). Pinned per the convention above;
+# re-check against crates.io when the iroh integration (doc 14, phase A) lands,
+# since iroh's own SecretKey type may end up replacing this directly.
+ed25519-dalek = { version = "=2.1.1", features = ["rand_core"] }
+
 termy-protocol = { path = "../protocol/generated/rust" }
 
 # Job Object based process-tree teardown, per doc 7.5.

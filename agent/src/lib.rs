@@ -6,11 +6,14 @@
 
 pub mod client;
 pub mod config;
+pub mod identity;
 pub mod lock;
 pub mod osc;
 pub mod paths;
 pub mod pty;
+pub mod session_table;
 pub mod state;
+pub mod termstream;
 pub mod transfer;
 
 #[derive(Debug, thiserror::Error)]
@@ -27,4 +30,6 @@ pub enum AgentError {
     Pty(String),
     #[error("transfer error: {0}")]
     Transfer(String),
+    #[error("SESSION_LIMIT_REACHED: at most {0} concurrent sessions")]
+    SessionLimitReached(usize),
 }
