@@ -42,6 +42,41 @@ export interface IrohConnection {
   closed(): Promise<string>;
 }
 
+export interface IrohEndpointAddr {
+  id(): { toString(): string };
+}
+
+export interface IrohEndpointTicket {
+  endpointAddr(): IrohEndpointAddr;
+}
+
+export interface IrohSecretKey {
+  toBytes(): number[];
+}
+
+export interface IrohEndpointBuilder {
+  secretKey(bytes: number[]): void;
+  alpns(alpns: number[][]): void;
+  relayMode(mode: unknown): void;
+  bindAddr(addr: string): void;
+  bind(): Promise<IrohEndpoint>;
+}
+
+export interface IrohEndpoint {
+  connect(addr: IrohEndpointAddr, alpn: number[]): Promise<IrohConnection>;
+  close(): Promise<void>;
+}
+
+/** The slice of `@number0/iroh`'s module surface the plugin consumes. */
+export interface IrohModule {
+  Endpoint: { builder(): IrohEndpointBuilder };
+  EndpointTicket: { fromString(s: string): IrohEndpointTicket };
+  RelayMode: { disabled(): unknown; defaultMode(): unknown };
+  SecretKey: { generate(): IrohSecretKey; fromBytes(bytes: number[]): IrohSecretKey };
+  presetN0(builder: IrohEndpointBuilder): void;
+  presetMinimal(builder: IrohEndpointBuilder): void;
+}
+
 /**
  * Wraps one iroh bi-stream as the `ByteStream` the terminal transport
  * consumes. The binding speaks `Array<number>`; the seam speaks
