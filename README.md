@@ -74,7 +74,7 @@ Termy is built for people who already live in Obsidian and do real work in a ter
 ### Privacy and Network Access
 
 - Termy does not include telemetry or analytics.
-- The complete package from [GitHub Releases](https://github.com/jiang-zhong-xi/ReqFirst/releases) includes native PTY server binaries for all supported platforms.
+- Termy downloads the matching native PTY server binary from [GitHub Releases](https://github.com/jiang-zhong-xi/ReqFirst/releases) when needed; offline mode disables automatic downloads and update checks.
 - Terminal sessions run local shell commands and user-configured workflows. Those commands may read files, modify files, or access the network according to the shell command or external CLI being run.
 - Termy starts local WebSocket connections for its PTY backend and optional IDE bridge. These connections are used for local terminal transport and editor-context handoff.
 - Context-aware AI launchers can pass the active note path, selection, editor context, and vault/workspace path to local CLI tools. The Codex integration writes a vault-local helper skill under `.agents/skills/termy-obsidian-context/`.
@@ -161,6 +161,21 @@ Termy is built for people who already live in Obsidian and do real work in a ter
 > Termy is desktop-only because it uses a native PTY backend.
 
 ### Install from the Obsidian Community Plugins (recommended)
+
+Termy is now listed in the official Obsidian Community Plugins directory.
+
+1. Open **Settings → Community plugins** and turn off **Restricted mode** if it is enabled.
+2. Click **Browse** and search for `Termy`.
+3. Click **Install**, then **Enable**.
+
+### Install with BRAT (early updates)
+
+Use BRAT if you want to track the latest tagged build before it ships to the community directory.
+
+1. Install [BRAT](https://github.com/TfTHacker/obsidian42-brat).
+2. Open BRAT settings and choose **Add beta plugin**.
+3. Enter `jiang-zhong-xi/ReqFirst`.
+4. Install the plugin and enable it in **Settings → Community plugins**.
 
 ### Manual install
 

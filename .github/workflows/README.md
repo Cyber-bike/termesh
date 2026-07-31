@@ -62,7 +62,7 @@ termy-<version>.zip
         └── termy-server-linux-arm64
 ```
 
-    Release 只会上传完整插件 ZIP，以及以下远程组件和对应的 `.sha256` 校验文件：
+    Release 还会直接附带以下远程组件及其 `.sha256` 校验文件：
 
     ```text
     termy-agent-win32-x64.exe

@@ -38,11 +38,16 @@ test('renderReleaseBody describes the package without requiring CHANGELOG.md as 
   assert.doesNotMatch(body, /\[Discussions\]\(/);
   assert.ok(body.startsWith('## Changelog\n\n### Added\n- Embedded changelog support.\n\n## Installation'));
 
+  // Community plugins is the recommended path; BRAT is offered as the early-updates fallback.
+  const communityIndex = body.indexOf('### Obsidian Community Plugins (Recommended)');
+  const bratIndex = body.indexOf('### BRAT (Early Updates)');
   const manualIndex = body.indexOf('### Manual Installation');
+  assert.ok(communityIndex !== -1, 'Community Plugins section should be present');
+  assert.ok(bratIndex !== -1, 'BRAT section should be present');
   assert.ok(manualIndex !== -1, 'Manual Installation section should be present');
-  assert.doesNotMatch(body, /Community Plugins/);
-  assert.doesNotMatch(body, /BRAT/);
-  assert.doesNotMatch(body, /Platform-Specific/);
+  assert.ok(communityIndex < bratIndex, 'Community Plugins should come before BRAT');
+  assert.ok(bratIndex < manualIndex, 'BRAT should come before Manual Installation');
+  assert.match(body, /Click \*\*Browse\*\*, search for `Termy`/);
   assert.match(body, /`termy-agent-win32-x64\.exe`: Windows x64 remote agent/);
   assert.match(body, /`termy-agent-linux-x64`: Linux x64 remote agent/);
   assert.match(body, /`termy-relay-linux-x64`: Linux x64 relay server/);

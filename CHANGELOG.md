@@ -7,9 +7,6 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
-### Changed
-- Simplified GitHub Release assets to the complete plugin ZIP plus Windows/Linux Agent and Linux Relay binaries with SHA256 checksums; BRAT, Community Plugins, and platform-specific loose-file installation are no longer supported by this release layout.
-
 ## [1.4.3] - 2026-07-31
 
 ### Fixed
