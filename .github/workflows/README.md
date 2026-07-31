@@ -36,9 +36,12 @@
 
 **触发条件:**
 - 推送版本标签 (`*.*.*`)
+- 标签必须与 `manifest.json`、`package.json` 版本一致，并且 `CHANGELOG.md` 中存在同名章节
 
 **功能:**
 - 构建所有平台二进制 + SHA256 校验和
+- 构建 Windows x64 / Linux x64 `termy-agent`
+- 构建 Linux x64 `termy-relay`
 - 构建 TypeScript 插件
 - 打包为带版本号的 `termy-<version>.zip`
 - 从 `CHANGELOG.md` 自动提取当前 tag 对应的发布说明
@@ -58,6 +61,14 @@ termy-<version>.zip
         ├── termy-server-linux-x64
         └── termy-server-linux-arm64
 ```
+
+    Release 还会直接附带以下远程组件及其 `.sha256` 校验文件：
+
+    ```text
+    termy-agent-win32-x64.exe
+    termy-agent-linux-x64
+    termy-relay-linux-x64
+    ```
 
 **发布说明来源:**
 - `release.yml` 会读取 `CHANGELOG.md` 中与 tag 同名的章节，例如 tag `1.0.0` 对应 `## [1.0.0]`
