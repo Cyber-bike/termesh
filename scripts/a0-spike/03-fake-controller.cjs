@@ -109,23 +109,32 @@ async function main() {
   const opened = JSON.parse(first.payload.toString());
   console.log('session opened:', opened.sessionId, 'shell:', opened.shell);
 
-  // Real shell round-trip.
-  const marker = 'A0-FAKE-CONTROLLER-MARKER';
-  await bi.send.writeAll(Array.from(encodeFrame(KIND.data, Buffer.from(`echo ${marker}\n`))));
+  // Real shell round-trip. The command is assembled so that the echoed
+  // INPUT line never contains the finished marker - only the command's
+  // OUTPUT does - which makes a plain substring check sufficient.
+  // Line ending is \r (a pty's Enter): bash maps CR to NL via ICRNL, and
+  // PowerShell's PSReadLine only submits on CR - a bare \n is swallowed,
+  // which is what stalled the 2026-07-31 Windows run.
+  const marker = 'A0-FC-MARKER';
+  const shell = String(opened.shell).toLowerCase();
+  const command = shell.includes('powershell') || shell.includes('pwsh')
+    ? "echo ('A0-FC-'+'MARKER')\r"
+    : "echo 'A0-FC-''MARKER'\r";
+  await bi.send.writeAll(Array.from(encodeFrame(KIND.data, Buffer.from(command))));
 
-  let seen = '';
+  let collected = '';
   for (;;) {
     const frame = await readFrame();
     if (frame.kind === KIND.data) {
-      seen += frame.payload.toString('utf8');
-      // The echoed input line also contains the marker; require the
-      // occurrence that stands alone on its output line. Strip ANSI/OSC
-      // escapes first - a login bash wraps lines in bracketed-paste and
-      // title sequences that trim() cannot remove.
-      const clean = seen
+      collected += frame.payload.toString('utf8');
+      // Strip terminal escapes (CSI, OSC, two-byte ESC sequences) so a
+      // sequence landing mid-marker cannot hide the match.
+      const clean = collected
         .replace(/\x1b\[[0-9;?]*[a-zA-Z]/g, '')
-        .replace(/\x1b\][^\x07]*\x07/g, '');
-      if (clean.split(/\r?\n/).some((line) => line.trim() === marker)) break;
+        .replace(/\x1b\][^\x07]*(\x07|\x1b\\)/g, '')
+        .replace(/\x1b[()][A-Z0-9]/g, '')
+        .replace(/\x1b[=>]/g, '');
+      if (clean.includes(marker)) break;
     } else if (frame.kind === KIND.shellEvent) {
       console.log('shellEvent:', frame.payload.toString());
     } else if (frame.kind === KIND.close) {

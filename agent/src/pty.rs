@@ -14,7 +14,12 @@ use portable_pty::{native_pty_system, Child, CommandBuilder, MasterPty, PtySize}
 use crate::AgentError;
 
 pub struct PtySession {
-    master: Box<dyn MasterPty + Send>,
+    /// `Option` so teardown can release the pty before reaping the child:
+    /// on Windows, ConPTY keeps the child alive until the pseudoconsole is
+    /// closed, so waiting first deadlocks (observed in the 2026-07-31
+    /// Windows acceptance run: session_table tests hung, Ctrl-C never
+    /// finished shutting down).
+    master: Option<Box<dyn MasterPty + Send>>,
     child: Box<dyn Child + Send + Sync>,
     writer: Box<dyn Write + Send>,
     pub shell: String,
@@ -73,7 +78,7 @@ impl PtySession {
 
         Ok((
             Self {
-                master: pair.master,
+                master: Some(pair.master),
                 child,
                 writer,
                 shell: program.to_string(),
@@ -91,7 +96,10 @@ impl PtySession {
     }
 
     pub fn resize(&self, cols: u16, rows: u16) -> Result<(), AgentError> {
-        self.master
+        let Some(master) = &self.master else {
+            return Err(AgentError::Pty("the session is already terminated".into()));
+        };
+        master
             .resize(PtySize {
                 rows,
                 cols,
@@ -108,7 +116,11 @@ impl PtySession {
         }
     }
 
-    /// Terminates the shell and everything it started.
+    /// Terminates the shell and everything it started. Guaranteed to return
+    /// within a few seconds: nothing here waits unboundedly, because this
+    /// runs inside async teardown paths (serve.rs) and drop handlers where
+    /// a hang wedges the whole process (exactly what the 2026-07-31 Windows
+    /// run demonstrated).
     pub fn terminate(&mut self) {
         let pid = self.child.process_id();
 
@@ -127,8 +139,28 @@ impl PtySession {
             }
         }
 
+        // Release the pty before reaping: ConPTY does not let the child
+        // finish dying while the pseudoconsole is open, and a closed master
+        // also unblocks any I/O still pending on the pipes. Readers cloned
+        // from the master earlier stay valid (they hold their own handles).
+        drop(self.master.take());
+
         let _ = self.child.kill();
-        let _ = self.child.wait();
+
+        // Bounded reap instead of a blocking wait(). If the child has not
+        // become reapable a few seconds after a kill, waiting longer will
+        // not save it - and blocking here forever takes the agent with it.
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(5);
+        loop {
+            if self.child.try_wait().ok().flatten().is_some() {
+                return;
+            }
+            if std::time::Instant::now() >= deadline {
+                tracing::warn!("a shell process did not become reapable within 5s of being killed");
+                return;
+            }
+            std::thread::sleep(std::time::Duration::from_millis(50));
+        }
     }
 }
 

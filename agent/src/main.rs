@@ -174,7 +174,13 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
             agent_state.connection = state::ConnectionState::Disconnected;
             agent_state.connection_code = None;
             let _ = state::write(&state::state_path(), &agent_state);
-            Ok(())
+
+            // Exit outright rather than unwinding: lingering teardown (a
+            // stuck PTY reap, an unfinished background task) must not keep
+            // a Ctrl-C'd agent alive - on Windows it did (2026-07-31 run).
+            // State is written and the endpoint is closed; nothing beyond
+            // this point matters.
+            std::process::exit(0);
         }
 
         Command::Status => {
@@ -261,7 +267,29 @@ fn process_alive(pid: u32) -> bool {
     std::path::Path::new(&format!("/proc/{pid}")).exists()
 }
 
-#[cfg(not(unix))]
+/// The stub that used to sit here always answered `false`, so on Windows
+/// `status` reported a running agent as "not running" and hid its
+/// connection code (2026-07-31 acceptance run).
+#[cfg(windows)]
+fn process_alive(pid: u32) -> bool {
+    use windows_sys::Win32::Foundation::{CloseHandle, STILL_ACTIVE};
+    use windows_sys::Win32::System::Threading::{
+        GetExitCodeProcess, OpenProcess, PROCESS_QUERY_LIMITED_INFORMATION,
+    };
+
+    unsafe {
+        let handle = OpenProcess(PROCESS_QUERY_LIMITED_INFORMATION, 0, pid);
+        if handle.is_null() {
+            return false;
+        }
+        let mut exit_code: u32 = 0;
+        let ok = GetExitCodeProcess(handle, &mut exit_code);
+        CloseHandle(handle);
+        ok != 0 && exit_code == STILL_ACTIVE as u32
+    }
+}
+
+#[cfg(not(any(unix, windows)))]
 fn process_alive(_pid: u32) -> bool {
     false
 }

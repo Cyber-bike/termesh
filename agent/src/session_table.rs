@@ -118,10 +118,22 @@ mod tests {
 
     fn spawn_session() -> PtySession {
         #[cfg(unix)]
-        let (session, _reader) = PtySession::spawn("/bin/sh", &[], None, 80, 24).expect("sh should start");
+        let (session, reader) = PtySession::spawn("/bin/sh", &[], None, 80, 24).expect("sh should start");
         #[cfg(windows)]
-        let (session, _reader) =
+        let (session, reader) =
             PtySession::spawn("cmd.exe", &[], None, 80, 24).expect("cmd should start");
+
+        // Drain the pty like the real serve loop's output pump does. An
+        // undrained ConPTY pipe can wedge child teardown on Windows - the
+        // 2026-07-31 acceptance run hung exactly here when the reader was
+        // silently dropped.
+        std::thread::spawn(move || {
+            use std::io::Read;
+            let mut reader = reader;
+            let mut buf = [0u8; 4096];
+            while matches!(reader.read(&mut buf), Ok(n) if n > 0) {}
+        });
+
         session
     }
 
