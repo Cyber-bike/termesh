@@ -1,0 +1,8 @@
+{
+  "name": "termy-a0-spike",
+  "private": true,
+  "description": "Standalone A0 spike scripts (see Docs/交接 - Windows 验证清单.md). Not part of the plugin build; run `npm install` inside this directory only.",
+  "dependencies": {
+    "@number0/iroh": "1.1.0"
+  }
+}
