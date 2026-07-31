@@ -224,8 +224,6 @@ jobs:
     timeout-minutes: 30
     permissions:
       contents: write
-      id-token: write
-      attestations: write
 
     steps:
       - uses: actions/checkout@v5
@@ -277,16 +275,6 @@ jobs:
             --version "${{ github.ref_name }}" \
             --repository "${{ github.repository }}" \
             --output release-body.md
-
-      - name: Attest build provenance
-        uses: actions/attest-build-provenance@v2
-        with:
-          subject-path: |
-            main.js
-            styles.css
-            binaries/termy-server-*
-            release-assets/termy-agent-*
-            release-assets/termy-relay-*
 
       - name: Prepare release assets
         run: |
