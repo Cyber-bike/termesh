@@ -18,13 +18,23 @@
 // 但 Electron 对原生模块的实际行为必须实测——这正是 A0 存在的意义。
 
 (async () => {
-  const REQUIRE_PATH = 'C:/ReqFirst/scripts/a0-spike/node_modules/@number0/iroh';
+  // 改成你机器上的真实路径！在 scripts/a0-spike 目录里运行
+  //   node -e "console.log(require.resolve('@number0/iroh'))"
+  // 把它打印的绝对路径填到这里（反斜杠换成 / 或 \\）。
+  const REQUIRE_PATH = 'C:/ReqFirst/scripts/a0-spike/node_modules/@number0/iroh/index.js';
 
   let iroh;
   try {
     iroh = require(REQUIRE_PATH);
   } catch (e) {
-    console.error('A0 ELECTRON: REQUIRE FAILED ——记录下面的完整报错，结论=termy-bridge 兜底');
+    if (e.code === 'MODULE_NOT_FOUND') {
+      console.error(
+        'A0 ELECTRON: 路径上没找到模块——这不是 A0 失败，是 REQUIRE_PATH 不对或还没 npm install。' +
+        '按文件头部注释用 require.resolve 拿到真实路径后重试。'
+      );
+    } else {
+      console.error('A0 ELECTRON: REQUIRE FAILED ——记录下面的完整报错，结论=termy-bridge 兜底');
+    }
     throw e;
   }
   console.log('module loaded, exports:', Object.keys(iroh).length, 'symbols');
