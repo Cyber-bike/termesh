@@ -4,6 +4,7 @@
  */
 
 import type { VisibilityConfig } from '@/services/visibility';
+import type { PairedDevice } from '@/services/remote/pairedDeviceStore';
 
 /** Terminal programs that can be launched from the shell selector when installed */
 export type TerminalShellType = 'tmux';
@@ -104,6 +105,12 @@ export interface TerminalSettings {
 
   // Remote relay settings. Authentication remains runtime-only.
   remoteConnection: RemoteConnectionSettings;
+
+  // Locally-persisted list of paired remote devices (v2.0 doc 5.2). Plain
+  // JSON snapshots, not the PairedDeviceStore class itself - see
+  // src/services/remote/pairedDeviceStore.ts for the class that manages
+  // this list at runtime.
+  pairedDevices: PairedDevice[];
 
   // Preset scripts
   presetScripts: PresetScript[];
@@ -389,6 +396,7 @@ export const DEFAULT_TERMINAL_SETTINGS: TerminalSettings = {
   },
   serverConnection: { ...DEFAULT_SERVER_CONNECTION_SETTINGS },
   remoteConnection: { ...DEFAULT_REMOTE_CONNECTION_SETTINGS },
+  pairedDevices: [],
   presetScripts: [...DEFAULT_PRESET_SCRIPTS],
   hideUnavailableAiLaunchers: false,
   checkAiLauncherUpdates: true,

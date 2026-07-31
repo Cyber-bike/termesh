@@ -17,6 +17,7 @@ import type { ClaudeCodeIdeBridge } from './services/claudeCode/ideBridge';
 import type { AgentContextBridge } from './services/context/agentContextBridge';
 import { RemoteService } from './services/remote/remoteService';
 import { RelayClient } from './services/remote/relayClient';
+import { PairedDeviceStore } from './services/remote/pairedDeviceStore';
 import { requestWithObsidian } from './services/remote/obsidianRelayRequest';
 import { TERMINAL_VIEW_TYPE, TerminalView } from './ui/terminal/terminalView';
 import { ChangelogModal } from './ui/changelog/changelogModal';
@@ -441,6 +442,7 @@ export default class TerminalPlugin extends Plugin {
       // Ensure the serverConnection config exists
       serverConnection: this.normalizeServerConnectionSettings(loaded?.serverConnection),
       remoteConnection: this.normalizeRemoteConnectionSettings(loaded?.remoteConnection),
+      pairedDevices: this.normalizePairedDevices(loaded?.pairedDevices),
       // Ensure the presetScripts config exists
       presetScripts: normalizedPresetScripts,
     };
@@ -453,6 +455,7 @@ export default class TerminalPlugin extends Plugin {
     this.settings.presetScripts = this.normalizePresetScripts(this.settings.presetScripts);
     this.settings.serverConnection = this.normalizeServerConnectionSettings(this.settings.serverConnection);
     this.settings.remoteConnection = this.normalizeRemoteConnectionSettings(this.settings.remoteConnection);
+    this.settings.pairedDevices = this.normalizePairedDevices(this.settings.pairedDevices);
     await this.saveData(this.settings);
     
     // Update debug mode
@@ -528,6 +531,15 @@ export default class TerminalPlugin extends Plugin {
       ? value.deviceId.trim()
       : null;
     return { relayUrl, deviceId };
+  }
+
+  /**
+   * Round-trips the persisted paired-device list through PairedDeviceStore
+   * so a hand-edited or downgraded data.json cannot leave malformed entries
+   * (see PairedDeviceStore.fromJSON) in this.settings.
+   */
+  private normalizePairedDevices(value: unknown): TerminalSettings['pairedDevices'] {
+    return PairedDeviceStore.fromJSON(value).toJSON();
   }
 
   /**
