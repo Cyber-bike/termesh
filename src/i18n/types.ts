@@ -63,6 +63,32 @@ export interface TranslationKeys {
     dropSingleMarkdown: string;
     transferComplete: string;
     transferFailed: string;
+    v2: {
+      title: string;
+      description: string;
+      deviceName: string;
+      deviceNamePlaceholder: string;
+      connectionCode: string;
+      connectionCodePlaceholder: string;
+      addDevice: string;
+      addingDevice: string;
+      newTerminal: string;
+      removeDevice: string;
+      neverConnected: string;
+      lastConnected: string;
+      statusDisconnected: string;
+      statusConnecting: string;
+      statusConnected: string;
+      statusError: string;
+      deviceAdded: string;
+      deviceRemoved: string;
+      pairEmpty: string;
+      pairWrongPrefix: string;
+      pairBadCharacters: string;
+      pairTooShort: string;
+      pairUnparseable: string;
+      operationFailed: string;
+    };
     states: {
       LocalMode: string;
       RemoteIdle: string;
