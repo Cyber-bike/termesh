@@ -1,21 +1,24 @@
 # 交接：Windows 验证清单（A0 + Agent 验收）
 
-> 更新：2026-07-31 · 分支 `v2.0` · 配套脚本在 `scripts/a0-spike/`
+> 更新：2026-07-31（第 2 版）· 分支 `v2.0` · 配套脚本在 `scripts/a0-spike/`
 
 ## 0. 现状：已证明什么、还差什么
 
-**沙箱（Linux, 无 GUI）已实测通过、无需重复验证的：**
+**已完成、无需重复验证的：**
 
-- Agent 侧完整跑通：`termy-agent run --loopback` 免账号免配置打印连接码，真实回环 QUIC 上完成贴码建连、`termy/terminal/1` 帧协议握手、真 shell 会话（echo 回显 / resize 生效 / 多会话并发 / 退出码回传 / 断连杀进程树 / `CONTROLLER_ALREADY_CONNECTED` 单控制端限制）。`cargo test` 64/64。
-- `@number0/iroh` 1.1.0（插件将嵌入的 JS binding）在**纯 Node** 下可加载、可建连；假控制端脚本（`03-fake-controller.cjs`）已对真实 Rust agent 走通全链路（QUIC + 帧协议 + 真 bash 回显）。
+- 沙箱（Linux）：Agent 全链路（`run --loopback` 打码、贴码建连、帧协议握手、真 shell 会话、多会话并发、断连杀进程树、单控制端限制），`cargo test` 64/64；插件侧传输层（`terminalStreamTransport` + `irohStreams` 适配器）经真实 `@number0/iroh` 对真实 agent 全栈联通（FULL STACK INTEGRATION: OK）。
+- **步骤 1 已过**（2026-07-31，Windows）：`01-node-baseline.cjs` 输出 `A0 NODE BASELINE: OK`——win32-x64-msvc 预编译包可用。
+- **步骤 2 已过（A0 核心结论：直接嵌入可行）**（2026-07-31，Windows 真实 Obsidian）：Electron 渲染进程内 require 成功（25 个导出符号），绑定 loopback Endpoint 并生成连接码成功。termy-bridge 兜底不再需要。
 
-**只能在你那边（Windows + 真实 Obsidian）回答的，按优先级：**
+**剩余待验证（本清单只剩步骤 3、4、5）：**
 
 | # | 问题 | 对应任务 |
 | --- | --- | --- |
-| 1 | `@number0/iroh` 能否在 **Obsidian 的 Electron 渲染进程**里 require 成功 | A0 核心（步骤 2） |
-| 2 | Windows 平台的预编译包 + **Windows 版 agent** 是否同样全链路互通 | 步骤 1、3、4 |
-| 3 | esbuild 打包/插件目录布局下模块能否加载 | 步骤 5 |
+| 1 | Windows 版 agent 测试套件是否全绿（尤其 Job Object 进程树终止） | 步骤 3 |
+| 2 | Windows agent × JS 假控制端是否端到端互通 | 步骤 4 |
+| 3 | esbuild 打包/插件目录布局下模块能否加载（决定打包脚本怎么改） | 步骤 5 |
+
+> 前置：执行者的仓库必须包含 `v2.0` 分支最新提交（含 `agent/src/serve.rs`、`scripts/a0-spike/`）。若远程还没有这些提交，先完成推送再开始。
 
 ## 1. 准备
 
@@ -36,14 +39,11 @@ cd scripts/a0-spike
 node 01-node-baseline.cjs
 ```
 
-预期末行 `A0 NODE BASELINE: OK`。失败即说明 win32-x64-msvc 预编译包有问题——后面不用做了，直接把报错发我。
+预期末行 `A0 NODE BASELINE: OK`。**（2026-07-31 已通过，无需重跑。）**
 
-### 步骤 2：Obsidian/Electron 加载（A0 核心，约 5 分钟）
+### 步骤 2：Obsidian/Electron 加载（A0 核心，约 5 分钟）——已通过
 
-打开 `scripts/a0-spike/02-obsidian-console.js`，按文件头部注释操作（改 `REQUIRE_PATH` → Obsidian 开发者工具 Console 里粘贴整段）。
-
-- `A0 ELECTRON: OK` → **直接嵌入路径成立**，这是 v2.0 网络层的理想路径。
-- require 报错（典型：`NODE_MODULE_VERSION` 不匹配、DLL 初始化失败）→ **termy-bridge 兜底路径**。把完整报错发我。
+**（2026-07-31 已通过：模块加载 25 个导出符号、Endpoint 绑定与连接码生成均成功，结论=直接嵌入，无需重跑。）** 如需复现：打开 `scripts/a0-spike/02-obsidian-console.js`，按文件头部注释操作。注意从聊天/终端复制代码可能因折行混入换行符导致 `SyntaxError`，长字符串路径要保持单行。
 
 ### 步骤 3：Windows agent 测试套件（约 5 分钟）
 
@@ -91,22 +91,22 @@ node 03-fake-controller.cjs <连接码>
 
 ## 3. 结果回填
 
-做完把下表填好发我即可（截图/粘贴输出都行），我据此继续：
+执行完把结果写进 `Docs/交接结果 - Windows.md`（新建，格式如下表）并提交到 `v2.0` 分支：
 
-| 步骤 | 结果 (OK / 报错原文) |
-| --- | --- |
-| 1 Node 基线 | |
-| 2 Electron 加载 | |
-| 3 cargo test（含失败用例名） | |
-| 4 假控制端 × Windows agent | |
-| 5 打包态加载 | |
+| 步骤 | 结果 (OK / 报错原文) | 备注 |
+| --- | --- | --- |
+| 1 Node 基线 | OK（2026-07-31，人工执行） | |
+| 2 Electron 加载 | OK（2026-07-31，人工执行，25 符号 + 连接码生成成功） | A0 结论=直接嵌入 |
+| 3 cargo test（含失败用例名） | | |
+| 4 假控制端 × Windows agent | | |
+| 5 打包态加载 | | |
 
-- 步骤 2+5 都 OK → 我按**直接嵌入**写 `irohClient.ts`（真实 binding 接线）并把拷贝逻辑进打包脚本；A0 正式关闭，更新实现方案 §6.2 与开发计划。
-- 步骤 2 失败 → 我按 **termy-bridge** 兜底路径开工（本机回环通道 + 身份校验，实现方案 §6.2 预案），排期 +2~3 天（计划 §6 已预留）。
-- 步骤 3/4 的 Windows 特有问题 → 单独修，不阻塞 A0 结论。
+- 步骤 5 OK → 打包方案定型为 external + 插件目录携带 node_modules，拷贝逻辑进 `scripts/package-plugin.js`。
+- 步骤 5 失败而报错非 MODULE_NOT_FOUND → 记录报错原文；备选方案是 bundle loader + 仅 external `.node` 文件。
+- 步骤 3/4 的 Windows 特有问题（如 Job Object 用例失败）→ 记录用例名与输出原文，单独修，不阻塞其他工作。
 
-## 4. 我这边并行继续的（不依赖上表）
+## 4. 并行进行中的（不依赖上表）
 
-- 控制端 `TerminalTransport` 的 v2.0 实现（对帧协议写，假流单测，A0 出结论后只换底层流对象）
-- 设备列表 / 添加设备 UI 接线（`pairedDeviceStore`/`devicePairing` 已就绪）
+- ~~控制端 `TerminalTransport` 的 v2.0 实现~~（已完成：`terminalStreamTransport.ts` + `irohStreams.ts`，全栈联通已验证）
+- 设备连接管理（`irohClient`：endpoint 单例、设备连接生命周期）与设备列表 / 添加设备 UI 接线
 - V1 遗留 TS 模块清理（`authClient`/`deviceClient`/`relayClient` 等）
