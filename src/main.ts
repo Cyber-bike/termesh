@@ -18,6 +18,10 @@ import type { AgentContextBridge } from './services/context/agentContextBridge';
 import { RemoteService } from './services/remote/remoteService';
 import { RelayClient } from './services/remote/relayClient';
 import { PairedDeviceStore } from './services/remote/pairedDeviceStore';
+import { DeviceConnectionManager } from './services/remote/deviceConnections';
+import { createIrohLoader } from './services/remote/irohRuntime';
+import type { IrohModule } from './services/remote/irohStreams';
+import { normalizeControllerIdentitySeed } from './services/remote/controllerIdentity';
 import { requestWithObsidian } from './services/remote/obsidianRelayRequest';
 import { TERMINAL_VIEW_TYPE, TerminalView } from './ui/terminal/terminalView';
 import { ChangelogModal } from './ui/changelog/changelogModal';
@@ -101,6 +105,8 @@ export default class TerminalPlugin extends Plugin {
   private _serverManager: ServerManager | null = null;
   private _terminalService: TerminalService | null = null;
   private _remoteService: RemoteService | null = null;
+  private _pairedDeviceStore: PairedDeviceStore | null = null;
+  private _deviceConnections: DeviceConnectionManager | null = null;
   private _claudeCodeIdeBridge: ClaudeCodeIdeBridge | null = null;
   private _agentContextBridge: AgentContextBridge | null = null;
   private _changelogContentCache: string | null = null;
@@ -211,6 +217,40 @@ export default class TerminalPlugin extends Plugin {
     return this._remoteService;
   }
 
+  getPairedDeviceStore(): PairedDeviceStore {
+    if (!this._pairedDeviceStore) {
+      this._pairedDeviceStore = PairedDeviceStore.fromJSON(this.settings.pairedDevices);
+    }
+    return this._pairedDeviceStore;
+  }
+
+  loadIroh(): Promise<IrohModule> {
+    return createIrohLoader(this.getPluginDir())();
+  }
+
+  getDeviceConnectionManager(): DeviceConnectionManager {
+    if (!this._deviceConnections) {
+      this._deviceConnections = new DeviceConnectionManager({
+        loadIroh: () => this.loadIroh(),
+        store: this.getPairedDeviceStore(),
+        identitySeed: this.settings.controllerIdentitySeed,
+        onIdentityCreated: (seed) => {
+          this.settings.controllerIdentitySeed = [...seed];
+          void this.saveSettings().catch((error) => {
+            errorLog('[TerminalPlugin] Failed to persist controller identity:', error);
+          });
+        },
+        profile: 'production',
+      });
+      this._deviceConnections.onDidChange(() => {
+        void this.saveSettings().catch((error) => {
+          errorLog('[TerminalPlugin] Failed to persist paired device state:', error);
+        });
+      });
+    }
+    return this._deviceConnections;
+  }
+
   /**
    * Called when the plugin loads
    */
@@ -311,6 +351,15 @@ export default class TerminalPlugin extends Plugin {
 
     this._remoteService?.dispose();
     this._remoteService = null;
+
+    if (this._deviceConnections) {
+      try {
+        await this._deviceConnections.dispose();
+      } catch (error) {
+        errorLog('[TerminalPlugin] Failed to dispose device connections:', error);
+      }
+      this._deviceConnections = null;
+    }
 
     // Stop the server
     if (this._serverManager) {
@@ -443,6 +492,7 @@ export default class TerminalPlugin extends Plugin {
       serverConnection: this.normalizeServerConnectionSettings(loaded?.serverConnection),
       remoteConnection: this.normalizeRemoteConnectionSettings(loaded?.remoteConnection),
       pairedDevices: this.normalizePairedDevices(loaded?.pairedDevices),
+      controllerIdentitySeed: normalizeControllerIdentitySeed(loaded?.controllerIdentitySeed),
       // Ensure the presetScripts config exists
       presetScripts: normalizedPresetScripts,
     };
@@ -455,7 +505,10 @@ export default class TerminalPlugin extends Plugin {
     this.settings.presetScripts = this.normalizePresetScripts(this.settings.presetScripts);
     this.settings.serverConnection = this.normalizeServerConnectionSettings(this.settings.serverConnection);
     this.settings.remoteConnection = this.normalizeRemoteConnectionSettings(this.settings.remoteConnection);
-    this.settings.pairedDevices = this.normalizePairedDevices(this.settings.pairedDevices);
+    this.settings.pairedDevices = this._pairedDeviceStore
+      ? this._pairedDeviceStore.toJSON()
+      : this.normalizePairedDevices(this.settings.pairedDevices);
+    this.settings.controllerIdentitySeed = normalizeControllerIdentitySeed(this.settings.controllerIdentitySeed);
     await this.saveData(this.settings);
     
     // Update debug mode
@@ -644,6 +697,30 @@ export default class TerminalPlugin extends Plugin {
     // If focusing new instances is enabled, switch to the new tab
     if (this.settings.focusNewInstance) {
       workspace.setActiveLeaf(leaf, { focus: true });
+    }
+  }
+
+  async openRemoteTerminal(nodeId: string): Promise<void> {
+    const connections = this.getDeviceConnectionManager();
+    if (!connections.isConnected(nodeId)) {
+      await connections.connect(nodeId);
+    }
+
+    const terminalService = await this.getTerminalService();
+    const terminal = await terminalService.createTerminalWithTransport(
+      connections.createTerminalTransport(nodeId),
+    );
+    const device = this.getPairedDeviceStore().get(nodeId);
+    if (device) terminal.setTitle(device.name);
+
+    const leaf = this.getLeafForNewTerminal();
+    this.pendingRestoredTerminals.set(leaf, terminal);
+    try {
+      await this.activateTerminalView(leaf);
+    } catch (error) {
+      this.pendingRestoredTerminals.delete(leaf);
+      await terminalService.destroyTerminal(terminal.id);
+      throw error;
     }
   }
 

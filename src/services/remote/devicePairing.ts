@@ -17,8 +17,8 @@ import {
   checkConnectionCode,
   type ConnectionCodeParser,
   type ConnectionCodeProblem,
-} from './connectionCode';
-import type { PairedDevice, PairedDeviceStore } from './pairedDeviceStore';
+} from './connectionCode.ts';
+import type { PairedDevice, PairedDeviceStore } from './pairedDeviceStore.ts';
 
 export type PairDeviceResult =
   | { ok: true; device: PairedDevice }

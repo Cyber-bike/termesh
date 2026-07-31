@@ -22,15 +22,15 @@ import type {
   TerminalOpenOptions,
   TerminalSessionInfo,
   TerminalTransport,
-} from './transport';
-import { toDisposable } from './transport';
+} from './transport.ts';
+import { toDisposable } from './transport.ts';
 import {
   encodeTerminalStreamFrame,
   TerminalStreamFrameDecoder,
   type ClosePayload,
   type ShellEventPayload as WireShellEvent,
   type TerminalStreamFrame,
-} from './terminalStreamFrame';
+} from './terminalStreamFrame.ts';
 
 /**
  * The one thing the iroh integration must eventually provide: an open

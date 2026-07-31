@@ -127,7 +127,7 @@ export class PairedDeviceStore {
 
     for (const entry of raw) {
       if (!isPlainObject(entry)) continue;
-      const { name, ticket, nodeId, lastConnectedAt, lastKnownOnline } = entry as Record<string, unknown>;
+      const { name, ticket, nodeId, lastConnectedAt, lastKnownOnline } = entry;
       if (typeof name !== 'string' || typeof ticket !== 'string' || typeof nodeId !== 'string') continue;
       if (name.trim() === '' || ticket.trim() === '' || nodeId.trim() === '') continue;
 

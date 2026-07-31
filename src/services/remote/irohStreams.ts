@@ -13,7 +13,7 @@
  * `ALPN_TERMINAL` must match `agent/src/p2p.rs`.
  */
 
-import type { ByteStream } from './terminalStreamTransport';
+import type { ByteStream } from './terminalStreamTransport.ts';
 
 export const ALPN_TERMINAL = 'termy/terminal/1';
 

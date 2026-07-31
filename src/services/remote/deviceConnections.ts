@@ -15,17 +15,17 @@
  * here imports the package at build time.
  */
 
-import type { PairedDeviceStore } from './pairedDeviceStore';
-import type { Disposable } from './transport';
-import { toDisposable } from './transport';
-import { TerminalStreamTransport } from './terminalStreamTransport';
+import type { PairedDeviceStore } from './pairedDeviceStore.ts';
+import type { Disposable } from './transport.ts';
+import { toDisposable } from './transport.ts';
+import { TerminalStreamTransport } from './terminalStreamTransport.ts';
 import {
   ALPN_TERMINAL,
   terminalStreamFactory,
   type IrohConnection,
   type IrohEndpoint,
   type IrohModule,
-} from './irohStreams';
+} from './irohStreams.ts';
 
 export type DeviceConnectionStatus =
   | { state: 'disconnected' }

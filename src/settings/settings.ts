@@ -112,6 +112,9 @@ export interface TerminalSettings {
   // this list at runtime.
   pairedDevices: PairedDevice[];
 
+  // Persisted 32-byte seed for the v2.0 controller iroh identity.
+  controllerIdentitySeed: number[] | null;
+
   // Preset scripts
   presetScripts: PresetScript[];
 
@@ -397,6 +400,7 @@ export const DEFAULT_TERMINAL_SETTINGS: TerminalSettings = {
   serverConnection: { ...DEFAULT_SERVER_CONNECTION_SETTINGS },
   remoteConnection: { ...DEFAULT_REMOTE_CONNECTION_SETTINGS },
   pairedDevices: [],
+  controllerIdentitySeed: null,
   presetScripts: [...DEFAULT_PRESET_SCRIPTS],
   hideUnavailableAiLaunchers: false,
   checkAiLauncherUpdates: true,

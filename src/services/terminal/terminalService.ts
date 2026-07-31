@@ -24,6 +24,7 @@ import type { ServerManager } from '@/services/server/serverManager';
 import type { PtyClient } from '@/services/server/ptyClient';
 import { getSelectableShellTypes } from './shellProfiles';
 import type { RemoteService } from '@/services/remote/remoteService';
+import type { TerminalTransport } from '@/services/remote/transport';
 
 // Preload the TerminalInstance module to avoid dynamic import latency when creating the first terminal
 let terminalInstanceModule: typeof import('./terminalInstance') | null = null;
@@ -187,9 +188,9 @@ export class TerminalService {
    * @returns The created terminal instance
    * @throws Error if terminal creation fails
    */
-  async createTerminal(remote = false): Promise<TerminalInstance> {
+  async createTerminal(remote = false, transport?: TerminalTransport): Promise<TerminalInstance> {
     try {
-      if (!remote) await this.serverManager.ensureServer();
+      if (!remote && !transport) await this.serverManager.ensureServer();
       
       debugLog('[TerminalService] 创建终端');
 
@@ -243,7 +244,9 @@ export class TerminalService {
         textOpacity: this.settings.textOpacity,
       });
       
-      if (remote) {
+      if (transport) {
+        await terminal.initializeWithTransport(transport);
+      } else if (remote) {
         await terminal.initializeWithTransport(this.remoteService.createTerminalTransport());
       } else {
         await terminal.initializeWithServerManager(this.serverManager);
@@ -260,6 +263,10 @@ export class TerminalService {
       
       throw error;
     }
+  }
+
+  async createTerminalWithTransport(transport: TerminalTransport): Promise<TerminalInstance> {
+    return this.createTerminal(false, transport);
   }
 
   getRemoteService(): RemoteService {
