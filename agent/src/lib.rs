@@ -12,6 +12,7 @@ pub mod osc;
 pub mod p2p;
 pub mod paths;
 pub mod pty;
+pub mod serve;
 pub mod session_table;
 pub mod state;
 pub mod termstream;

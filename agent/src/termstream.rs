@@ -54,6 +54,10 @@ pub struct ResizePayload {
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
 pub struct ShellEventPayload {
     pub event: String,
+    /// "osc133" | "osc633" - which integration emitted the event. Optional so
+    /// a future cwd-only event source does not have to invent one.
+    #[serde(default, skip_serializing_if = "Option::is_none")]
+    pub source: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub cwd: Option<String>,
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "exitCode")]
@@ -64,6 +68,11 @@ pub struct ShellEventPayload {
 pub struct ClosePayload {
     #[serde(default, skip_serializing_if = "Option::is_none")]
     pub reason: Option<String>,
+    /// Shell exit status when `reason` is `shell_exited`; the plugin's
+    /// `TerminalExitEvent` surfaces it to the UI, matching V1's
+    /// `terminal.close` payload.
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "exitCode")]
+    pub exit_code: Option<i32>,
 }
 
 #[derive(Debug, Clone, PartialEq)]
@@ -271,18 +280,28 @@ mod tests {
         roundtrip(Frame::Resize(ResizePayload { cols: 120, rows: 40 }));
         roundtrip(Frame::ShellEvent(ShellEventPayload {
             event: "command_end".into(),
+            source: Some("osc133".into()),
             cwd: Some("/home/user/project".into()),
             exit_code: Some(0),
         }));
         roundtrip(Frame::ShellEvent(ShellEventPayload {
             event: "prompt_start".into(),
+            source: None,
             cwd: None,
             exit_code: None,
         }));
         roundtrip(Frame::Close(ClosePayload {
             reason: Some("peer disconnected".into()),
+            exit_code: None,
         }));
-        roundtrip(Frame::Close(ClosePayload { reason: None }));
+        roundtrip(Frame::Close(ClosePayload {
+            reason: Some("shell_exited".into()),
+            exit_code: Some(0),
+        }));
+        roundtrip(Frame::Close(ClosePayload {
+            reason: None,
+            exit_code: None,
+        }));
     }
 
     #[test]
@@ -303,6 +322,7 @@ mod tests {
     fn a_frame_split_across_many_small_chunks_still_decodes() {
         let frame = Frame::ShellEvent(ShellEventPayload {
             event: "command_end".into(),
+            source: Some("osc633".into()),
             cwd: Some("/tmp/some/fairly/long/path/for/varint/coverage".into()),
             exit_code: Some(1),
         });

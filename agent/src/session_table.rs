@@ -211,6 +211,7 @@ mod tests {
             id,
             &crate::termstream::ShellEventPayload {
                 event: "command_end".into(),
+                source: Some("osc133".into()),
                 cwd: Some("/home/user/project".into()),
                 exit_code: Some(0),
             },
@@ -224,6 +225,7 @@ mod tests {
             id,
             &crate::termstream::ShellEventPayload {
                 event: "prompt_start".into(),
+                source: None,
                 cwd: None,
                 exit_code: None,
             },

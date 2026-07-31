@@ -35,12 +35,16 @@ export interface ResizePayload {
 
 export interface ShellEventPayload {
   event: string;
+  /** "osc133" | "osc633" - which integration emitted the event. */
+  source: string | null;
   cwd: string | null;
   exitCode: number | null;
 }
 
 export interface ClosePayload {
   reason: string | null;
+  /** Shell exit status when `reason` is "shell_exited" (doc 8.2). */
+  exitCode: number | null;
 }
 
 export type TerminalStreamFrame =
@@ -207,6 +211,7 @@ function decodeFrameParts(kind: number, payload: Uint8Array): TerminalStreamFram
         kind: 'shellEvent',
         payload: {
           event: requireString(raw, 'event'),
+          source: optionalString(raw, 'source'),
           cwd: optionalString(raw, 'cwd'),
           exitCode: optionalNumber(raw, 'exitCode'),
         },
@@ -214,7 +219,13 @@ function decodeFrameParts(kind: number, payload: Uint8Array): TerminalStreamFram
     }
     case KIND_CLOSE: {
       const raw = decodeJson(payload);
-      return { kind: 'close', payload: { reason: optionalString(raw, 'reason') } };
+      return {
+        kind: 'close',
+        payload: {
+          reason: optionalString(raw, 'reason'),
+          exitCode: optionalNumber(raw, 'exitCode'),
+        },
+      };
     }
     case KIND_OPENED: {
       const raw = decodeJson(payload);

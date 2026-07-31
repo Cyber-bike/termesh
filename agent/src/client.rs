@@ -714,8 +714,10 @@ fn uuid_at(value: &Value, field: &str) -> Result<Uuid, AgentError> {
 }
 
 /// Doc 8.8.6 and 13.2: error text crossing the wire must not leak local paths
-/// or anything else about the host.
-fn redact(message: &str) -> String {
+/// or anything else about the host. `pub(crate)` because the v2.0 serve loop
+/// applies the same rule; it moves out of this V1 module when the relay
+/// client is retired.
+pub(crate) fn redact(message: &str) -> String {
     let mut out: String = message
         .split_whitespace()
         .map(|word| {

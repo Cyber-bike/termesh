@@ -25,11 +25,15 @@ test('every frame kind round-trips', () => {
   roundtrip({ kind: 'resize', payload: { cols: 120, rows: 40 } });
   roundtrip({
     kind: 'shellEvent',
-    payload: { event: 'command_end', cwd: '/home/user/project', exitCode: 0 },
+    payload: { event: 'command_end', source: 'osc133', cwd: '/home/user/project', exitCode: 0 },
   });
-  roundtrip({ kind: 'shellEvent', payload: { event: 'prompt_start', cwd: null, exitCode: null } });
-  roundtrip({ kind: 'close', payload: { reason: 'peer disconnected' } });
-  roundtrip({ kind: 'close', payload: { reason: null } });
+  roundtrip({
+    kind: 'shellEvent',
+    payload: { event: 'prompt_start', source: null, cwd: null, exitCode: null },
+  });
+  roundtrip({ kind: 'close', payload: { reason: 'peer disconnected', exitCode: null } });
+  roundtrip({ kind: 'close', payload: { reason: 'shell_exited', exitCode: 0 } });
+  roundtrip({ kind: 'close', payload: { reason: null, exitCode: null } });
 });
 
 test('two frames back to back decode in order', () => {
@@ -48,7 +52,12 @@ test('two frames back to back decode in order', () => {
 test('a frame split across many single-byte chunks still decodes', () => {
   const frame: TerminalStreamFrame = {
     kind: 'shellEvent',
-    payload: { event: 'command_end', cwd: '/tmp/some/fairly/long/path/for/varint/coverage', exitCode: 1 },
+    payload: {
+      event: 'command_end',
+      source: 'osc633',
+      cwd: '/tmp/some/fairly/long/path/for/varint/coverage',
+      exitCode: 1,
+    },
   };
   const encoded = encodeTerminalStreamFrame(frame);
 
