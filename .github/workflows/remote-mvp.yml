@@ -158,32 +158,34 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - uses: Swatinem/rust-cache@v2
         with:
-          workspaces: |
-            relay
-            agent
+          workspaces: agent
       - uses: actions/setup-node@v6
         with:
           node-version: '22'
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 10.33.4
 
-      - name: Build both binaries
-        run: |
-          cargo build --manifest-path relay/Cargo.toml
-          cargo build --manifest-path agent/Cargo.toml
+      - name: Build agent
+        run: cargo build --manifest-path agent/Cargo.toml
 
-      # Installed under e2e/, not the plugin root: @xterm/addon-canvas@0.7.0
-      # declares a peer on @xterm/xterm@^5 while the root is on ^6, and npm
-      # resolves the whole tree even with --no-save, so a root install fails.
-      - name: Install driver dependencies
-        run: npm --prefix e2e ci
+      # Installs @number0/iroh (and its platform-native optional dependency)
+      # at the repo root - e2e/loopback-driver.cjs requires it from there, the
+      # same resolution the plugin itself relies on (see package-plugin.js).
+      - name: Install root dependencies (for @number0/iroh)
+        run: pnpm install --frozen-lockfile
 
-      # Starts a relay and an agent, then drives a real terminal session and a
-      # real transfer through the control socket. This is the test that caught
-      # transfer.fileEnd overtaking the chunks it terminates.
-      - name: Terminal and transfer round trip
+      # Starts a real agent in --loopback mode and drives a real terminal
+      # session against it over iroh QUIC with the plugin's own binding
+      # (doc A0 verdict: direct embedding). v2.0 has no relay any more -
+      # `agent bind` was removed when client.rs (the V1 relay client) was
+      # deleted - and no file-transfer protocol yet (Phase C), so this only
+      # covers the terminal round trip; agent/src/serve.rs's own loopback
+      # QUIC integration tests (`cargo test --manifest-path agent/Cargo.toml`)
+      # cover more of the Rust side in isolation.
+      - name: Terminal round trip (iroh loopback)
         run: ./e2e-run.sh
 
-      - name: Relay and agent logs
+      - name: Agent log
         if: failure()
-        run: |
-          echo "--- relay ---"; cat /tmp/e2e/relay.log || true
-          echo "--- agent ---"; cat /tmp/e2e/agent.log || true
+        run: cat /tmp/e2e/agent.log || true
