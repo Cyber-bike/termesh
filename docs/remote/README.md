@@ -1,27 +1,26 @@
 # Termy 远程增强
 
-从 Windows 上的 Obsidian 操作另一台机器的终端，并把笔记连同附件推送过去。
+从 Windows 上的 Obsidian 操作另一台机器的终端。
 
-技术方案见仓库外的《Termy 远程增强 MVP 技术方案》；本目录是实现侧的文档。
+技术方案见《Docs/实现方案 - 开发版 v2.0.md》与《Docs/开发计划 v2.0.md》；本目录是实现侧的文档。
+
+> **v2.0 换了架构**：不再是"插件 ⇄ 云端 Relay ⇄ Agent"的账号+中继模型（那是 V1，见下方"V1 遗留"）。v2.0 免账号、免自建服务端，插件与 Agent 通过 `iroh`（QUIC）直连，配对靠"复制一段连接码"，不是登录+配对码。
 
 ---
 
 ## 组成
 
 ```
-Obsidian 插件 ──HTTPS/WSS──> 云端 Relay <──WSS── Termy Agent
-（控制端，Windows）           （单节点）        （Windows / Ubuntu Server）
+Obsidian 插件 ──iroh(QUIC)──> Termy Agent
+（控制端，任意支持 Obsidian 桌面版的平台）    （目标端，Windows / Ubuntu Server）
 ```
 
-Agent 主动外连，**不监听公网端口**。Relay 只转发，不持久化任何正文。
+控制端与目标端优先建立点对点直连（NAT 打洞），协调阶段默认经 iroh 官方托管中继完成，直连打通后中继不再承载数据；无论走哪条路径，QUIC/TLS 1.3 都保证端到端加密，中继不具备解密能力（详见 [privacy-and-limits.md](privacy-and-limits.md)）。
 
 | 目录 | 内容 |
 | --- | --- |
-| `protocol/` | 三端唯一真相源：JSON Schema、OpenAPI、fixtures、帧向量、类型生成 |
-| `relay/` | 云端 Relay：HTTPS API + WSS 网关 |
-| `agent/` | 目标端 Agent：PTY、文件接收、退避重连 |
-| `src/services/remote/` | 插件端远程逻辑 |
-| `src/protocol/generated/` | 从 `protocol/` 同步过来的类型，**不要手改** |
+| `agent/` | 目标端 Agent：设备身份（Ed25519）、iroh Endpoint、多会话 PTY、单控制端占用 |
+| `src/services/remote/` | 插件端远程逻辑：连接码校验/解析、设备配对与持久化、终端流帧协议、`DeviceConnectionManager` |
 
 ---
 
@@ -29,36 +28,29 @@ Agent 主动外连，**不监听公网端口**。Relay 只转发，不持久化�
 
 | 文档 | 给谁看 |
 | --- | --- |
-| [building.md](building.md) | 从源码构建四个产物。含哪个产物必须在哪台机器上编 |
-| [operations.md](operations.md) | 部署 Relay、安装 Agent、CLI 参考、排障 |
+| [building.md](building.md) | 从源码构建 Agent 和插件 |
+| [operations.md](operations.md) | 安装 Agent、CLI 参考、排障 |
 | [privacy-and-limits.md](privacy-and-limits.md) | 使用者。隐私披露和已知限制 |
-| [plugin-handover.md](plugin-handover.md) | 接手插件端改造的人。含已踩过的坑 |
-| [plugin-agent-prompt.md](plugin-agent-prompt.md) | 给 Windows 侧编码助手的启动提示词，贴之前替换占位符 |
-| [multi-session-plan.md](multi-session-plan.md) | 支持多个并发远程终端的实现方案（尚未动工） |
-| [`protocol/README.md`](../../protocol/README.md) | 协议契约，以及落地时做的判断 |
+| [plugin-handover.md](plugin-handover.md) | 接手插件端 UI 接线的人 |
+| [plugin-agent-prompt.md](plugin-agent-prompt.md) | 给 Windows 侧编码助手的启动提示词 |
 
 ---
 
 ## 开发
 
 ```bash
-# 协议：Schema、OpenAPI、fixtures、帧向量、类型生成
-cd protocol && npm ci && npm test
-
-# Rust 两端
-cargo test --manifest-path relay/Cargo.toml
+# Agent（Rust）
 cargo test --manifest-path agent/Cargo.toml
 
 # 插件端远程模块（需要 Node 22）
 pnpm test:remote
 
-# 端到端：起 relay + agent，跑真实终端命令和真实文件传输
-./e2e-run.sh
+# 端到端：起一个真实 --loopback agent，用插件同款 @number0/iroh binding 连它、
+# 跑一次真实 shell 会话
+pnpm install && cargo build --manifest-path agent/Cargo.toml && ./e2e-run.sh
 ```
 
-工具链由 `rust-toolchain.toml` 锁定。协议类型是生成的并已提交，CI 会重新生成并 diff——改了 Schema 记得跑 `cd protocol && npm run generate && node scripts/sync-protocol.js`。
-
-出 release 产物、以及 Windows Agent 与插件怎么构建，见 [building.md](building.md)。
+出 release 产物见 [building.md](building.md)。
 
 ---
 
@@ -66,12 +58,18 @@ pnpm test:remote
 
 | | |
 | --- | --- |
-| 协议契约 | ✅ 三端一致性由共享 fixtures 与帧向量保证 |
-| Relay | ✅ 6 个接口 + WSS 网关，71 项测试 |
-| Agent | ✅ 全部功能，33 项测试 |
-| 插件端远程逻辑 | ✅ 63 项测试 |
-| 插件端 Obsidian 集成 | ✅ 已实现，待真机验收；见 [plugin-handover.md](plugin-handover.md) |
-| 端到端（Linux 本机） | ✅ 8 项检查 |
-| 真机验收（§16） | ❌ 需要 Windows 与 Ubuntu 实机 |
+| A0（原生 iroh 绑定能否在 Obsidian Electron 渲染进程里直接加载） | ✅ 已实测确认可行（2026-07-31），不需要 `termy-bridge` 兜底进程 |
+| Agent：设备身份、iroh Endpoint、连接码、单控制端占用、多会话 PTY | ✅ 已实现，测试通过（含真实回环 QUIC 集成测试） |
+| 插件端远程逻辑（连接码解析、设备配对与持久化、帧协议、`DeviceConnectionManager`） | ✅ 已实现，测试通过，**尚未接入任何 UI/命令面板** |
+| 插件端 Obsidian 集成（设备列表、添加设备 UI、打开远程终端） | ❌ 未开始——见 [plugin-handover.md](plugin-handover.md) |
+| 端到端（agent 回环 + 真实 iroh 客户端） | ✅ `./e2e-run.sh`，真实 shell 回显 + resize |
+| 文件传输（`termy/transfer/1`） | ❌ Phase C，未实现；`serve.rs` 目前直接拿 `PROTOCOL_ERROR` 关掉这条 ALPN |
+| 真机验收（Windows 进程树终止、非同一局域网双路径） | 🟡 部分完成，见《Docs/交接结果 - Windows.md》；仍有未验证项 |
 
-**没有在真实硬件上验证过的部分**：Windows 的 Job Object 进程树终止（CI 只做类型检查）、`loginctl enable-linger` 的实际权限要求、非同一局域网的双路径闭环、Dockerfile 的实际构建。这些在对应文档里都单独标注了。
+**没有在真实硬件上验证过的部分**：非同一局域网的双路径闭环（直连打洞 vs. 降级中继）、iroh 全局节点发现在真实换网场景下的重连。这些在 [privacy-and-limits.md](privacy-and-limits.md) 里有对应披露。
+
+---
+
+## V1 遗留
+
+`relay/`、`protocol/`、`src/protocol/generated/`、`src/services/remote/relayClient.ts` 等是 V1（账号 + 云端 Relay）的实现，**代码仍在仓库里且仍可编译测试**，但 v2.0 的 `agent/` 已经不再连接它——`agent` 的 relay 客户端（原 `client.rs`）已被删除，`agent bind` 子命令已不存在。是否/何时清理这批 V1 代码尚未排期，见开发计划的"移除/标记废弃 V1 遗留模块"一项。
