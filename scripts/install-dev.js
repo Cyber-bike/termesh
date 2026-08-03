@@ -372,7 +372,7 @@ async function main() {
   log('');
 
   // 4. Stop running processes that may lock the installed plugin files
-  const targetDir = path.join(pluginsDir, 'termy');
+  const targetDir = path.join(pluginsDir, 'termesh');
   if (!fs.existsSync(targetDir)) {
     fs.mkdirSync(targetDir, { recursive: true });
   }

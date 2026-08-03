@@ -20,11 +20,15 @@ export const en: TranslationKeys = {
   },
 
   plugin: {
-    name: 'Termy',
-    loadingMessage: 'Termy plugin loading',
-    loadedMessage: 'Termy plugin loaded',
-    unloadingMessage: 'Termy plugin unloading',
-    unloadedMessage: 'Termy plugin unloaded',
+    name: 'Termesh',
+    loadingMessage: 'Termesh plugin loading',
+    loadedMessage: 'Termesh plugin loaded',
+    unloadingMessage: 'Termesh plugin unloading',
+    unloadedMessage: 'Termesh plugin unloaded',
+  },
+
+  home: {
+    title: 'Devices', description: 'Open a new terminal on this device or a paired device.', refresh: 'Refresh device status', refreshing: 'Refreshing...', addDevice: 'Add device', addDeviceDescription: 'Paste the device code shown by the agent', localDevice: 'This device', localDeviceDescription: 'Open a terminal on this device', available: 'Available', openTerminal: 'Open terminal', deviceName: 'Device name', deviceNamePlaceholder: 'Optional display name', connectionCode: 'Device code', connectionCodePlaceholder: 'Paste an endpoint device code', addingDevice: 'Adding...', deviceAdded: 'Device added.', moreActions: 'More device actions', disconnect: 'Disconnect', removeDevice: 'Remove device', removeDeviceTitle: 'Remove device?', removeDeviceDescription: 'Remove “{{name}}” and its device code from this device.', deviceRemoved: 'Device removed.', returnHome: 'Return to device home', neverConnected: 'Never connected', lastConnected: 'Last connected: {{time}}', statusDisconnected: 'Disconnected', statusConnecting: 'Connecting', statusConnected: 'Connected', statusError: 'Connection failed', pairEmpty: 'Paste a device code.', pairWrongPrefix: 'This is not a valid endpoint device code.', pairBadCharacters: 'The device code contains invalid characters.', pairTooShort: 'The device code is incomplete.', pairUnparseable: 'The device code could not be parsed. Copy it again from the agent.', operationFailed: 'Device operation failed: {{message}}',
   },
 
   remote: {
@@ -73,7 +77,7 @@ export const en: TranslationKeys = {
 
   commands: {
     openTerminal: 'Open terminal',
-    showChangelog: 'Termy: show changelog',
+    showChangelog: 'Termesh: show changelog',
     terminalSearch: 'Terminal: search',
     terminalClear: 'Terminal: clear screen',
     terminalCopy: 'Terminal: copy',
@@ -176,7 +180,7 @@ export const en: TranslationKeys = {
       advanced: 'Advanced',
     },
     header: {
-      title: 'Termy',
+      title: 'Termesh',
       feedbackText: 'Thanks for using! Feedback welcome: ',
       feedbackLink: 'GitHub',
       communityLink: 'Telegram',
@@ -338,7 +342,7 @@ export const en: TranslationKeys = {
   modals: {
     changelog: {
       title: 'Changelog',
-      subtitle: 'Updated in Termy {{version}}',
+      subtitle: 'Updated in Termesh {{version}}',
       loading: 'Loading changelog...',
       unavailable: 'Unable to load the changelog for this version right now.',
       openRelease: 'Open release page',
@@ -355,7 +359,7 @@ export const en: TranslationKeys = {
     launcherInstall: {
       titleNotInstalled: '{{name}} is not installed',
       titleUpdate: 'Update {{name}}',
-      descriptionNotInstalled: 'Termy could not find "{{command}}" on your PATH. Install the CLI on your machine, then come back and try again.',
+      descriptionNotInstalled: 'Termesh could not find "{{command}}" on your PATH. Install the CLI on your machine, then come back and try again.',
       descriptionUpdate: 'A newer release of {{name}} is available ({{local}} → {{latest}}). Run the command below in your system terminal to upgrade.',
       detectedCommand: 'Detected command',
       versionLabel: 'Version',

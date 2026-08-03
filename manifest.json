@@ -1,9 +1,9 @@
 {
-  "id": "termy",
-  "name": "Termy",
+  "id": "termesh",
+  "name": "Termesh",
   "version": "1.4.1",
   "minAppVersion": "1.8.7",
-  "description": "Terminal emulator with split panes, reusable workflows, AI CLI context handoff, and zero setup. Powered by xterm.js and a bundled Rust PTY backend.",
+  "description": "A device-aware terminal mesh for Obsidian with local and remote sessions, reusable workflows, and AI CLI context handoff.",
   "author": "ZyphrZero",
   "authorUrl": "https://github.com/ZyphrZero",
   "isDesktopOnly": true

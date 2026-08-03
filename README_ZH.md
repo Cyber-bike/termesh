@@ -1,16 +1,16 @@
 <div align="center">
 
-# Termy
+# Termesh
 
-<img src="assets\termy-tg-avatar-transparent.svg" width="150" alt="Termy logo" />
+<img src="assets\termy-tg-avatar-transparent.svg" width="150" alt="Termesh logo" />
 
-*面向 Obsidian 的 AI CLI 集成终端*
+*面向 Obsidian 的多设备终端工作台*
 
-由 xterm.js 与原生 Rust PTY 后端驱动，支持分屏、多会话、可复用工作流和文件感知交互。
+从同一个设备首页打开本地或远程终端，并提供分屏、多会话、可复用工作流和 AI CLI 上下文接力。
 
 [![Version](https://img.shields.io/badge/version-1.4.1-7c3aed?style=for-the-badge)](./manifest.json)
 [![Obsidian](https://img.shields.io/badge/Obsidian-Desktop%20Only-8b5cf6?style=for-the-badge)](https://obsidian.md/)
-[![Community Plugin](https://img.shields.io/badge/Obsidian-Community%20Plugin-22c55e?style=for-the-badge)](https://obsidian.md/plugins?id=termy)
+[![Community Plugin](https://img.shields.io/badge/Obsidian-Community%20Plugin-22c55e?style=for-the-badge)](https://obsidian.md/plugins?id=termesh)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue?style=for-the-badge)](./LICENSE)
 [![PTY](https://img.shields.io/badge/backend-Rust%20PTY-f97316?style=for-the-badge)](./rust-servers)
 
@@ -26,9 +26,9 @@
 
 ---
 
-## 为什么用 Termy？
+## 为什么用 Termesh？
 
-Termy 不是“把一个终端嵌进 Obsidian”这么简单，它更像是把命令行工作流真正带进了笔记环境。它围绕 Obsidian 工作流设计，让终端会话、编辑器上下文和 AI 编码工具保持在同一个工作空间中。
+Termesh 面向同时使用笔记、终端、AI 编码工具和多台设备的用户。设备首页统一展示本机和已配对设备，同时保留 Obsidian 原生终端最重要的编辑器上下文能力。
 
 - **原生 PTY 后端**：Rust 后端更轻量，不依赖额外桥接运行时。
 - **真实终端体验**：基于 xterm.js，支持搜索、复制粘贴、提示符导航、分屏和多终端会话。
@@ -140,8 +140,8 @@ Termy 不是“把一个终端嵌进 Obsidian”这么简单，它更像是把�
 
 | 命令 | 作用 |
 | --- | --- |
-| `Open Termy terminal` | 按当前实例布局策略打开一个新终端。 |
-| `Termy: show changelog` | 打开内置更新日志弹窗。 |
+| `Open terminal` | 按当前实例布局策略打开一个新终端。 |
+| `Termesh：显示更新日志` | 打开内置更新日志弹窗。 |
 | `Terminal: split horizontal / split vertical` | 对活动终端进行分屏。 |
 | `Terminal: send selection` | 将当前编辑器选区发送到活动终端。 |
 | `Terminal: send current note` | 将当前整篇笔记内容发送到活动终端。 |
@@ -164,7 +164,7 @@ Termy 不是“把一个终端嵌进 Obsidian”这么简单，它更像是把�
 Termy 已上架官方 Obsidian Community Plugins 列表。
 
 1. 打开 **设置 → 社区插件**，如已开启 **受限模式（Restricted mode）** 请先关闭。
-2. 点击 **浏览（Browse）**，搜索 `Termy`。
+2. 点击 **浏览（Browse）**，搜索 `Termesh`。
 3. 依次点击 **安装（Install）** 与 **启用（Enable）**。
 
 ### 使用 BRAT 安装（提前体验最新版）
@@ -179,13 +179,13 @@ Termy 已上架官方 Obsidian Community Plugins 列表。
 ### 手动安装
 
 1. 从 [GitHub Releases](https://github.com/ZyphrZero/Termy/releases) 下载最新发布包。
-2. 解压到当前 vault 的 `.obsidian/plugins/termy/` 目录。
+2. 解压到当前 vault 的 `.obsidian/plugins/termesh/` 目录。
 3. 重启或重新加载 Obsidian。
-4. 在 **设置 → 社区插件** 中启用 Termy。
+4. 在 **设置 → 社区插件** 中启用 Termesh。
 
 ## 快速上手
 
-1. 通过左侧 ribbon、命令面板、空标签页按钮或状态栏打开 Termy。
+1. 通过左侧 ribbon、命令面板或空标签页按钮打开 Termesh，并选择要使用的设备。
 2. 在设置中配置 shell、终端创建位置和外观。
 3. 从状态栏菜单试运行内置工作流。
 4. 将当前选区、整篇笔记或当前路径发送到终端。

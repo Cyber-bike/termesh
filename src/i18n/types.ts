@@ -37,6 +37,44 @@ export interface TranslationKeys {
     unloadedMessage: string;
   };
 
+  home: {
+    title: string;
+    description: string;
+    refresh: string;
+    refreshing: string;
+    addDevice: string;
+    addDeviceDescription: string;
+    localDevice: string;
+    localDeviceDescription: string;
+    available: string;
+    openTerminal: string;
+    deviceName: string;
+    deviceNamePlaceholder: string;
+    connectionCode: string;
+    connectionCodePlaceholder: string;
+    addingDevice: string;
+    deviceAdded: string;
+    moreActions: string;
+    disconnect: string;
+    removeDevice: string;
+    removeDeviceTitle: string;
+    removeDeviceDescription: string;
+    deviceRemoved: string;
+    returnHome: string;
+    neverConnected: string;
+    lastConnected: string;
+    statusDisconnected: string;
+    statusConnecting: string;
+    statusConnected: string;
+    statusError: string;
+    pairEmpty: string;
+    pairWrongPrefix: string;
+    pairBadCharacters: string;
+    pairTooShort: string;
+    pairUnparseable: string;
+    operationFailed: string;
+  };
+
   remote: {
     title: string;
     relayUrl: string;

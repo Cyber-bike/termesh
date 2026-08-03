@@ -595,7 +595,7 @@ export class TerminalView extends ItemView {
     if (!input) {
       debugLog('[Terminal DnD] No usable file path or text in drop payload');
       errorLog('[Terminal DnD] No usable path details:', this.describeDropPayload(dataTransfer));
-      new Notice('Termy: 未获取到可用文本或路径，请确认拖拽来源是否支持文本或文件。');
+      new Notice('Termesh: 未获取到可用文本或路径，请确认拖拽来源是否支持文本或文件。');
       return;
     }
 
@@ -658,6 +658,15 @@ export class TerminalView extends ItemView {
     const remoteService = service.getRemoteService();
     const snapshot = remoteService.getSnapshot();
     const ability = capabilities(this.remoteState);
+
+    const homeButton = toolbar.createEl('button', {
+      cls: 'clickable-icon termesh-terminal-home-button',
+      attr: { 'aria-label': t('home.returnHome') },
+    });
+    setIcon(homeButton, 'house');
+    homeButton.addEventListener('click', () => {
+      void this.getTerminalPlugin()?.activateDeviceHome();
+    });
 
     const mode = toolbar.createEl('select', { attr: { 'aria-label': t('remote.mode') } });
     mode.createEl('option', { text: t('remote.local'), value: 'local' });
@@ -1410,6 +1419,7 @@ export class TerminalView extends ItemView {
   private getTerminalPlugin(): {
     settings: TerminalSettings;
     activateTerminalView: () => Promise<void>;
+    activateDeviceHome: () => Promise<void>;
     toggleAlwaysOnTopTerminal: (terminalView: TerminalView) => Promise<void>;
     getAlwaysOnTopTerminalLabel: (terminalView: TerminalView) => string;
     isAlwaysOnTopTerminal: (terminalView: TerminalView) => boolean;
@@ -1418,7 +1428,7 @@ export class TerminalView extends ItemView {
     const appWithPlugins = this.app as typeof this.app & {
       plugins?: { getPlugin?: (id: string) => unknown };
     };
-    const plugin = appWithPlugins.plugins?.getPlugin?.('termy');
+    const plugin = appWithPlugins.plugins?.getPlugin?.('termesh');
     if (!this.isTerminalPlugin(plugin)) return null;
     return plugin;
   }
@@ -1426,6 +1436,7 @@ export class TerminalView extends ItemView {
   private isTerminalPlugin(value: unknown): value is {
     settings: TerminalSettings;
     activateTerminalView: () => Promise<void>;
+    activateDeviceHome: () => Promise<void>;
     toggleAlwaysOnTopTerminal: (terminalView: TerminalView) => Promise<void>;
     getAlwaysOnTopTerminalLabel: (terminalView: TerminalView) => string;
     isAlwaysOnTopTerminal: (terminalView: TerminalView) => boolean;
@@ -1435,12 +1446,14 @@ export class TerminalView extends ItemView {
     const candidate = value as {
       settings?: unknown;
       activateTerminalView?: unknown;
+      activateDeviceHome?: unknown;
       toggleAlwaysOnTopTerminal?: unknown;
       getAlwaysOnTopTerminalLabel?: unknown;
       isAlwaysOnTopTerminal?: unknown;
       handleTerminalViewClosed?: unknown;
     };
     return typeof candidate.activateTerminalView === 'function'
+      && typeof candidate.activateDeviceHome === 'function'
       && typeof candidate.toggleAlwaysOnTopTerminal === 'function'
       && typeof candidate.getAlwaysOnTopTerminalLabel === 'function'
       && typeof candidate.isAlwaysOnTopTerminal === 'function'

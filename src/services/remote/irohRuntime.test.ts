@@ -8,7 +8,7 @@ import type { IrohModule } from './irohStreams.ts';
 test('loads iroh from the plugin-local node_modules directory', async () => {
   const expected = {} as IrohModule;
   let loadedPath = '';
-  const loadIroh = createIrohLoader('C:\\vault\\.obsidian\\plugins\\termy', (modulePath) => {
+  const loadIroh = createIrohLoader('C:\\vault\\.obsidian\\plugins\\termesh', (modulePath) => {
     loadedPath = modulePath;
     return expected;
   });
@@ -16,12 +16,12 @@ test('loads iroh from the plugin-local node_modules directory', async () => {
   assert.equal(await loadIroh(), expected);
   assert.equal(
     loadedPath,
-    path.join('C:\\vault\\.obsidian\\plugins\\termy', 'node_modules', '@number0', 'iroh'),
+    path.join('C:\\vault\\.obsidian\\plugins\\termesh', 'node_modules', '@number0', 'iroh'),
   );
 });
 
 test('reports a clear installation error when the native module is missing', async () => {
-  const loadIroh = createIrohLoader('/vault/.obsidian/plugins/termy', () => {
+  const loadIroh = createIrohLoader('/vault/.obsidian/plugins/termesh', () => {
     throw new Error('module not found');
   });
 

@@ -20,11 +20,15 @@ export const ja: TranslationKeys = {
   },
 
   plugin: {
-    name: 'Termy',
-    loadingMessage: 'Termy プラグインを読み込み中',
-    loadedMessage: 'Termy プラグインを読み込みました',
-    unloadingMessage: 'Termy プラグインをアンロード中',
-    unloadedMessage: 'Termy プラグインをアンロードしました',
+    name: 'Termesh',
+    loadingMessage: 'Termesh プラグインを読み込み中',
+    loadedMessage: 'Termesh プラグインを読み込みました',
+    unloadingMessage: 'Termesh プラグインをアンロード中',
+    unloadedMessage: 'Termesh プラグインをアンロードしました',
+  },
+
+  home: {
+    title: 'Devices', description: 'Open a new terminal on this device or a paired device.', refresh: 'Refresh device status', refreshing: 'Refreshing...', addDevice: 'Add device', addDeviceDescription: 'Paste the device code shown by the agent', localDevice: 'This device', localDeviceDescription: 'Open a terminal on this device', available: 'Available', openTerminal: 'Open terminal', deviceName: 'Device name', deviceNamePlaceholder: 'Optional display name', connectionCode: 'Device code', connectionCodePlaceholder: 'Paste an endpoint device code', addingDevice: 'Adding...', deviceAdded: 'Device added.', moreActions: 'More device actions', disconnect: 'Disconnect', removeDevice: 'Remove device', removeDeviceTitle: 'Remove device?', removeDeviceDescription: 'Remove “{{name}}” and its device code from this device.', deviceRemoved: 'Device removed.', returnHome: 'Return to device home', neverConnected: 'Never connected', lastConnected: 'Last connected: {{time}}', statusDisconnected: 'Disconnected', statusConnecting: 'Connecting', statusConnected: 'Connected', statusError: 'Connection failed', pairEmpty: 'Paste a device code.', pairWrongPrefix: 'This is not a valid endpoint device code.', pairBadCharacters: 'The device code contains invalid characters.', pairTooShort: 'The device code is incomplete.', pairUnparseable: 'The device code could not be parsed. Copy it again from the agent.', operationFailed: 'Device operation failed: {{message}}',
   },
 
   remote: {
@@ -72,8 +76,8 @@ export const ja: TranslationKeys = {
   },
 
   commands: {
-    openTerminal: 'Termyターミナルを開く',
-    showChangelog: 'Termy: 更新ログを表示',
+    openTerminal: 'Termeshを開く',
+    showChangelog: 'Termesh: 更新ログを表示',
     terminalSearch: 'ターミナル: 検索',
     terminalClear: 'ターミナル: 画面をクリア',
     terminalCopy: 'ターミナル: コピー',
@@ -95,7 +99,7 @@ export const ja: TranslationKeys = {
   },
 
   ribbon: {
-    terminalTooltip: 'Termyターミナルを開く',
+    terminalTooltip: 'Termeshを開く',
   },
 
   visibility: {
@@ -176,7 +180,7 @@ export const ja: TranslationKeys = {
       advanced: '詳細設定',
     },
     header: {
-      title: 'Termy',
+      title: 'Termesh',
       feedbackText: 'ご利用ありがとうございます。フィードバックはこちら: ',
       feedbackLink: 'GitHub',
       communityLink: 'Telegram',
@@ -321,7 +325,7 @@ export const ja: TranslationKeys = {
       offlineMode: 'オフラインモード',
       offlineModeDesc: '有効にするとバイナリのバージョン確認と自動ダウンロードをスキップ',
       binaryDownloadSource: 'バイナリのダウンロード元',
-      binaryDownloadSourceDesc: 'Termy のネイティブバイナリを GitHub Release または Cloudflare R2 のどちらからダウンロードするか選択します',
+      binaryDownloadSourceDesc: 'Termesh のネイティブバイナリを GitHub Release または Cloudflare R2 のどちらからダウンロードするか選択します',
       binaryDownloadSourceGithubRelease: 'GitHub Release',
       binaryDownloadSourceCloudflareR2: 'Cloudflare R2',
       binaryDownloadNow: '今すぐバイナリをダウンロード',
@@ -338,7 +342,7 @@ export const ja: TranslationKeys = {
   modals: {
     changelog: {
       title: '更新ログ',
-      subtitle: 'Termy {{version}} の更新内容',
+      subtitle: 'Termesh {{version}} の更新内容',
       loading: '更新ログを読み込み中...',
       unavailable: 'このバージョンの更新ログを読み込めませんでした。',
       openRelease: 'リリースページを開く',
@@ -355,7 +359,7 @@ export const ja: TranslationKeys = {
     launcherInstall: {
       titleNotInstalled: '{{name}} はインストールされていません',
       titleUpdate: '{{name}} を更新',
-      descriptionNotInstalled: 'Termy は PATH 上で「{{command}}」を見つけられませんでした。CLI をインストールしてから再度お試しください。',
+      descriptionNotInstalled: 'Termesh は PATH 上で「{{command}}」を見つけられませんでした。CLI をインストールしてから再度お試しください。',
       descriptionUpdate: '{{name}} の新しいリリースが利用可能です ({{local}} → {{latest}})。下記のコマンドをシステムターミナルで実行して更新してください。',
       detectedCommand: '検出されたコマンド',
       versionLabel: 'バージョン',
@@ -364,7 +368,7 @@ export const ja: TranslationKeys = {
       cardTitleUpgradeOneClick: 'ワンクリックでアップグレード',
       cardDescInstall: 'このコマンドをコピーしてシステムターミナルで実行してください。シェルから実行ファイルが見えるようになると、このランチャーは自動的に検出します。',
       cardDescUpgrade: 'このコマンドをコピーしてシステムターミナルで実行し、アップグレードしてください。新しいバージョンがシェルから到達可能になると、このランチャーは自動的に検出します。',
-      cardDescUpgradeOneClick: '「今すぐ更新」をクリックすると Termy ターミナルでこのコマンドが実行されます。コピーして手動で実行することもできます。',
+      cardDescUpgradeOneClick: '「今すぐ更新」をクリックすると Termesh ターミナルでこのコマンドが実行されます。コピーして手動で実行することもできます。',
       buttonCopy: 'コピー',
       buttonClose: '閉じる',
       buttonOpenDocs: 'インストールドキュメントを開く',

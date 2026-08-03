@@ -24,6 +24,7 @@ import type { IrohModule } from './services/remote/irohStreams';
 import { normalizeControllerIdentitySeed } from './services/remote/controllerIdentity';
 import { requestWithObsidian } from './services/remote/obsidianRelayRequest';
 import { TERMINAL_VIEW_TYPE, TerminalView } from './ui/terminal/terminalView';
+import { DEVICE_HOME_VIEW_TYPE, DeviceHomeView } from './ui/home/deviceHomeView';
 import { ChangelogModal } from './ui/changelog/changelogModal';
 import { i18n, t } from './i18n';
 import { debugLog, errorLog } from './utils/logger';
@@ -52,6 +53,7 @@ import {
 } from './services/terminal/commandAvailability';
 import { clearCommandVersionCache, probeCommandVersion } from './services/terminal/commandVersionProbe';
 import { clearLatestVersionCache, fetchLatestVersion } from './services/terminal/latestVersionRegistry';
+import { buildDeviceTerminalTitle } from './services/terminal/deviceTerminalTitle';
 import {
   buildAiLauncherStatusSnapshot,
   readinessToBadge,
@@ -281,6 +283,10 @@ export default class TerminalPlugin extends Plugin {
         // Create a placeholder view; the actual initialization happens when the user opens it
         return new TerminalViewPlaceholder(leaf, this);
       }
+    );
+    this.registerView(
+      DEVICE_HOME_VIEW_TYPE,
+      (leaf: WorkspaceLeaf) => new DeviceHomeView(leaf, this),
     );
 
     // Register all commands
@@ -606,7 +612,7 @@ export default class TerminalPlugin extends Plugin {
         icon: TERMY_RIBBON_ICON_ID,
         tooltip: t('ribbon.terminalTooltip'),
         callback: () => {
-          void this.activateTerminalView();
+          void this.activateDeviceHome();
         },
       },
       onVisibilityChange: () => {
@@ -644,7 +650,7 @@ export default class TerminalPlugin extends Plugin {
     iconEl.addClass('terminal-status-bar-icon');
     const labelEl = activeDocument.createElement('span');
     labelEl.addClass('terminal-status-bar-label');
-    labelEl.textContent = 'Termy';
+    labelEl.textContent = t('plugin.name');
     this._statusBarItem.append(iconEl, labelEl);
     
     // Add click handler
@@ -700,7 +706,33 @@ export default class TerminalPlugin extends Plugin {
     }
   }
 
-  async openRemoteTerminal(nodeId: string): Promise<void> {
+  async activateDeviceHome(targetLeaf?: WorkspaceLeaf): Promise<void> {
+    const { workspace } = this.app;
+    const existingLeaf = workspace.getLeavesOfType(DEVICE_HOME_VIEW_TYPE)[0];
+    const leaf = existingLeaf ?? targetLeaf ?? workspace.getLeaf('tab');
+    if (!existingLeaf) {
+      await leaf.setViewState({ type: DEVICE_HOME_VIEW_TYPE, active: true });
+    }
+    workspace.setActiveLeaf(leaf, { focus: true });
+  }
+
+  getActiveNoteName(): string | null {
+    const file = this.app.workspace.getActiveFile();
+    return file?.extension.toLowerCase() === 'md' ? file.basename : null;
+  }
+
+  async openLocalDeviceTerminal(noteName = this.getActiveNoteName()): Promise<void> {
+    const terminalService = await this.getTerminalService();
+    const terminal = await terminalService.createTerminal();
+    terminal.setTitle(buildDeviceTerminalTitle(
+      t('home.localDevice'),
+      noteName,
+      t('terminal.defaultTitle'),
+    ));
+    await this.openPreparedTerminal(terminal, terminalService);
+  }
+
+  async openRemoteTerminal(nodeId: string, noteName = this.getActiveNoteName()): Promise<void> {
     const connections = this.getDeviceConnectionManager();
     if (!connections.isConnected(nodeId)) {
       await connections.connect(nodeId);
@@ -711,8 +743,21 @@ export default class TerminalPlugin extends Plugin {
       connections.createTerminalTransport(nodeId),
     );
     const device = this.getPairedDeviceStore().get(nodeId);
-    if (device) terminal.setTitle(device.name);
+    if (device) {
+      terminal.setTitle(buildDeviceTerminalTitle(
+        device.name,
+        noteName,
+        t('terminal.defaultTitle'),
+      ));
+    }
 
+    await this.openPreparedTerminal(terminal, terminalService);
+  }
+
+  private async openPreparedTerminal(
+    terminal: TerminalInstance,
+    terminalService: TerminalService,
+  ): Promise<void> {
     const leaf = this.getLeafForNewTerminal();
     this.pendingRestoredTerminals.set(leaf, terminal);
     try {
@@ -1101,7 +1146,7 @@ export default class TerminalPlugin extends Plugin {
           return false;
         }
         if (!checking) {
-          void this.activateTerminalView();
+          void this.activateDeviceHome();
         }
         return true;
       }
@@ -1655,7 +1700,7 @@ export default class TerminalPlugin extends Plugin {
       terminalAction.textContent = t('commands.openTerminal');
       terminalAction.addEventListener('click', () => {
         const leaf = this.findLeafByEmptyView(emptyView);
-        void this.activateTerminalView(leaf ?? undefined);
+        void this.activateDeviceHome(leaf ?? undefined);
       });
 
       // Add it to the actions list

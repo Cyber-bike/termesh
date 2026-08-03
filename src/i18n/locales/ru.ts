@@ -20,11 +20,15 @@ export const ru: TranslationKeys = {
   },
 
   plugin: {
-    name: 'Termy',
-    loadingMessage: 'Загрузка плагина Termy',
-    loadedMessage: 'Плагин Termy загружен',
-    unloadingMessage: 'Выгрузка плагина Termy',
-    unloadedMessage: 'Плагин Termy выгружен',
+    name: 'Termesh',
+    loadingMessage: 'Загрузка плагина Termesh',
+    loadedMessage: 'Плагин Termesh загружен',
+    unloadingMessage: 'Выгрузка плагина Termesh',
+    unloadedMessage: 'Плагин Termesh выгружен',
+  },
+
+  home: {
+    title: 'Devices', description: 'Open a new terminal on this device or a paired device.', refresh: 'Refresh device status', refreshing: 'Refreshing...', addDevice: 'Add device', addDeviceDescription: 'Paste the device code shown by the agent', localDevice: 'This device', localDeviceDescription: 'Open a terminal on this device', available: 'Available', openTerminal: 'Open terminal', deviceName: 'Device name', deviceNamePlaceholder: 'Optional display name', connectionCode: 'Device code', connectionCodePlaceholder: 'Paste an endpoint device code', addingDevice: 'Adding...', deviceAdded: 'Device added.', moreActions: 'More device actions', disconnect: 'Disconnect', removeDevice: 'Remove device', removeDeviceTitle: 'Remove device?', removeDeviceDescription: 'Remove “{{name}}” and its device code from this device.', deviceRemoved: 'Device removed.', returnHome: 'Return to device home', neverConnected: 'Never connected', lastConnected: 'Last connected: {{time}}', statusDisconnected: 'Disconnected', statusConnecting: 'Connecting', statusConnected: 'Connected', statusError: 'Connection failed', pairEmpty: 'Paste a device code.', pairWrongPrefix: 'This is not a valid endpoint device code.', pairBadCharacters: 'The device code contains invalid characters.', pairTooShort: 'The device code is incomplete.', pairUnparseable: 'The device code could not be parsed. Copy it again from the agent.', operationFailed: 'Device operation failed: {{message}}',
   },
 
   remote: {
@@ -72,8 +76,8 @@ export const ru: TranslationKeys = {
   },
 
   commands: {
-    openTerminal: 'Открыть терминал Termy',
-    showChangelog: 'Termy: показать список изменений',
+    openTerminal: 'Открыть Termesh',
+    showChangelog: 'Termesh: показать список изменений',
     terminalSearch: 'Терминал: поиск',
     terminalClear: 'Терминал: очистить экран',
     terminalCopy: 'Терминал: копировать',
@@ -95,7 +99,7 @@ export const ru: TranslationKeys = {
   },
 
   ribbon: {
-    terminalTooltip: 'Открыть терминал Termy',
+    terminalTooltip: 'Открыть Termesh',
   },
 
   visibility: {
@@ -176,7 +180,7 @@ export const ru: TranslationKeys = {
       advanced: 'Дополнительно',
     },
     header: {
-      title: 'Termy',
+      title: 'Termesh',
       feedbackText: 'Спасибо за использование! Обратная связь: ',
       feedbackLink: 'GitHub',
       communityLink: 'Telegram',
@@ -321,7 +325,7 @@ export const ru: TranslationKeys = {
       offlineMode: 'Офлайн-режим',
       offlineModeDesc: 'При включении пропускает проверку версии бинарника и автозагрузку',
       binaryDownloadSource: 'Источник загрузки бинарника',
-      binaryDownloadSourceDesc: 'Выберите, откуда Termy загружает нативный бинарник: из GitHub Release или Cloudflare R2',
+      binaryDownloadSourceDesc: 'Выберите, откуда Termesh загружает нативный бинарник: из GitHub Release или Cloudflare R2',
       binaryDownloadSourceGithubRelease: 'GitHub Release',
       binaryDownloadSourceCloudflareR2: 'Cloudflare R2',
       binaryDownloadNow: 'Скачать бинарник сейчас',
@@ -338,7 +342,7 @@ export const ru: TranslationKeys = {
   modals: {
     changelog: {
       title: 'Список изменений',
-      subtitle: 'Обновления в Termy {{version}}',
+      subtitle: 'Обновления в Termesh {{version}}',
       loading: 'Загрузка списка изменений...',
       unavailable: 'Не удалось загрузить список изменений для этой версии.',
       openRelease: 'Открыть страницу релиза',
@@ -355,7 +359,7 @@ export const ru: TranslationKeys = {
     launcherInstall: {
       titleNotInstalled: '{{name}} не установлен',
       titleUpdate: 'Обновить {{name}}',
-      descriptionNotInstalled: 'Termy не нашёл «{{command}}» в PATH. Установите CLI на свой компьютер, затем повторите попытку.',
+      descriptionNotInstalled: 'Termesh не нашёл «{{command}}» в PATH. Установите CLI на свой компьютер, затем повторите попытку.',
       descriptionUpdate: 'Доступен новый релиз {{name}} ({{local}} → {{latest}}). Выполните команду ниже в системном терминале, чтобы обновиться.',
       detectedCommand: 'Обнаруженная команда',
       versionLabel: 'Версия',
@@ -364,7 +368,7 @@ export const ru: TranslationKeys = {
       cardTitleUpgradeOneClick: 'Обновление в один клик',
       cardDescInstall: 'Скопируйте эту команду и выполните её в системном терминале. Как только исполняемый файл станет доступен из вашей оболочки, лаунчер автоматически его обнаружит.',
       cardDescUpgrade: 'Скопируйте эту команду и выполните её в системном терминале для обновления. Как только новая версия станет доступна из оболочки, лаунчер автоматически её обнаружит.',
-      cardDescUpgradeOneClick: 'Нажмите «Обновить сейчас», чтобы выполнить эту команду в терминале Termy, либо скопируйте её и запустите вручную.',
+      cardDescUpgradeOneClick: 'Нажмите «Обновить сейчас», чтобы выполнить эту команду в терминале Termesh, либо скопируйте её и запустите вручную.',
       buttonCopy: 'Копировать',
       buttonClose: 'Закрыть',
       buttonOpenDocs: 'Открыть инструкцию по установке',

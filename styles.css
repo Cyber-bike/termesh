@@ -2273,3 +2273,240 @@
   visibility: visible !important;
   opacity: 1 !important;
 }
+
+/* ==================== Termesh device home ==================== */
+.termesh-device-home {
+  height: 100%;
+  overflow-y: auto;
+  padding: clamp(18px, 4vw, 40px);
+  background:
+    linear-gradient(135deg, color-mix(in srgb, var(--interactive-accent) 7%, transparent), transparent 42%),
+    var(--background-primary);
+}
+
+.termesh-home-header {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 20px;
+  max-width: 1120px;
+  margin: 0 auto 28px;
+}
+
+.termesh-home-heading h1 {
+  margin: 0 0 6px;
+  font-size: 28px;
+  line-height: 1.2;
+  letter-spacing: 0;
+}
+
+.termesh-home-heading p {
+  margin: 0;
+  color: var(--text-muted);
+  line-height: 1.5;
+}
+
+.termesh-home-refresh {
+  flex: 0 0 36px;
+  width: 36px;
+  height: 36px;
+}
+
+.termesh-home-refresh.is-refreshing svg {
+  animation: termesh-spin 0.9s linear infinite;
+}
+
+@keyframes termesh-spin {
+  to { transform: rotate(360deg); }
+}
+
+.termesh-device-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(min(260px, 100%), 1fr));
+  gap: 14px;
+  max-width: 1120px;
+  margin: 0 auto;
+}
+
+.termesh-device-card {
+  position: relative;
+  min-height: 190px;
+  padding: 20px;
+  overflow: hidden;
+  border: 1px solid var(--background-modifier-border);
+  border-radius: 8px;
+  background: color-mix(in srgb, var(--background-secondary) 88%, transparent);
+  cursor: pointer;
+  transition: border-color 140ms ease, box-shadow 140ms ease, transform 140ms ease;
+}
+
+.termesh-device-card:hover {
+  border-color: color-mix(in srgb, var(--interactive-accent) 58%, var(--background-modifier-border));
+  box-shadow: 0 8px 24px color-mix(in srgb, var(--background-modifier-cover) 32%, transparent);
+  transform: translateY(-2px);
+}
+
+.termesh-device-card:focus-visible {
+  outline: 2px solid var(--interactive-accent);
+  outline-offset: 2px;
+}
+
+.termesh-device-card.is-disabled {
+  cursor: wait;
+  opacity: 0.72;
+  transform: none;
+}
+
+.termesh-device-card.is-add {
+  border-style: dashed;
+  background: color-mix(in srgb, var(--interactive-accent) 8%, var(--background-primary));
+}
+
+.termesh-device-card.is-local {
+  background: color-mix(in srgb, var(--color-green) 7%, var(--background-secondary));
+}
+
+.termesh-device-card h2 {
+  margin: 18px 0 7px;
+  font-size: 18px;
+  line-height: 1.25;
+  letter-spacing: 0;
+  overflow-wrap: anywhere;
+}
+
+.termesh-device-card p {
+  margin: 0;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+  line-height: 1.45;
+}
+
+.termesh-device-card-top {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.termesh-device-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 38px;
+  height: 38px;
+  color: var(--interactive-accent);
+}
+
+.termesh-device-icon svg {
+  width: 28px;
+  height: 28px;
+}
+
+.termesh-device-actions {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+}
+
+.termesh-device-status {
+  display: flex;
+  align-items: center;
+  gap: 7px;
+  margin-top: 22px;
+  color: var(--text-muted);
+  font-size: var(--font-ui-smaller);
+}
+
+.termesh-status-dot {
+  width: 8px;
+  height: 8px;
+  border-radius: 50%;
+  background: var(--text-faint);
+}
+
+.termesh-device-status.status-connected .termesh-status-dot {
+  background: var(--color-green);
+  box-shadow: 0 0 0 3px color-mix(in srgb, var(--color-green) 16%, transparent);
+}
+
+.termesh-device-status.status-connecting .termesh-status-dot {
+  background: var(--color-yellow);
+  animation: termesh-pulse 1.2s ease-in-out infinite;
+}
+
+.termesh-device-status.status-error .termesh-status-dot {
+  background: var(--color-red);
+}
+
+@keyframes termesh-pulse {
+  50% { opacity: 0.35; }
+}
+
+.termesh-device-error {
+  margin-top: 10px;
+  color: var(--text-error);
+  font-size: var(--font-ui-smaller);
+  overflow-wrap: anywhere;
+}
+
+.termesh-form-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin: 14px 0;
+  color: var(--text-muted);
+  font-size: var(--font-ui-small);
+}
+
+.termesh-form-field input,
+.termesh-form-field textarea {
+  width: 100%;
+}
+
+.termesh-form-field textarea {
+  resize: vertical;
+  font-family: var(--font-monospace);
+  overflow-wrap: anywhere;
+}
+
+.termesh-form-error {
+  display: none;
+  margin-top: 8px;
+  color: var(--text-error);
+  font-size: var(--font-ui-small);
+}
+
+.termesh-form-error.is-visible {
+  display: block;
+}
+
+.termesh-terminal-home-button {
+  flex: 0 0 28px;
+}
+
+@media (max-width: 520px) {
+  .termesh-device-home {
+    padding: 16px;
+  }
+
+  .termesh-home-header {
+    margin-bottom: 20px;
+  }
+
+  .termesh-home-heading h1 {
+    font-size: 23px;
+  }
+
+  .termesh-device-card {
+    min-height: 168px;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .termesh-device-card,
+  .termesh-home-refresh svg,
+  .termesh-status-dot {
+    animation: none !important;
+    transition: none !important;
+  }
+}
