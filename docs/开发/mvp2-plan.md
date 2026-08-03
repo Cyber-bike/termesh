@@ -1,11 +1,13 @@
 # Termy 远程增强 v2 —— 免账号配对 + 多设备多终端 + 断线保活
 
+> **历史文档，方向已被推翻。** 本文档§7 评估过 P2P/WebRTC 后决定"本轮不做"，仍然走 relay 中继模型。后来实际立项的 v2.0 推翻了这个结论，改成基于 `iroh`（QUIC）的点对点直连架构，免账号但也不再需要自建 relay/registry 服务端——见《实现方案 - 开发版 v2.0.md》。本文档只作为"为什么一开始没直接选 P2P"的设计过程记录保留，不代表当前架构。
+
 三个分开提出的需求（去账号改配对码、多设备多终端、重连不丢会话）改的是同一批文件
 （`relay/src/gateway/control.rs`、`registry.rs`、`agent/src/client.rs`），必须合成一次架构
 改动，不能分三轮改。本文档是合并后的技术方案。P2P/WebRTC 直连评估过，本轮不做，见 §7。
 
-读者：接手这次改造的人。建议和 [operations.md](operations.md)、
-[privacy-and-limits.md](privacy-and-limits.md)、[multi-session-plan.md](multi-session-plan.md)
+读者：接手这次改造的人。建议和 [operations.md](../使用/operations.md)、
+[privacy-and-limits.md](../使用/privacy-and-limits.md)、[multi-session-plan.md](multi-session-plan.md)
 对照着看——本方案吸收了 multi-session-plan.md 的大部分结论，但因为设备模型变了，relay 侧
 的落地方式不一样，agent 侧又叠加了断线保活，所以单列一份而不是改那份。
 
