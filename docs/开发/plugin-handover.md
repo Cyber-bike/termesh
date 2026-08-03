@@ -150,8 +150,8 @@ v2.0 是多设备，需要用户先选一个已连接的设备。至少要有一
 
 ## 7. 参考
 
-- 实现方案：`Docs/实现方案 - 开发版 v2.0.md`
-- 开发计划与风险登记：`Docs/开发计划 v2.0.md`
-- 运维/CLI 参考：[operations.md](operations.md)
-- 隐私与已知限制：[privacy-and-limits.md](privacy-and-limits.md)
-- Windows 真机验收记录：`Docs/交接结果 - Windows.md`
+- 实现方案：`实现方案 - 开发版 v2.0.md`
+- 开发计划与风险登记：`开发计划 v2.0.md`
+- 运维/CLI 参考：[operations.md](../使用/operations.md)
+- 隐私与已知限制：[privacy-and-limits.md](../使用/privacy-and-limits.md)
+- Windows 真机验收记录：`交接结果 - Windows.md`

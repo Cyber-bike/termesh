@@ -35,7 +35,7 @@ cargo build --manifest-path agent/Cargo.toml --release
 
 安装脚本**拒绝以 root 运行**——Agent 要以将来使用它的那个普通用户身份安装。它做三件事：装二进制到 `~/.local/bin`、装 user unit 到 `~/.config/systemd/user`、`loginctl enable-linger`（唯一需要 sudo 的一步，多数发行版需要一次 root 或 polkit 认证）。
 
-装完之后**不需要任何配对步骤**——v2.0 免账号、免配置。启动服务、读连接码、贴进 Obsidian 即可，具体见 [operations.md](operations.md) §1。
+装完之后**不需要任何配对步骤**——v2.0 免账号、免配置。启动服务、读连接码、贴进 Obsidian 即可，具体见 [operations.md](../使用/operations.md) §1。
 
 ### 2.2 Windows：只能在 Windows 本机构建
 
