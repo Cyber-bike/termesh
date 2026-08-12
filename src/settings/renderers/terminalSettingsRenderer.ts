@@ -6,7 +6,7 @@
 import type { App, ColorComponent, TextComponent } from 'obsidian';
 import { Modal, Setting, Notice, Platform, ToggleComponent, setIcon } from 'obsidian';
 import type { RendererContext } from '../types';
-import type { BinaryDownloadSource, PresetScript, ShellType } from '../settings';
+import type { PresetScript, ShellType } from '../settings';
 
 import { 
   DEFAULT_PRESET_SCRIPTS,
@@ -1911,36 +1911,9 @@ export class TerminalSettingsRenderer extends BaseSettingsRenderer {
   private renderServerConnectionContent(containerEl: HTMLElement): void {
     const settings = this.context.plugin.settings;
 
-    // Binary download source
     new Setting(containerEl)
       .setName(t('settingsDetails.advanced.binaryDownloadSource'))
-      .setDesc(t('settingsDetails.advanced.binaryDownloadSourceDesc'))
-      .addDropdown((dropdown) => {
-        dropdown.addOption(
-          'github-release',
-          t('settingsDetails.advanced.binaryDownloadSourceGithubRelease')
-        );
-        dropdown.addOption(
-          'cloudflare-r2',
-          t('settingsDetails.advanced.binaryDownloadSourceCloudflareR2')
-        );
-        dropdown
-          .setValue(settings.serverConnection.binaryDownloadSource)
-          .onChange((value) => {
-            settings.serverConnection.binaryDownloadSource = value as BinaryDownloadSource;
-            void this.saveSettings();
-
-            void this.context.plugin.getServerManager()
-              .then((serverManager) => {
-                serverManager.updateBinaryDownloadConfig({
-                  source: settings.serverConnection.binaryDownloadSource,
-                });
-              })
-              .catch(() => {
-                // ServerManager may not be initialized yet
-              });
-          });
-      })
+      .setDesc(t('settingsDetails.advanced.binaryDownloadSourceGithubRelease'))
       .addButton((button) => {
         button
           .setButtonText(t('settingsDetails.advanced.binaryDownloadNow'))

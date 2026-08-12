@@ -39,6 +39,7 @@ test('HTTP methods attach Bearer auth and use the documented routes', async () =
   const calls: Array<{ url: string; init: RequestInit }> = [];
   const responses = [
     loginResponse(),
+    loginResponse(),
     Response.json({ pairingCodeId: SESSION, pairingCode: 'a'.repeat(27), createdAt: '2026-01-01T00:00:00Z', revoked: false }, { status: 201 }),
     new Response(null, { status: 204 }),
     Response.json({ devices: [] }),
@@ -55,6 +56,7 @@ test('HTTP methods attach Bearer auth and use the documented routes', async () =
   });
 
   await client.login('example', 'password123');
+  await client.register('new-example', 'password123');
   await client.createPairingCode();
   await client.revokePairingCode(SESSION);
   await client.listDevices();
@@ -62,13 +64,15 @@ test('HTTP methods attach Bearer auth and use the documented routes', async () =
 
   assert.deepEqual(calls.map((call) => new URL(call.url).pathname), [
     '/v1/auth/login',
+    '/v1/auth/register',
     '/v1/devices/pairing-codes',
     `/v1/devices/pairing-codes/${SESSION}`,
     '/v1/devices',
     `/v1/devices/${SESSION}`,
   ]);
   assert.equal(new Headers(calls[0].init.headers).get('Authorization'), null);
-  for (const call of calls.slice(1)) {
+  assert.equal(new Headers(calls[1].init.headers).get('Authorization'), null);
+  for (const call of calls.slice(2)) {
     assert.equal(new Headers(call.init.headers).get('Authorization'), `Bearer ${TOKEN}`);
   }
 });
@@ -183,6 +187,34 @@ test('control WSS retries once with a fresh socket after ECONNRESET', async () =
   assert.deepEqual(firstSocket.closeArgs, [undefined, undefined]);
   connection.sendJson({ type: 'ping' });
   assert.equal(secondSocket.sent.length, 1);
+});
+
+test('repeated ECONNRESET identifies the relay TLS and WebSocket checks', async () => {
+  const firstSocket = new MockSocket();
+  const secondSocket = new MockSocket();
+  const sockets = [firstSocket, secondSocket];
+  const client = new RelayClient('https://relay.example.com', {
+    fetch: async () => loginResponse(),
+    now: () => 0,
+    createWebSocket: () => {
+      const socket = sockets.shift();
+      assert.ok(socket);
+      return socket;
+    },
+  });
+  await client.login('example', 'password123');
+
+  const connecting = client.connectControl();
+  const reset = Object.assign(new Error('read ECONNRESET'), { code: 'ECONNRESET' });
+  firstSocket.emit('error', reset);
+  await new Promise<void>((resolve) => setImmediate(resolve));
+  secondSocket.emit('error', reset);
+
+  await assert.rejects(connecting, (error: unknown) => {
+    assert.ok(error instanceof Error);
+    assert.equal((error as Error & { code?: string }).code, 'ECONNRESET');
+    return /relay\.example\.com.*port 443.*WebSocket/s.test(error.message);
+  });
 });
 
 test('non-HTTPS relay URLs are rejected', () => {

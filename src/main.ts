@@ -65,7 +65,7 @@ import embeddedChangelogContent from '../CHANGELOG.md';
 
 // Import terminal styles
 
-const REPOSITORY_URL = 'https://github.com/ZyphrZero/Termy';
+const REPOSITORY_URL = 'https://github.com/jiang-zhong-xi/ReqFirst';
 const CHANGELOG_URL = `${REPOSITORY_URL}/blob/master/CHANGELOG.md`;
 const EMBEDDED_CHANGELOG_SOURCE_PATH = 'CHANGELOG.md';
 const ALWAYS_ON_TOP_TAB_BADGE_CLASS = 'termy-always-on-top-tab-badge';
@@ -160,7 +160,7 @@ export default class TerminalPlugin extends Plugin {
       const pluginDir = this.getPluginDir();
       const version = this.manifest.version;
       const binaryDownloadConfig = {
-        source: this.settings.serverConnection?.binaryDownloadSource ?? 'cloudflare-r2',
+        source: 'github-release' as const,
       };
       const offlineMode = this.settings.serverConnection?.offlineMode ?? false;
       
@@ -214,6 +214,10 @@ export default class TerminalPlugin extends Plugin {
         () => this.settings.serverConnection.offlineMode,
         {
           createClient: (relayUrl) => new RelayClient(relayUrl, { fetch: requestWithObsidian }),
+          saveAuthSession: (authSession) => {
+            this.settings.remoteConnection.authSession = authSession;
+            void this.saveSettings();
+          },
         },
       );
     }
@@ -265,6 +269,10 @@ export default class TerminalPlugin extends Plugin {
 
     // Load settings
     await this.loadSettings();
+
+    void this.getRemoteService().restoreAuthentication().catch((error) => {
+      errorLog('[TerminalPlugin] Failed to restore remote login:', error);
+    });
 
     // Set debug mode
     const { setDebugMode } = await import('./utils/logger');
@@ -576,9 +584,7 @@ export default class TerminalPlugin extends Plugin {
     return {
       ...DEFAULT_TERMINAL_SETTINGS.serverConnection,
       ...serverConnection,
-      binaryDownloadSource: serverConnection?.binaryDownloadSource === 'github-release'
-        ? 'github-release'
-        : 'cloudflare-r2',
+      binaryDownloadSource: 'github-release',
       offlineMode: Boolean(serverConnection?.offlineMode),
     };
   }
@@ -590,7 +596,14 @@ export default class TerminalPlugin extends Plugin {
     const deviceId = typeof value?.deviceId === 'string' && value.deviceId.trim()
       ? value.deviceId.trim()
       : null;
-    return { relayUrl, deviceId };
+    const session = value?.authSession;
+    const authSession = typeof session?.accessToken === 'string'
+      && typeof session.expiresAt === 'number'
+      && Number.isFinite(session.expiresAt)
+      && typeof session.login === 'string'
+      ? { accessToken: session.accessToken, expiresAt: session.expiresAt, login: session.login }
+      : null;
+    return { relayUrl, deviceId, authSession };
   }
 
   /**

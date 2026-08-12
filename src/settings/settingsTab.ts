@@ -52,12 +52,13 @@ export class TerminalSettingTab extends PluginSettingTab {
   }
 
   private renderRemoteSettings(containerEl: HTMLElement): void {
-    const section = containerEl.createDiv({ cls: 'terminal-settings-card' });
-    new Setting(section).setName(t('remote.title')).setHeading();
     const settings = this.plugin.settings.remoteConnection;
     const service = this.plugin.getRemoteService();
-    let login = '';
-    let password = '';
+    const snapshot = service.getSnapshot();
+    if (!snapshot.authenticated) return;
+
+    const section = containerEl.createDiv({ cls: 'terminal-settings-card' });
+    new Setting(section).setName(t('remote.title')).setHeading();
 
     new Setting(section).setName(t('remote.relayUrl')).setDesc(t('remote.relayUrlDesc')).addText((text) => {
       text.setValue(settings.relayUrl).onChange((value) => {
@@ -73,10 +74,7 @@ export class TerminalSettingTab extends PluginSettingTab {
       text.onChange((value) => { password = value; });
     });
     new Setting(section)
-      .addButton((button) => button.setButtonText(t('remote.login')).onClick(async () => {
-        try { await service.login(login, password); this.display(); }
-        catch (error) { new Notice(error instanceof Error ? error.message : String(error), 5000); }
-      }))
+      .setName(t('remote.loggedInAs', { login: settings.authSession?.login ?? '' }))
       .addButton((button) => button.setButtonText(t('remote.logout')).onClick(() => {
         service.logout();
         this.display();
@@ -118,7 +116,7 @@ export class TerminalSettingTab extends PluginSettingTab {
     feedbackContainer.appendText(t('settings.header.feedbackText'));
     feedbackContainer.createEl('a', {
       text: t('settings.header.feedbackLink'),
-      href: 'https://github.com/ZyphrZero/Termy'
+      href: 'https://github.com/jiang-zhong-xi/ReqFirst'
     });
     feedbackContainer.createSpan({ cls: 'settings-feedback-separator', text: ' · ' });
     feedbackContainer.createEl('a', {

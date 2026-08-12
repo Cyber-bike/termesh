@@ -3,7 +3,7 @@
  * 
  * Responsibilities:
  * 1. Detect the current platform
- * 2. Download the matching binary from GitHub Releases or Cloudflare R2
+ * 2. Download the matching binary from GitHub Releases
  * 3. Verify SHA256
  * 4. Track download progress
  */

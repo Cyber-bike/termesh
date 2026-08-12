@@ -17,6 +17,8 @@ pub struct LoginRequest {
     pub password: String,
 }
 
+pub type RegisterRequest = LoginRequest;
+
 #[derive(Serialize)]
 pub struct LoginResponse {
     #[serde(rename = "accessToken")]
@@ -84,6 +86,51 @@ pub async fn login(
             login: user.login,
         },
     }))
+}
+
+pub async fn register(
+    State(state): State<AppState>,
+    ClientIp(ip): ClientIp,
+    Json(body): Json<RegisterRequest>,
+) -> Result<(axum::http::StatusCode, Json<LoginResponse>), AppError> {
+    state
+        .limiter
+        .check(&format!("sign-up:{ip}"), limits::SIGN_UP)?;
+
+    if body.login.is_empty()
+        || body.login.chars().count() > 254
+        || body.login.chars().any(char::is_whitespace)
+    {
+        return Err(AppError::bad_request(
+            "login must be 1..254 characters without whitespace",
+        ));
+    }
+    if body.password.len() < 8 || body.password.len() > 1024 {
+        return Err(AppError::bad_request("password must be 8..1024 bytes"));
+    }
+
+    let digest = crypto::hash_password(&body.password)?;
+    let user_id = state.db.create_user(&body.login, &digest).await?;
+    let token = issue_access_token(
+        &state.config.jwt_secret,
+        user_id,
+        state.config.access_token_ttl_secs,
+    )?;
+
+    tracing::info!(user_id = %user_id, "registration succeeded");
+
+    Ok((
+        axum::http::StatusCode::CREATED,
+        Json(LoginResponse {
+            access_token: token,
+            token_type: "Bearer",
+            expires_in: state.config.access_token_ttl_secs,
+            user: UserSummary {
+                id: user_id.to_string(),
+                login: body.login,
+            },
+        }),
+    ))
 }
 
 /// A real Argon2id hash of a value nobody knows, used only to burn comparable

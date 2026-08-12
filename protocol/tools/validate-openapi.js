@@ -21,6 +21,7 @@ const ALLOWED_STATUS = new Set(['200', '201', '204', '400', '401', '403', '404',
 
 const EXPECTED_OPERATIONS = [
   ['/v1/auth/login', 'post'],
+  ['/v1/auth/register', 'post'],
   ['/v1/devices/pairing-codes', 'post'],
   ['/v1/devices/pairing-codes/{id}', 'delete'],
   ['/v1/devices/register', 'post'],
@@ -52,7 +53,7 @@ for (const [p, method] of EXPECTED_OPERATIONS) {
 }
 for (const [p, method] of actual) {
   if (!EXPECTED_OPERATIONS.some(([ep, em]) => ep === p && em === method)) {
-    fail(`undocumented operation ${method.toUpperCase()} ${p} (doc 6.2 freezes the endpoint list)`);
+    fail(`undocumented operation ${method.toUpperCase()} ${p} (add it to the explicit contract list)`);
   }
 }
 

@@ -36,11 +36,13 @@
 
 **触发条件:**
 - 推送版本标签 (`*.*.*`)
+- 标签必须与 `manifest.json`、`package.json` 版本一致，并且 `CHANGELOG.md` 中存在同名章节
 
 **功能:**
 - 构建所有平台二进制 + SHA256 校验和
+- 构建 Windows x64 / Linux x64 `termy-agent`
+- 构建 Linux x64 `termy-relay`
 - 构建 TypeScript 插件
-- 上传二进制到 Cloudflare R2
 - 打包为带版本号的 `termy-<version>.zip`
 - 从 `CHANGELOG.md` 自动提取当前 tag 对应的发布说明
 - 创建 GitHub Release
@@ -60,16 +62,17 @@ termy-<version>.zip
         └── termy-server-linux-arm64
 ```
 
+    Release 还会直接附带以下远程组件及其 `.sha256` 校验文件：
+
+    ```text
+    termy-agent-win32-x64.exe
+    termy-agent-linux-x64
+    termy-relay-linux-x64
+    ```
+
 **发布说明来源:**
 - `release.yml` 会读取 `CHANGELOG.md` 中与 tag 同名的章节，例如 tag `1.0.0` 对应 `## [1.0.0]`
 - 如果找不到对应章节，Release 会失败，避免发布说明缺失或错配
-
-**R2 同步:**
-- `release.yml` 会调用 `scripts/upload-r2-assets.js`
-- Release job 固定运行在 Node 22 上，并固定使用 `wrangler@4.88.0`
-- 需要配置 GitHub Actions secrets:
-  - `CLOUDFLARE_API_TOKEN`
-  - `CLOUDFLARE_ACCOUNT_ID`
 
 ## 使用
 

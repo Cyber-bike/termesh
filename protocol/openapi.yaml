@@ -16,7 +16,7 @@ servers:
 
 tags:
   - name: auth
-    description: 账号登录。MVP 不开放注册，开户走服务端 termy-relay useradd。
+    description: 账号注册与登录。
   - name: devices
     description: 配对码、设备注册与设备管理。
 
@@ -43,6 +43,28 @@ paths:
               schema: { $ref: '#/components/schemas/LoginResponse' }
         '400': { $ref: '#/components/responses/BadRequest' }
         '401': { $ref: '#/components/responses/Unauthorized' }
+        '429': { $ref: '#/components/responses/RateLimited' }
+        '500': { $ref: '#/components/responses/InternalError' }
+
+  /v1/auth/register:
+    post:
+      tags: [auth]
+      summary: 注册账号并获取访问令牌
+      operationId: register
+      security: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema: { $ref: '#/components/schemas/LoginRequest' }
+      responses:
+        '201':
+          description: 注册并登录成功
+          content:
+            application/json:
+              schema: { $ref: '#/components/schemas/LoginResponse' }
+        '400': { $ref: '#/components/responses/BadRequest' }
+        '409': { $ref: '#/components/responses/Conflict' }
         '429': { $ref: '#/components/responses/RateLimited' }
         '500': { $ref: '#/components/responses/InternalError' }
 

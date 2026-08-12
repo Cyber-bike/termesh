@@ -612,7 +612,10 @@ export class TerminalView extends ItemView {
         (path) => readVaultFile(this.app, path),
       );
       if (!outcome?.success) throw new Error(outcome?.message ?? 'Transfer failed');
-      new Notice(t('remote.transferComplete'));
+      this.lastTransferDestination = outcome.destinationPath ?? null;
+      new Notice(this.lastTransferDestination
+        ? t('remote.transferCompleteAt', { path: this.lastTransferDestination })
+        : t('remote.transferComplete'));
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       new Notice(t('remote.transferFailed', { message }), 5000);
@@ -686,7 +689,6 @@ export class TerminalView extends ItemView {
         usePaste: false,
       };
     }
-
     const primaryTextPayload = collectPreferredDroppedTextPayload(dataTransfer);
     const fallbackTextPayload = await collectFallbackDroppedTextPayload(dataTransfer, droppedItems);
     return resolveDroppedTextInput(

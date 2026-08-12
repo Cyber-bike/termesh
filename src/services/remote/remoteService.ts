@@ -4,6 +4,7 @@ import {
   RelayClient,
   type Device,
   type PairingCodeCreated,
+  type RelayAuthSession,
   type RelayControlConnection,
 } from './relayClient.ts';
 import { RemoteTerminalTransport } from './remoteTerminalTransport.ts';
@@ -16,6 +17,11 @@ const TRANSFER_ACCEPT_TIMEOUT_MS = 15_000;
 export interface RemoteConnectionConfig {
   relayUrl: string;
   deviceId: string | null;
+  authSession: PersistedRemoteAuthSession | null;
+}
+
+export interface PersistedRemoteAuthSession extends RelayAuthSession {
+  login: string;
 }
 
 export interface RemoteServiceSnapshot {
@@ -39,6 +45,8 @@ export interface RemoteServiceDependencies {
   clearInterval: (timer: number) => void;
   setTimeout: (handler: () => void, timeoutMs: number) => number;
   clearTimeout: (timer: number) => void;
+  now: () => number;
+  saveAuthSession: (session: PersistedRemoteAuthSession | null) => void;
 }
 
 const defaultDependencies: RemoteServiceDependencies = {
@@ -48,6 +56,8 @@ const defaultDependencies: RemoteServiceDependencies = {
   clearInterval: (timer) => window.clearInterval(timer),
   setTimeout: (handler, timeoutMs) => window.setTimeout(handler, timeoutMs),
   clearTimeout: (timer) => window.clearTimeout(timer),
+  now: Date.now,
+  saveAuthSession: () => undefined,
 };
 
 export class RemoteService {
@@ -92,15 +102,54 @@ export class RemoteService {
   async login(login: string, password: string): Promise<void> {
     this.assertOnline();
     const client = this.getClient(true);
-    await client.login(login, password);
+    const response = await client.login(login, password);
+    await this.finishAuthentication(response);
+  }
+
+  async register(login: string, password: string): Promise<void> {
+    this.assertOnline();
+    const client = this.getClient(true);
+    const response = await client.register(login, password);
+    await this.finishAuthentication(response);
+  }
+
+  private async finishAuthentication(response: {
+    accessToken: string;
+    expiresIn: number;
+    user: { login: string };
+  }): Promise<void> {
+    this.dependencies.saveAuthSession({
+      accessToken: response.accessToken,
+      expiresAt: this.dependencies.now() + response.expiresIn * 1000,
+      login: response.user.login,
+    });
     this.updateSnapshot({ authenticated: true, error: null });
     await this.refreshDevices();
+  }
+
+  async restoreAuthentication(): Promise<boolean> {
+    const session = this.getConfig().authSession;
+    if (!session || this.isOffline()) return false;
+    try {
+      const client = this.getClient();
+      client.restoreAuthentication(session);
+      this.updateSnapshot({ authenticated: true, error: null });
+      await this.refreshDevices();
+      return true;
+    } catch {
+      this.dependencies.saveAuthSession(null);
+      this.client = null;
+      this.clientUrl = null;
+      this.updateSnapshot({ authenticated: false, devices: [], error: null });
+      return false;
+    }
   }
 
   logout(): void {
     this.disconnect();
     this.client = null;
     this.clientUrl = null;
+    this.dependencies.saveAuthSession(null);
     this.updateSnapshot({ authenticated: false, devices: [], error: null });
   }
 
@@ -267,6 +316,7 @@ export class RemoteService {
         success: message.payload.success,
         code: message.payload.code,
         message: message.payload.message,
+        destinationPath: message.payload.destinationPath,
       });
     }
   }
@@ -343,6 +393,7 @@ export class RemoteService {
   private handleRequestError(error: unknown): void {
     const message = error instanceof Error ? error.message : String(error);
     const authenticated = !(typeof error === 'object' && error !== null && 'status' in error && error.status === 401);
+    if (!authenticated) this.dependencies.saveAuthSession(null);
     this.updateSnapshot({ authenticated, error: message });
   }
 

@@ -48,4 +48,7 @@ test('renderReleaseBody describes the package without requiring CHANGELOG.md as 
   assert.ok(communityIndex < bratIndex, 'Community Plugins should come before BRAT');
   assert.ok(bratIndex < manualIndex, 'BRAT should come before Manual Installation');
   assert.match(body, /Click \*\*Browse\*\*, search for `Termy`/);
+  assert.match(body, /`termy-agent-win32-x64\.exe`: Windows x64 remote agent/);
+  assert.match(body, /`termy-agent-linux-x64`: Linux x64 remote agent/);
+  assert.match(body, /`termy-relay-linux-x64`: Linux x64 relay server/);
 });
