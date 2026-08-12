@@ -1387,6 +1387,25 @@ export default class TerminalPlugin extends Plugin {
       }
     });
 
+    // Toggle directory tree panel
+    this.addCommand({
+      id: 'terminal-toggle-directory-tree',
+      name: t('commands.terminalToggleDirectoryTree'),
+      checkCallback: (checking: boolean) => {
+        if (!this.featureVisibilityManager.isVisibleAt('terminal', 'showInCommandPalette')) {
+          return false;
+        }
+        const terminalView = this.getActiveTerminalView();
+        if (terminalView) {
+          if (!checking) {
+            terminalView.toggleDirectoryTree();
+          }
+          return true;
+        }
+        return false;
+      }
+    });
+
     // Clear buffer
     this.addCommand({
       id: 'terminal-clear-buffer',

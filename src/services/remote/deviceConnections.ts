@@ -19,6 +19,10 @@ import type { PairedDeviceStore } from './pairedDeviceStore.ts';
 import type { Disposable } from './transport.ts';
 import { toDisposable } from './transport.ts';
 import { TerminalStreamTransport } from './terminalStreamTransport.ts';
+import { RemoteDirectoryTreeSource } from './remoteDirectoryTreeSource.ts';
+import { TransferStreamSender, type TransferSenderCallbacks } from './transferStreamSender.ts';
+import { TransferStreamPuller } from './transferStreamPuller.ts';
+import type { CollectedFile } from './noteCollector.ts';
 import {
   ALPN_TERMINAL,
   terminalStreamFactory,
@@ -142,6 +146,55 @@ export class DeviceConnectionManager {
     const active = this.connections.get(nodeId);
     if (!active) throw new Error('connect to the device before opening a terminal');
     return new TerminalStreamTransport(terminalStreamFactory(active.connection));
+  }
+
+  /**
+   * A `DirectoryTreeSource` for the directory-tree panel (candidate doc
+   * "目录树与双向文件传输", phase 2A), backed by the same device
+   * connection terminal sessions use. `terminalStreamFactory` just opens a
+   * fresh bi-stream - it has no terminal-specific behavior baked in - so
+   * this reuses it as-is rather than needing an `fsStreamFactory` twin.
+   */
+  createDirectoryTreeSource(nodeId: string): RemoteDirectoryTreeSource {
+    const active = this.connections.get(nodeId);
+    if (!active) throw new Error('connect to the device before browsing its filesystem');
+    return new RemoteDirectoryTreeSource(terminalStreamFactory(active.connection));
+  }
+
+  /**
+   * A one-shot sender for a single note transfer (doc §8.4/8.6/10), backed
+   * by the same device connection terminal sessions and the directory tree
+   * ride. `sessionId`, when known, is doc §7.6's cwd-over-receive-root hint.
+   */
+  createTransferSender(
+    nodeId: string,
+    transferId: string,
+    files: CollectedFile[],
+    readFile: (path: string) => Promise<Uint8Array>,
+    sessionId: string | null = null,
+    callbacks: TransferSenderCallbacks = {},
+  ): TransferStreamSender {
+    const active = this.connections.get(nodeId);
+    if (!active) throw new Error('connect to the device before sending a transfer');
+    return new TransferStreamSender(
+      terminalStreamFactory(active.connection),
+      transferId,
+      files,
+      readFile,
+      sessionId,
+      callbacks,
+    );
+  }
+
+  /**
+   * A one-shot puller for a single "copy to vault" pull (candidate doc
+   * phase 2B): the reverse of `createTransferSender` - the agent reads
+   * `path` (a file or directory) and sends it, this end receives it.
+   */
+  createTransferPuller(nodeId: string, path: string, initialCredit?: number): TransferStreamPuller {
+    const active = this.connections.get(nodeId);
+    if (!active) throw new Error('connect to the device before pulling a file');
+    return new TransferStreamPuller(terminalStreamFactory(active.connection), path, initialCredit);
   }
 
   async dispose(): Promise<void> {

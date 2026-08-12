@@ -1,11 +1,6 @@
 {
-<<<<<<< HEAD
   "name": "termesh",
   "version": "1.4.1",
-=======
-  "name": "termy",
-  "version": "1.4.3",
->>>>>>> 19ea41a81529dc98800b5d66972f2ce982e86145
   "type": "module",
   "description": "Terminal emulator with split panes, reusable workflows, AI CLI context handoff, and zero setup. Powered by xterm.js and a bundled Rust PTY backend.",
   "main": "main.js",

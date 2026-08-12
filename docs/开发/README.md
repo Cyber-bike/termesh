@@ -63,7 +63,8 @@ pnpm install && cargo build --manifest-path agent/Cargo.toml && ./e2e-run.sh
 | 插件端远程逻辑（连接码解析、设备配对与持久化、帧协议、`DeviceConnectionManager`） | ✅ 已实现，测试通过，**尚未接入任何 UI/命令面板** |
 | 插件端 Obsidian 集成（设备列表、添加设备 UI、打开远程终端） | ❌ 未开始——见 [plugin-handover.md](plugin-handover.md) |
 | 端到端（agent 回环 + 真实 iroh 客户端） | ✅ `./e2e-run.sh`，真实 shell 回显 + resize |
-| 文件传输（`termy/transfer/1`） | ❌ Phase C，未实现；`serve.rs` 目前直接拿 `PROTOCOL_ERROR` 关掉这条 ALPN |
+| 文件传输（笔记发送到设备，doc §8.4/8.6/10） | ✅ 已实现，测试通过（含真实回环 QUIC 集成测试）；协议改为 `transferManifest` 等新帧搭载在 `termy/terminal/1` 连接上，而非独立的 `ALPN_TRANSFER`（见下一条的同一约束）与文档 §8.3 设想的 `iroh-blobs` 方案——理由见 [目录树候选需求对应的技术方案](../需求/需求文档%20-%20候选%20-%20目录树与双向文件传输.md) 及其技术方案文档的实现状态说明 |
+| 目录树列出/监听、"复制到 Vault"回传（候选需求，非 v2.0 原始范围） | ✅ Agent 侧与插件侧均已实现并测试；同样搭载在 `termy/terminal/1` 连接上而非独立 ALPN——`ControllerGate` 只 admit 一个*连接*不是一个*peer*，这也是上一行放弃独立 `ALPN_TRANSFER` 的原因；插件侧尚未接入 UI，见下一条 |
 | 真机验收（Windows 进程树终止、非同一局域网双路径） | 🟡 部分完成，见《交接结果 - Windows.md》（同目录）；仍有未验证项 |
 
 **没有在真实硬件上验证过的部分**：非同一局域网的双路径闭环（直连打洞 vs. 降级中继）、iroh 全局节点发现在真实换网场景下的重连。这些在 [privacy-and-limits.md](../使用/privacy-and-limits.md) 里有对应披露。

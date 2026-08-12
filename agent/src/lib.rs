@@ -5,6 +5,7 @@
 //! without spawning a process.
 
 pub mod config;
+pub mod fs_browse;
 pub mod identity;
 pub mod lock;
 pub mod osc;

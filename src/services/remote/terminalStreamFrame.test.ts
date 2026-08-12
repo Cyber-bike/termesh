@@ -34,6 +34,79 @@ test('every frame kind round-trips', () => {
   roundtrip({ kind: 'close', payload: { reason: 'peer disconnected', exitCode: null } });
   roundtrip({ kind: 'close', payload: { reason: 'shell_exited', exitCode: 0 } });
   roundtrip({ kind: 'close', payload: { reason: null, exitCode: null } });
+  roundtrip({ kind: 'fsList', payload: { path: '/home/user/project' } });
+  roundtrip({
+    kind: 'fsListResult',
+    payload: {
+      entries: [
+        { name: 'src', isDirectory: true },
+        { name: 'readme.md', isDirectory: false },
+      ],
+    },
+  });
+  roundtrip({ kind: 'fsListResult', payload: { entries: [] } });
+  roundtrip({ kind: 'fsChanged', payload: { kind: 'unknown' } });
+  roundtrip({
+    kind: 'transferManifest',
+    payload: {
+      transferId: 'transfer-1',
+      rootNote: 'notes/demo.md',
+      entries: [
+        { index: 0, relativePath: 'notes/demo.md', size: 11 },
+        { index: 1, relativePath: 'assets/img.png', size: 0 },
+      ],
+      sessionId: null,
+    },
+  });
+  roundtrip({
+    kind: 'transferManifest',
+    payload: {
+      transferId: 'transfer-2',
+      rootNote: 'a.md',
+      entries: [{ index: 0, relativePath: 'a.md', size: 1 }],
+      sessionId: 'session-abc',
+    },
+  });
+  roundtrip({ kind: 'transferAccepted', payload: { grantedBytes: 4 * 1024 * 1024 } });
+  roundtrip({
+    kind: 'transferChunk',
+    payload: { fileIndex: 0, offset: 0, data: new TextEncoder().encode('hello world') },
+  });
+  roundtrip({ kind: 'transferChunk', payload: { fileIndex: 3, offset: 300_000, data: new Uint8Array(0) } });
+  roundtrip({ kind: 'transferFileEnd', payload: { fileIndex: 0, sentSize: 11 } });
+  roundtrip({ kind: 'transferCredit', payload: { grantedBytes: 8 * 1024 * 1024 } });
+  roundtrip({ kind: 'transferComplete', payload: {} });
+  roundtrip({ kind: 'transferResult', payload: { success: true, code: null, message: '' } });
+  roundtrip({
+    kind: 'transferResult',
+    payload: { success: false, code: 'WRITE_FAILED', message: 'disk full' },
+  });
+  roundtrip({ kind: 'transferPullRequest', payload: { path: '/home/user/project/notes' } });
+  roundtrip({
+    kind: 'transferPullManifest',
+    payload: {
+      entries: [
+        { index: 0, relativePath: 'notes/demo.md', size: 11 },
+        { index: 1, relativePath: 'notes/assets/img.png', size: 0 },
+      ],
+    },
+  });
+  roundtrip({ kind: 'transferPullManifest', payload: { entries: [] } });
+});
+
+test('a transferChunk with a large offset round-trips its varint', () => {
+  roundtrip({
+    kind: 'transferChunk',
+    payload: { fileIndex: 1, offset: 60 * 1024 * 1024, data: new Uint8Array(64).fill(7) },
+  });
+});
+
+test('fsListResult with a malformed entry is a protocol error', () => {
+  const decoder = new TerminalStreamFrameDecoder();
+  // kind 0x08 (fsListResult); entry missing "isDirectory".
+  const payload = new TextEncoder().encode(JSON.stringify({ entries: [{ name: 'a.txt' }] }));
+  decoder.push(new Uint8Array([0x08, payload.length, ...payload]));
+  assert.throws(() => decoder.nextFrame(), TerminalStreamFrameError);
 });
 
 test('two frames back to back decode in order', () => {

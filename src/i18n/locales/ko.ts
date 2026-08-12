@@ -32,7 +32,11 @@ export const ko: TranslationKeys = {
   },
 
   remote: {
-    title: 'Remote terminal', relayUrl: 'Relay URL', relayUrlDesc: 'HTTPS endpoint used for remote terminals', loginName: 'Login name', password: 'Password', login: 'Log in', logout: 'Log out', pairingCode: 'Pairing code', createPairingCode: 'Create pairing code', revokePairingCode: 'Revoke pairing code', devices: 'Devices', refreshDevices: 'Refresh devices', noDevices: 'No paired devices', mode: 'Terminal mode', local: 'Local', remote: 'Remote', device: 'Device', selectDevice: 'Select a device', offline: 'Offline', connect: 'Connect', disconnect: 'Disconnect', notConnected: 'Connect to a remote device before sending a note.', dropSingleMarkdown: 'Drop one Markdown note from this vault.', transferComplete: 'Note transfer complete.', transferFailed: 'Note transfer failed: {{message}}', v2: { title: 'Directly connected devices', description: 'Pair devices with an agent connection code and open encrypted remote terminals.', deviceName: 'Device name', deviceNamePlaceholder: 'Optional display name', connectionCode: 'Connection code', connectionCodePlaceholder: 'Paste an endpoint connection code', addDevice: 'Add device', addingDevice: 'Adding...', newTerminal: 'New terminal', removeDevice: 'Remove', neverConnected: 'Never connected', lastConnected: 'Last connected: {{time}}', statusDisconnected: 'Disconnected', statusConnecting: 'Connecting', statusConnected: 'Connected', statusError: 'Connection error', deviceAdded: 'Device added.', deviceRemoved: 'Device removed.', pairEmpty: 'Paste a connection code.', pairWrongPrefix: 'This is not a valid endpoint connection code.', pairBadCharacters: 'The connection code contains invalid characters.', pairTooShort: 'The connection code is incomplete.', pairUnparseable: 'The connection code could not be parsed. Copy it again from the agent.', operationFailed: 'Remote device operation failed: {{message}}' }, states: { LocalMode: 'Local', RemoteIdle: 'Remote idle', Connecting: 'Connecting', Connected: 'Connected', Transferring: 'Transferring', Error: 'Error' },
+    notConnected: 'Connect to a remote device before sending a note.',
+    dropSingleMarkdown: 'Drop one Markdown note from this vault.',
+    transferComplete: 'Note transfer complete.',
+    transferCompleteAt: 'Note transfer complete: {{path}}',
+    transferFailed: 'Note transfer failed: {{message}}',
   },
 
   terminal: {
@@ -77,9 +81,24 @@ export const ko: TranslationKeys = {
     },
   },
 
+  directoryTree: {
+    goUp: '상위 디렉터리로 이동',
+    refresh: '새로고침',
+    toggleDockSide: '고정 위치 전환',
+    close: '디렉터리 트리 닫기',
+    empty: '빈 디렉터리',
+    copyToVault: 'Vault로 복사',
+    copyToVaultDone: 'Vault로 복사했습니다.',
+    copyToVaultFailed: 'Vault로 복사 실패: {{message}}',
+    dropCopyDone: '{{path}}(으)로 복사했습니다.',
+    dropCopyFailed: '복사 실패: {{message}}',
+    dropRejectedNotVaultItem: '현재 저장소의 노트, 첨부 파일 또는 폴더를 끌어다 놓으세요.',
+  },
+
   commands: {
     openTerminal: 'Termesh 열기',
     showChangelog: 'Termesh: 변경 로그 보기',
+    terminalToggleDirectoryTree: '터미널: 디렉터리 트리 전환',
     terminalSearch: '터미널: 검색',
     terminalClear: '터미널: 화면 지우기',
     terminalCopy: '터미널: 복사',

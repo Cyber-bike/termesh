@@ -76,74 +76,11 @@ export interface TranslationKeys {
   };
 
   remote: {
-    title: string;
-    relayUrl: string;
-    relayUrlDesc: string;
-    loginName: string;
-    password: string;
-    login: string;
-    loginRequired: string;
-    register: string;
-    loggedInAs: string;
-    logout: string;
-    pairingCode: string;
-    pairingCodeDesc: string;
-    copyPairingCode: string;
-    pairingCodeCopied: string;
-    createPairingCode: string;
-    revokePairingCode: string;
-    devices: string;
-    refreshDevices: string;
-    noDevices: string;
-    mode: string;
-    local: string;
-    remote: string;
-    device: string;
-    selectDevice: string;
-    offline: string;
-    connect: string;
-    disconnect: string;
     notConnected: string;
     dropSingleMarkdown: string;
     transferComplete: string;
     transferCompleteAt: string;
-    copyDestinationPath: string;
-    destinationPathCopied: string;
     transferFailed: string;
-    v2: {
-      title: string;
-      description: string;
-      deviceName: string;
-      deviceNamePlaceholder: string;
-      connectionCode: string;
-      connectionCodePlaceholder: string;
-      addDevice: string;
-      addingDevice: string;
-      newTerminal: string;
-      removeDevice: string;
-      neverConnected: string;
-      lastConnected: string;
-      statusDisconnected: string;
-      statusConnecting: string;
-      statusConnected: string;
-      statusError: string;
-      deviceAdded: string;
-      deviceRemoved: string;
-      pairEmpty: string;
-      pairWrongPrefix: string;
-      pairBadCharacters: string;
-      pairTooShort: string;
-      pairUnparseable: string;
-      operationFailed: string;
-    };
-    states: {
-      LocalMode: string;
-      RemoteIdle: string;
-      Connecting: string;
-      Connected: string;
-      Transferring: string;
-      Error: string;
-    };
   };
 
   // Terminal
@@ -194,11 +131,27 @@ export interface TranslationKeys {
     };
   };
 
+  // Directory tree panel
+  directoryTree: {
+    goUp: string;
+    refresh: string;
+    toggleDockSide: string;
+    close: string;
+    empty: string;
+    copyToVault: string;
+    copyToVaultDone: string;
+    copyToVaultFailed: string;
+    dropCopyDone: string;
+    dropCopyFailed: string;
+    dropRejectedNotVaultItem: string;
+  };
+
   // Commands
   commands: {
     openTerminal: string;
     showChangelog: string;
     terminalSearch: string;
+    terminalToggleDirectoryTree: string;
     terminalClear: string;
     terminalCopy: string;
     terminalPaste: string;

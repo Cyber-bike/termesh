@@ -161,6 +161,7 @@ async fn run() -> Result<(), Box<dyn std::error::Error>> {
             let options = ServeOptions {
                 shell: config.shell.clone(),
                 max_concurrent_sessions: config.max_concurrent_sessions,
+                receive_root: config.receive_root.clone(),
             };
 
             tokio::select! {
