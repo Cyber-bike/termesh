@@ -56,6 +56,7 @@ test('every frame kind round-trips', () => {
         { index: 1, relativePath: 'assets/img.png', size: 0 },
       ],
       sessionId: null,
+      targetPath: null,
     },
   });
   roundtrip({
@@ -65,6 +66,17 @@ test('every frame kind round-trips', () => {
       rootNote: 'a.md',
       entries: [{ index: 0, relativePath: 'a.md', size: 1 }],
       sessionId: 'session-abc',
+      targetPath: null,
+    },
+  });
+  roundtrip({
+    kind: 'transferManifest',
+    payload: {
+      transferId: 'transfer-3',
+      rootNote: 'a.md',
+      entries: [{ index: 0, relativePath: 'a.md', size: 1 }],
+      sessionId: null,
+      targetPath: '/home/user/project/notes',
     },
   });
   roundtrip({ kind: 'transferAccepted', payload: { grantedBytes: 4 * 1024 * 1024 } });

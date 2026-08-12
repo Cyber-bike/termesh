@@ -75,10 +75,15 @@ function file(index: number, relativePath: string, size: number): CollectedFile 
   return { index, relativePath, size };
 }
 
-function setup(files: CollectedFile[], readFile: (path: string) => Promise<Uint8Array>) {
+function setup(
+  files: CollectedFile[],
+  readFile: (path: string) => Promise<Uint8Array>,
+  sessionId: string | null = null,
+  targetPath: string | null = null,
+) {
   const [clientEnd, agentEnd] = streamPair();
   const agent = new FakeAgent(agentEnd);
-  const sender = new TransferStreamSender(async () => clientEnd, 'transfer-1', files, readFile);
+  const sender = new TransferStreamSender(async () => clientEnd, 'transfer-1', files, readFile, sessionId, targetPath);
   return { sender, agent };
 }
 
@@ -90,7 +95,7 @@ test('a full transfer sends the manifest, chunks, fileEnd and complete, then res
 
   assert.deepEqual(await agent.nextFrame(), {
     kind: 'transferManifest',
-    payload: { transferId: 'transfer-1', rootNote: 'notes/demo.md', entries: [{ index: 0, relativePath: 'notes/demo.md', size: 11 }], sessionId: null },
+    payload: { transferId: 'transfer-1', rootNote: 'notes/demo.md', entries: [{ index: 0, relativePath: 'notes/demo.md', size: 11 }], sessionId: null, targetPath: null },
   });
   await agent.send({ kind: 'transferAccepted', payload: { grantedBytes: 4 * 1024 * 1024 } });
 
@@ -111,6 +116,31 @@ test('a full transfer sends the manifest, chunks, fileEnd and complete, then res
 
   const outcome = await run;
   assert.deepEqual(outcome, { success: true, code: null, message: '' });
+});
+
+test('an explicit targetPath is sent on the manifest, taking priority over sessionId', async () => {
+  const files = [file(0, 'a.md', 1)];
+  const { sender, agent } = setup(files, async () => new TextEncoder().encode('a'), 'session-1', '/home/user/project/notes');
+
+  const run = sender.run();
+  const manifest = await agent.nextFrame();
+  assert.deepEqual(manifest, {
+    kind: 'transferManifest',
+    payload: {
+      transferId: 'transfer-1',
+      rootNote: 'a.md',
+      entries: [{ index: 0, relativePath: 'a.md', size: 1 }],
+      sessionId: 'session-1',
+      targetPath: '/home/user/project/notes',
+    },
+  });
+
+  await agent.send({ kind: 'transferAccepted', payload: { grantedBytes: 4 * 1024 * 1024 } });
+  await agent.nextFrame(); // chunk
+  await agent.nextFrame(); // fileEnd
+  await agent.nextFrame(); // complete
+  await agent.send({ kind: 'transferResult', payload: { success: true, code: null, message: '' } });
+  assert.deepEqual(await run, { success: true, code: null, message: '' });
 });
 
 test('an empty file still sends fileEnd, never a chunk', async () => {

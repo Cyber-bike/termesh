@@ -431,7 +431,12 @@ async fn serve_transfer_stream(
     table: Arc<Mutex<SessionTable>>,
     options: Arc<ServeOptions>,
 ) {
-    let receive_root = resolve_transfer_root(manifest.session_id, &table, &options);
+    let receive_root = resolve_transfer_root(
+        manifest.target_path.as_deref(),
+        manifest.session_id,
+        &table,
+        &options,
+    );
 
     let entries: Vec<transfer::Entry> = manifest
         .entries
@@ -546,14 +551,21 @@ fn transfer_failed_result(code: &str, message: &str) -> TransferResultPayload {
     }
 }
 
-/// Doc §7.6: a session with a known cwd wins over the configured
-/// `receive_root`, the same fallback order `serve_terminal_session`'s
+/// Resolution order: an explicit `targetPath` (directory-tree "drop onto
+/// this node", candidate doc §4.1 point 4) wins outright - the user picked
+/// a specific place, it is not a hint to be overridden. Otherwise doc
+/// §7.6's existing order applies: a session with a known cwd wins over the
+/// configured `receive_root`, the same fallback `serve_terminal_session`'s
 /// `lastKnownCwd` tracking already exists to support.
 fn resolve_transfer_root(
+    target_path: Option<&str>,
     session_id: Option<Uuid>,
     table: &Arc<Mutex<SessionTable>>,
     options: &ServeOptions,
 ) -> std::path::PathBuf {
+    if let Some(path) = target_path {
+        return std::path::PathBuf::from(path);
+    }
     if let Some(id) = session_id {
         let mut table = table.lock().expect("session table poisoned");
         if let Some(cwd) = table.get_mut(id).and_then(|handle| handle.last_known_cwd.clone()) {
@@ -1098,6 +1110,7 @@ mod tests {
             root_note: entries[0].relative_path.clone(),
             entries,
             session_id,
+            target_path: None,
         }
     }
 
@@ -1387,18 +1400,30 @@ mod tests {
             };
 
             assert_eq!(
-                resolve_transfer_root(Some(session_id), &table, &options),
+                resolve_transfer_root(None, Some(session_id), &table, &options),
                 cwd_dir.path()
             );
             assert_eq!(
-                resolve_transfer_root(Some(Uuid::new_v4()), &table, &options),
+                resolve_transfer_root(None, Some(Uuid::new_v4()), &table, &options),
                 fallback_root.path(),
                 "an unknown sessionId falls back to receive_root"
             );
             assert_eq!(
-                resolve_transfer_root(None, &table, &options),
+                resolve_transfer_root(None, None, &table, &options),
                 fallback_root.path(),
                 "no sessionId at all falls back to receive_root"
+            );
+
+            let explicit = tempfile::tempdir().unwrap();
+            assert_eq!(
+                resolve_transfer_root(
+                    Some(explicit.path().to_str().unwrap()),
+                    Some(session_id),
+                    &table,
+                    &options
+                ),
+                explicit.path(),
+                "an explicit targetPath wins even over a session with a known cwd"
             );
 
             table.lock().unwrap().close(session_id);

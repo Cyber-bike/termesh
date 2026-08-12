@@ -21,6 +21,7 @@ import type { App, TFile, TFolder } from 'obsidian';
 import { TFile as TFileClass, TFolder as TFolderClass } from 'obsidian';
 
 import { checkRelativePath, normalizeVaultPath } from '../remote/pathSafety.ts';
+import type { CollectedFile } from '../remote/noteCollector.ts';
 import type { PulledFile } from '../remote/transferStreamPuller.ts';
 import { resolveUniqueVaultPath } from './directoryTreeVaultNaming.ts';
 
@@ -159,6 +160,57 @@ export async function writePulledFilesToVault(
     fileCount += 1;
   }
   return { fileCount };
+}
+
+export interface VaultTransferSource {
+  files: CollectedFile[];
+  readFile(relativePath: string): Promise<Uint8Array>;
+}
+
+/**
+ * Walks a vault file or folder into the `{files, readFile}` shape
+ * `TransferStreamSender` expects (candidate doc §4.1 point 4, remote drop
+ * onto a tree node). A different traversal than `noteCollector.collect()`:
+ * that one gathers a root note plus only its *directly linked* attachments;
+ * this walks every file under `entry`, matching what `copyVaultEntryToDirectory`
+ * already does for the local case - the remote and local send directions
+ * should behave identically except for where the bytes end up.
+ */
+export async function collectVaultEntryForTransfer(entry: TFile | TFolder): Promise<VaultTransferSource> {
+  const filesByPath = new Map<string, TFile>();
+
+  if (entry instanceof TFileClass) {
+    filesByPath.set(entry.name, entry);
+  } else {
+    const walk = (folder: TFolder, prefix: string): void => {
+      for (const child of folder.children) {
+        const relativePath = `${prefix}/${child.name}`;
+        if (child instanceof TFolderClass) {
+          walk(child, relativePath);
+        } else if (child instanceof TFileClass) {
+          filesByPath.set(relativePath, child);
+        }
+      }
+    };
+    walk(entry, entry.name);
+  }
+
+  const files: CollectedFile[] = [];
+  let index = 0;
+  for (const [relativePath, file] of filesByPath) {
+    files.push({ index, relativePath, size: file.stat.size });
+    index += 1;
+  }
+
+  return {
+    files,
+    readFile: async (relativePath: string): Promise<Uint8Array> => {
+      const file = filesByPath.get(relativePath);
+      if (!file) throw new Error(`Unknown file in transfer: ${relativePath}`);
+      const buffer = await file.vault.readBinary(file);
+      return new Uint8Array(buffer);
+    },
+  };
 }
 
 function joinVaultPath(folder: string, name: string): string {

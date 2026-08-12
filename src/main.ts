@@ -773,6 +773,11 @@ export default class TerminalPlugin extends Plugin {
     return this.remoteTerminalNodeIds.has(terminal);
   }
 
+  /** The connected device's nodeId for a remote terminal, or null for a local one. */
+  getRemoteNodeId(terminal: TerminalInstance): string | null {
+    return this.remoteTerminalNodeIds.get(terminal) ?? null;
+  }
+
   async reconnectTerminalView(terminalView: TerminalView): Promise<void> {
     const current = terminalView.getTerminalInstance();
     if (!current) throw new Error(t('terminal.notInitialized'));

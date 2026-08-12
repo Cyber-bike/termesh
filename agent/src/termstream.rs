@@ -160,6 +160,14 @@ pub struct TransferManifestPayload {
     /// the landing directory instead of `receive_root`.
     #[serde(default, skip_serializing_if = "Option::is_none", rename = "sessionId")]
     pub session_id: Option<Uuid>,
+    /// Directory-tree panel addition (candidate doc §4.1 point 4): an
+    /// explicit absolute landing directory, for "drop onto this specific
+    /// tree node" rather than "wherever the terminal happens to be `cd`'d
+    /// to". Takes priority over `sessionId`/`receive_root` when present -
+    /// see `resolve_transfer_root` in `serve.rs`. Not root-confined, same
+    /// posture as `fsList` (doc §6.5).
+    #[serde(default, skip_serializing_if = "Option::is_none", rename = "targetPath")]
+    pub target_path: Option<String>,
 }
 
 #[derive(Debug, Clone, PartialEq, Serialize, Deserialize)]
@@ -576,6 +584,7 @@ mod tests {
                 },
             ],
             session_id: None,
+            target_path: None,
         }));
         roundtrip(Frame::TransferManifest(TransferManifestPayload {
             transfer_id: "transfer-2".into(),
@@ -586,6 +595,18 @@ mod tests {
                 size: 1,
             }],
             session_id: Some(Uuid::nil()),
+            target_path: None,
+        }));
+        roundtrip(Frame::TransferManifest(TransferManifestPayload {
+            transfer_id: "transfer-3".into(),
+            root_note: "a.md".into(),
+            entries: vec![TransferEntry {
+                index: 0,
+                relative_path: "a.md".into(),
+                size: 1,
+            }],
+            session_id: None,
+            target_path: Some("/home/user/project/notes".into()),
         }));
         roundtrip(Frame::TransferAccepted(TransferAcceptedPayload {
             granted_bytes: 4 * 1024 * 1024,

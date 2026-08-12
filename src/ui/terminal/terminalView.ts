@@ -50,7 +50,15 @@ import { createVaultLinkSource, readVaultFile } from '../../services/remote/vaul
 import type { Disposable } from '../../services/remote/transport';
 import { DirectoryTreePanel } from './directoryTreePanel';
 import { LocalDirectoryTreeSource } from '../../services/terminal/directoryTreeSource';
-import { copyFsEntryToVault, copyVaultEntryToDirectory, type FsAccess } from '../../services/terminal/directoryTreeDrop';
+import type { DirectoryTreeSource } from '../../services/terminal/directoryTreeSource';
+import {
+  collectVaultEntryForTransfer,
+  copyFsEntryToVault,
+  copyVaultEntryToDirectory,
+  writePulledFilesToVault,
+  type FsAccess,
+} from '../../services/terminal/directoryTreeDrop';
+import type { DeviceConnectionManager } from '../../services/remote/deviceConnections';
 import { getHomeDir, isWindows } from '../../utils/platform';
 type XtermTerminal = import('@xterm/xterm').Terminal;
 
@@ -705,12 +713,27 @@ export class TerminalView extends ItemView {
     }
   }
 
+  /** The connected device's nodeId if the current terminal is remote, else null. */
+  private getRemoteNodeId(): string | null {
+    if (!this.terminalInstance) return null;
+    return this.getTerminalPlugin()?.getRemoteNodeId(this.terminalInstance) ?? null;
+  }
+
+  private buildDirectoryTreeSource(): DirectoryTreeSource {
+    const nodeId = this.getRemoteNodeId();
+    const connections = nodeId ? this.getTerminalPlugin()?.getDeviceConnectionManager() : null;
+    if (nodeId && connections) {
+      return connections.createDirectoryTreeSource(nodeId);
+    }
+    return new LocalDirectoryTreeSource(this.fs);
+  }
+
   private openDirectoryTree(): void {
     if (!this.terminalBody) return;
 
     if (!this.directoryTreePanel) {
       this.directoryTreePanel = new DirectoryTreePanel(
-        new LocalDirectoryTreeSource(this.fs),
+        this.buildDirectoryTreeSource(),
         {
           join: (...segments: string[]) => this.path.join(...segments),
           dirname: (target: string) => this.path.dirname(target),
@@ -759,10 +782,15 @@ export class TerminalView extends ItemView {
       return;
     }
 
-    const fsAccess = this.buildDirectoryTreeFsAccess();
+    const nodeId = this.getRemoteNodeId();
     try {
-      for (const entry of entries) {
-        await copyVaultEntryToDirectory(this.app, entry, targetPath, fsAccess);
+      if (nodeId) {
+        await this.sendVaultEntriesToRemote(nodeId, entries, targetPath);
+      } else {
+        const fsAccess = this.buildDirectoryTreeFsAccess();
+        for (const entry of entries) {
+          await copyVaultEntryToDirectory(this.app, entry, targetPath, fsAccess);
+        }
       }
       new Notice(t('directoryTree.dropCopyDone', { path: targetPath }));
     } catch (error) {
@@ -771,17 +799,45 @@ export class TerminalView extends ItemView {
     }
   }
 
+  /** Sends each dropped vault entry to `targetPath` on the connected device (candidate doc §4.1 point 4). */
+  private async sendVaultEntriesToRemote(
+    nodeId: string,
+    entries: Array<TFile | TFolder>,
+    targetPath: string,
+  ): Promise<void> {
+    const connections = this.getTerminalPlugin()?.getDeviceConnectionManager();
+    if (!connections) throw new Error('Remote connection is not available');
+
+    for (const entry of entries) {
+      const { files, readFile } = await collectVaultEntryForTransfer(entry);
+      if (files.length === 0) continue;
+      const outcome = await connections
+        .createTransferSender(nodeId, crypto.randomUUID(), files, readFile, null, targetPath)
+        .run();
+      if (!outcome.success) throw new Error(outcome.message || 'Transfer failed');
+    }
+  }
+
   private async handleCopyToVault(absolutePath: string, isDirectory: boolean, baseName: string): Promise<void> {
-    const fsAccess = this.buildDirectoryTreeFsAccess();
+    const nodeId = this.getRemoteNodeId();
     try {
-      await copyFsEntryToVault(
-        this.app,
-        absolutePath,
-        isDirectory,
-        this.resolveActiveVaultFolder(),
-        fsAccess,
-        baseName,
-      );
+      if (nodeId) {
+        const connections = this.getTerminalPlugin()?.getDeviceConnectionManager();
+        if (!connections) throw new Error('Remote connection is not available');
+        const outcome = await connections.createTransferPuller(nodeId, absolutePath).run();
+        if (!outcome.success) throw new Error(outcome.message || 'Pull failed');
+        await writePulledFilesToVault(this.app, outcome.files, this.resolveActiveVaultFolder());
+      } else {
+        const fsAccess = this.buildDirectoryTreeFsAccess();
+        await copyFsEntryToVault(
+          this.app,
+          absolutePath,
+          isDirectory,
+          this.resolveActiveVaultFolder(),
+          fsAccess,
+          baseName,
+        );
+      }
       new Notice(t('directoryTree.copyToVaultDone'));
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
@@ -1521,6 +1577,8 @@ export class TerminalView extends ItemView {
     activateTerminalView: () => Promise<void>;
     reconnectTerminalView: (terminalView: TerminalView) => Promise<void>;
     isRemoteTerminal: (terminal: TerminalInstance) => boolean;
+    getRemoteNodeId: (terminal: TerminalInstance) => string | null;
+    getDeviceConnectionManager: () => DeviceConnectionManager;
     toggleAlwaysOnTopTerminal: (terminalView: TerminalView) => Promise<void>;
     getAlwaysOnTopTerminalLabel: (terminalView: TerminalView) => string;
     isAlwaysOnTopTerminal: (terminalView: TerminalView) => boolean;
@@ -1539,6 +1597,8 @@ export class TerminalView extends ItemView {
     activateTerminalView: () => Promise<void>;
     reconnectTerminalView: (terminalView: TerminalView) => Promise<void>;
     isRemoteTerminal: (terminal: TerminalInstance) => boolean;
+    getRemoteNodeId: (terminal: TerminalInstance) => string | null;
+    getDeviceConnectionManager: () => DeviceConnectionManager;
     toggleAlwaysOnTopTerminal: (terminalView: TerminalView) => Promise<void>;
     getAlwaysOnTopTerminalLabel: (terminalView: TerminalView) => string;
     isAlwaysOnTopTerminal: (terminalView: TerminalView) => boolean;
@@ -1550,6 +1610,8 @@ export class TerminalView extends ItemView {
       activateTerminalView?: unknown;
       reconnectTerminalView?: unknown;
       isRemoteTerminal?: unknown;
+      getRemoteNodeId?: unknown;
+      getDeviceConnectionManager?: unknown;
       toggleAlwaysOnTopTerminal?: unknown;
       getAlwaysOnTopTerminalLabel?: unknown;
       isAlwaysOnTopTerminal?: unknown;
@@ -1558,6 +1620,8 @@ export class TerminalView extends ItemView {
     return typeof candidate.activateTerminalView === 'function'
       && typeof candidate.reconnectTerminalView === 'function'
       && typeof candidate.isRemoteTerminal === 'function'
+      && typeof candidate.getRemoteNodeId === 'function'
+      && typeof candidate.getDeviceConnectionManager === 'function'
       && typeof candidate.toggleAlwaysOnTopTerminal === 'function'
       && typeof candidate.getAlwaysOnTopTerminalLabel === 'function'
       && typeof candidate.isAlwaysOnTopTerminal === 'function'

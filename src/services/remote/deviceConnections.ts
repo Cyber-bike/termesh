@@ -172,6 +172,7 @@ export class DeviceConnectionManager {
     files: CollectedFile[],
     readFile: (path: string) => Promise<Uint8Array>,
     sessionId: string | null = null,
+    targetPath: string | null = null,
     callbacks: TransferSenderCallbacks = {},
   ): TransferStreamSender {
     const active = this.connections.get(nodeId);
@@ -182,6 +183,7 @@ export class DeviceConnectionManager {
       files,
       readFile,
       sessionId,
+      targetPath,
       callbacks,
     );
   }

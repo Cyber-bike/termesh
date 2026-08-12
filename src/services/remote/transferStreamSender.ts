@@ -63,6 +63,8 @@ export class TransferStreamSender {
     private readonly readFile: (path: string) => Promise<Uint8Array>,
     /** Doc §7.6: lands the transfer in this session's cwd instead of the agent's configured receive root, when known. */
     private readonly sessionId: string | null = null,
+    /** Directory-tree "drop onto this node" (candidate doc §4.1 point 4): wins outright over sessionId/receive_root when present. */
+    private readonly targetPath: string | null = null,
     private readonly callbacks: TransferSenderCallbacks = {},
   ) {}
 
@@ -88,6 +90,7 @@ export class TransferStreamSender {
               size: file.size,
             })),
             sessionId: this.sessionId,
+            targetPath: this.targetPath,
           },
         }),
       );

@@ -93,6 +93,8 @@ export interface TransferManifestPayload {
   entries: TransferEntry[];
   /** Doc §7.6: a session with a known cwd wins over the agent's configured receive root. */
   sessionId: string | null;
+  /** Directory-tree "drop onto this node" (candidate doc §4.1 point 4): wins outright over sessionId/receive_root when present. */
+  targetPath: string | null;
 }
 
 export interface TransferAcceptedPayload {
@@ -460,6 +462,7 @@ function decodeFrameParts(kind: number, payload: Uint8Array): TerminalStreamFram
           rootNote: requireString(raw, 'rootNote'),
           entries: decodeTransferEntries(raw),
           sessionId: optionalString(raw, 'sessionId'),
+          targetPath: optionalString(raw, 'targetPath'),
         },
       };
     }
