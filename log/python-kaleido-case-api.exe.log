@@ -139,3 +139,97 @@ ModuleNotFoundError: No module named 'fastapi' | Traceback (most recent call las
     from webapi import main
   File "webapi.py", line 8, in init webapi
 ModuleNotFoundError: No module named 'fastapi'
+[8/4/2026, 3:49:21 PM] 收到启动请求，workspaceRoot=runApi, PluginDirectory=d:\software\vscode各个版本\VSCode-win32-x64-1.130.0\1b6a188127\KaleidoApi\runApi, entryScript=webapi_call.py, pythonKaleido=runtime\python.exe
+[8/4/2026, 3:49:21 PM] 准备启动 Python 服务，workspaceRoot=d:\software\vscode各个版本\VSCode-win32-x64-1.130.0\1b6a188127\KaleidoApi\runApi, entryScript=d:\software\vscode各个版本\VSCode-win32-x64-1.130.0\1b6a188127\KaleidoApi\runApi\webapi_call.py, pythonRuntime=d:\software\vscode各个版本\VSCode-win32-x64-1.130.0\1b6a188127\KaleidoApi\runApi\runtime\python.exe, args=[11462]
+[8/4/2026, 3:49:21 PM] 子进程已创建，PID=19772
+[8/4/2026, 3:49:21 PM] 进程已启动，PID=19772
+[8/4/2026, 3:49:22 PM] stderr: Traceback (most recent call last):
+  File "d:\software\vscode�����汾\VSCode-win32-x64-1.130.0\1b6a188127\KaleidoApi\runApi\webapi_call.py", line 2, in <module>
+    from webapi import main
+  File "webapi.py", line 8, in init webapi
+ModuleNotFoundError: No module named 'fastapi' | Traceback (most recent call last):
+  File "d:\software\vscode各个版本\VSCode-win32-x64-1.130.0\1b6a188127\KaleidoApi\runApi\webapi_call.py", line 2, in <module>
+    from webapi import main
+  File "webapi.py", line 8, in init webapi
+ModuleNotFoundError: No module named 'fastapi'
+[8/4/2026, 3:49:22 PM] 启动失败，stderr 输出触发错误：Traceback (most recent call last):
+  File "d:\software\vscode各个版本\VSCode-win32-x64-1.130.0\1b6a188127\KaleidoApi\runApi\webapi_call.py", line 2, in <module>
+    from webapi import main
+  File "webapi.py", line 8, in init webapi
+ModuleNotFoundError: No module named 'fastapi'
+[8/4/2026, 3:49:22 PM] 启动回调失败：Traceback (most recent call last):
+  File "d:\software\vscode各个版本\VSCode-win32-x64-1.130.0\1b6a188127\KaleidoApi\runApi\webapi_call.py", line 2, in <module>
+    from webapi import main
+  File "webapi.py", line 8, in init webapi
+ModuleNotFoundError: No module named 'fastapi'
+[8/4/2026, 3:49:22 PM] 启动流程捕获异常：Traceback (most recent call last):
+  File "d:\software\vscode各个版本\VSCode-win32-x64-1.130.0\1b6a188127\KaleidoApi\runApi\webapi_call.py", line 2, in <module>
+    from webapi import main
+  File "webapi.py", line 8, in init webapi
+ModuleNotFoundError: No module named 'fastapi'
+[8/4/2026, 3:49:22 PM] 进程退出，code=1, signal=none, startupComplete=false
+[8/4/2026, 3:49:22 PM] 启动失败，退出码: 1，最近输出: Traceback (most recent call last):
+  File "d:\software\vscode�����汾\VSCode-win32-x64-1.130.0\1b6a188127\KaleidoApi\runApi\webapi_call.py", line 2, in <module>
+    from webapi import main
+  File "webapi.py", line 8, in init webapi
+ModuleNotFoundError: No module named 'fastapi' | Traceback (most recent call last):
+  File "d:\software\vscode各个版本\VSCode-win32-x64-1.130.0\1b6a188127\KaleidoApi\runApi\webapi_call.py", line 2, in <module>
+    from webapi import main
+  File "webapi.py", line 8, in init webapi
+ModuleNotFoundError: No module named 'fastapi'
+[8/4/2026, 3:49:22 PM] 启动回调失败：启动失败，退出码: 1，最近输出: Traceback (most recent call last):
+  File "d:\software\vscode�����汾\VSCode-win32-x64-1.130.0\1b6a188127\KaleidoApi\runApi\webapi_call.py", line 2, in <module>
+    from webapi import main
+  File "webapi.py", line 8, in init webapi
+ModuleNotFoundError: No module named 'fastapi' | Traceback (most recent call last):
+  File "d:\software\vscode各个版本\VSCode-win32-x64-1.130.0\1b6a188127\KaleidoApi\runApi\webapi_call.py", line 2, in <module>
+    from webapi import main
+  File "webapi.py", line 8, in init webapi
+ModuleNotFoundError: No module named 'fastapi'
+[8/4/2026, 4:07:34 PM] 收到启动请求，workspaceRoot=runApi, PluginDirectory=d:\software\vscode各个版本\VSCode-win32-x64-1.130.0\1b6a188127\KaleidoApi\runApi, entryScript=webapi_call.py, pythonKaleido=runtime\python.exe
+[8/4/2026, 4:07:34 PM] 准备启动 Python 服务，workspaceRoot=d:\software\vscode各个版本\VSCode-win32-x64-1.130.0\1b6a188127\KaleidoApi\runApi, entryScript=d:\software\vscode各个版本\VSCode-win32-x64-1.130.0\1b6a188127\KaleidoApi\runApi\webapi_call.py, pythonRuntime=d:\software\vscode各个版本\VSCode-win32-x64-1.130.0\1b6a188127\KaleidoApi\runApi\runtime\python.exe, args=[12616]
+[8/4/2026, 4:07:34 PM] 子进程已创建，PID=21376
+[8/4/2026, 4:07:34 PM] 进程已启动，PID=21376
+[8/4/2026, 4:07:35 PM] stderr: Traceback (most recent call last):
+  File "d:\software\vscode�����汾\VSCode-win32-x64-1.130.0\1b6a188127\KaleidoApi\runApi\webapi_call.py", line 2, in <module>
+    from webapi import main
+  File "webapi.py", line 8, in init webapi
+ModuleNotFoundError: No module named 'fastapi' | Traceback (most recent call last):
+  File "d:\software\vscode各个版本\VSCode-win32-x64-1.130.0\1b6a188127\KaleidoApi\runApi\webapi_call.py", line 2, in <module>
+    from webapi import main
+  File "webapi.py", line 8, in init webapi
+ModuleNotFoundError: No module named 'fastapi'
+[8/4/2026, 4:07:35 PM] 启动失败，stderr 输出触发错误：Traceback (most recent call last):
+  File "d:\software\vscode各个版本\VSCode-win32-x64-1.130.0\1b6a188127\KaleidoApi\runApi\webapi_call.py", line 2, in <module>
+    from webapi import main
+  File "webapi.py", line 8, in init webapi
+ModuleNotFoundError: No module named 'fastapi'
+[8/4/2026, 4:07:35 PM] 启动回调失败：Traceback (most recent call last):
+  File "d:\software\vscode各个版本\VSCode-win32-x64-1.130.0\1b6a188127\KaleidoApi\runApi\webapi_call.py", line 2, in <module>
+    from webapi import main
+  File "webapi.py", line 8, in init webapi
+ModuleNotFoundError: No module named 'fastapi'
+[8/4/2026, 4:07:35 PM] 启动流程捕获异常：Traceback (most recent call last):
+  File "d:\software\vscode各个版本\VSCode-win32-x64-1.130.0\1b6a188127\KaleidoApi\runApi\webapi_call.py", line 2, in <module>
+    from webapi import main
+  File "webapi.py", line 8, in init webapi
+ModuleNotFoundError: No module named 'fastapi'
+[8/4/2026, 4:07:35 PM] 进程退出，code=1, signal=none, startupComplete=false
+[8/4/2026, 4:07:35 PM] 启动失败，退出码: 1，最近输出: Traceback (most recent call last):
+  File "d:\software\vscode�����汾\VSCode-win32-x64-1.130.0\1b6a188127\KaleidoApi\runApi\webapi_call.py", line 2, in <module>
+    from webapi import main
+  File "webapi.py", line 8, in init webapi
+ModuleNotFoundError: No module named 'fastapi' | Traceback (most recent call last):
+  File "d:\software\vscode各个版本\VSCode-win32-x64-1.130.0\1b6a188127\KaleidoApi\runApi\webapi_call.py", line 2, in <module>
+    from webapi import main
+  File "webapi.py", line 8, in init webapi
+ModuleNotFoundError: No module named 'fastapi'
+[8/4/2026, 4:07:35 PM] 启动回调失败：启动失败，退出码: 1，最近输出: Traceback (most recent call last):
+  File "d:\software\vscode�����汾\VSCode-win32-x64-1.130.0\1b6a188127\KaleidoApi\runApi\webapi_call.py", line 2, in <module>
+    from webapi import main
+  File "webapi.py", line 8, in init webapi
+ModuleNotFoundError: No module named 'fastapi' | Traceback (most recent call last):
+  File "d:\software\vscode各个版本\VSCode-win32-x64-1.130.0\1b6a188127\KaleidoApi\runApi\webapi_call.py", line 2, in <module>
+    from webapi import main
+  File "webapi.py", line 8, in init webapi
+ModuleNotFoundError: No module named 'fastapi'

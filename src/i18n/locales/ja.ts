@@ -37,6 +37,8 @@ export const ja: TranslationKeys = {
 
   terminal: {
     defaultTitle: 'ターミナル',
+    reconnect: '再接続',
+    connectionStatus: { connected: '接続済み', disconnected: '切断済み', reconnecting: '再接続中...', error: '接続に失敗しました' },
     loading: 'ターミナルを読み込み中...',
     initFailed: 'ターミナルの初期化に失敗しました: {{message}}',
     notInitialized: 'ターミナルはまだ初期化されていません。後で再試行してください',

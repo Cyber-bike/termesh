@@ -37,6 +37,8 @@ export const ko: TranslationKeys = {
 
   terminal: {
     defaultTitle: '터미널',
+    reconnect: '다시 연결',
+    connectionStatus: { connected: '연결됨', disconnected: '연결 끊김', reconnecting: '다시 연결 중...', error: '연결 실패' },
     loading: '터미널 로딩 중...',
     initFailed: '터미널 초기화에 실패했습니다: {{message}}',
     notInitialized: '터미널이 아직 초기화되지 않았습니다. 나중에 다시 시도하세요',

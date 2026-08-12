@@ -37,6 +37,8 @@ export const zhCN: TranslationKeys = {
 
   terminal: {
     defaultTitle: 'Terminal',
+    reconnect: '重连',
+    connectionStatus: { connected: '已连接', disconnected: '已断开', reconnecting: '正在重连...', error: '连接失败' },
     loading: '正在加载终端...',
     initFailed: '初始化终端失败：{{message}}',
     notInitialized: '终端尚未初始化，请稍候再试',

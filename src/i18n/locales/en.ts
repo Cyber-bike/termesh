@@ -37,6 +37,8 @@ export const en: TranslationKeys = {
 
   terminal: {
     defaultTitle: 'Terminal',
+    reconnect: 'Reconnect',
+    connectionStatus: { connected: 'Connected', disconnected: 'Disconnected', reconnecting: 'Reconnecting...', error: 'Connection failed' },
     loading: 'Loading terminal...',
     initFailed: 'Failed to initialize terminal: {{message}}',
     notInitialized: 'Terminal not initialized yet, please try again later',

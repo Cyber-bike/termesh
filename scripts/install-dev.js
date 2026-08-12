@@ -23,11 +23,17 @@ import {
   clearDevInstallRequest,
   writeDevInstallRequest,
 } from './install-dev-reload.js';
+import {
+  copyPackagedRuntime,
+  migrateEnabledPluginId,
+  migrateLegacyPluginData,
+} from './install-dev-package.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const ROOT_DIR = path.join(__dirname, '..');
 const CONFIG_FILE = path.join(ROOT_DIR, '.dev-install-config.json');
+const PACKAGE_DIR = path.join(ROOT_DIR, 'plugin-package');
 
 // Parse command line arguments
 const args = process.argv.slice(2);
@@ -52,6 +58,7 @@ const colors = {
   yellow: '\x1b[33m',
   red: '\x1b[31m',
   cyan: '\x1b[36m',
+  gray: '\x1b[90m',
 };
 
 function log(message, color = 'reset') {
@@ -241,27 +248,8 @@ function getBinaryName() {
 }
 
 // Copy file with retry
-async function copyFileWithRetry(srcPath, destPath, maxRetries = 3, onBusy = null) {
-  for (let attempt = 1; attempt <= maxRetries; attempt++) {
-    try {
-      fs.copyFileSync(srcPath, destPath);
-      return true;
-    } catch (error) {
-      if ((error.code === 'EBUSY' || error.code === 'EPERM') && attempt < maxRetries) {
-        if (onBusy) {
-          await onBusy(error, attempt);
-        }
-        await sleep(1000);
-        continue;
-      }
-      throw error;
-    }
-  }
-  return false;
-}
-
 async function main() {
-  log('\n[Termy] Development Install\n', 'cyan');
+  log('\n[Termesh] Development Install\n', 'cyan');
 
   // Reset config
   if (RESET_CONFIG) {
@@ -349,6 +337,16 @@ async function main() {
     log('Skipping Rust build (--no-rust); reusing existing binaries/\n', 'yellow');
   }
 
+  log('Preparing complete plugin package...', 'cyan');
+  try {
+    execSync('pnpm package', { cwd: ROOT_DIR, stdio: 'inherit' });
+  } catch (e) {
+    log('\nPlugin packaging failed', 'red');
+    closeReadline();
+    process.exit(1);
+  }
+  log('Plugin package complete\n', 'green');
+
   // 3. Check files
   log('Checking files...', 'cyan');
   const binaryName = getBinaryName();
@@ -356,16 +354,17 @@ async function main() {
     'main.js',
     'manifest.json',
     'styles.css',
-    `binaries/${binaryName}`
+    `binaries/${binaryName}`,
+    'node_modules/@number0/iroh/package.json',
   ];
 
   for (const file of requiredFiles) {
-    const exists = fs.existsSync(path.join(ROOT_DIR, file));
+    const exists = fs.existsSync(path.join(PACKAGE_DIR, file));
     log(`  ${exists ? '✓' : '✗'} ${file}`, exists ? 'green' : 'red');
   }
 
-  if (!requiredFiles.every(f => fs.existsSync(path.join(ROOT_DIR, f)))) {
-    log('\nMissing files. Run: pnpm build && pnpm build:rust', 'yellow');
+  if (!requiredFiles.every(f => fs.existsSync(path.join(PACKAGE_DIR, f)))) {
+    log('\nIncomplete plugin package. Run: pnpm package', 'yellow');
     closeReadline();
     process.exit(1);
   }
@@ -406,29 +405,18 @@ async function main() {
   // 5. Copy files
   log('Installing...', 'cyan');
 
-  const coreFiles = ['main.js', 'manifest.json', 'styles.css'];
-  for (const file of coreFiles) {
-    const src = path.join(ROOT_DIR, file);
-    const dest = path.join(targetDir, file);
-    await copyFileWithRetry(src, dest);
-    log(`  ${file}`, 'green');
-  }
-
-  const binariesDir = path.join(targetDir, 'binaries');
-  if (!fs.existsSync(binariesDir)) {
-    fs.mkdirSync(binariesDir, { recursive: true });
-  }
-
-  const srcBinary = path.join(ROOT_DIR, 'binaries', binaryName);
-  const destBinary = path.join(binariesDir, binaryName);
-  await copyFileWithRetry(srcBinary, destBinary, 3, async () => {
-    const killedBusyProcesses = killTermyProcesses();
-    if (killedBusyProcesses) {
-      log('  Retrying after stopping Termy processes holding the binary lock', 'yellow');
-      await sleep(500);
-    }
-  });
+  copyPackagedRuntime(PACKAGE_DIR, targetDir);
+  log('  main.js', 'green');
+  log('  manifest.json', 'green');
+  log('  styles.css', 'green');
   log(`  binaries/${binaryName}`, 'green');
+  log('  node_modules/@number0/iroh', 'green');
+  if (migrateLegacyPluginData(pluginsDir)) {
+    log('  Migrated settings: termy/data.json → termesh/data.json', 'green');
+  }
+  if (migrateEnabledPluginId(pluginsDir)) {
+    log('  Migrated enabled plugin ID: termy → termesh', 'green');
+  }
   log('');
 
   // 6. Restart Obsidian
@@ -445,8 +433,8 @@ async function main() {
   if (!KILL_OBSIDIAN) {
     log('Next steps:', 'cyan');
     log('  1. Open Obsidian if it is not already running', 'yellow');
-    log('  2. Reload the "Termy" plugin from Obsidian settings to pick up the new build', 'yellow');
-    log('  3. Ctrl+P → "Termy" to open\n', 'yellow');
+    log('  2. Reload the "Termesh" plugin from Obsidian settings to pick up the new build', 'yellow');
+    log('  3. Ctrl+P → "Termesh" to open\n', 'yellow');
   }
 
   log('Tip: Ctrl+Shift+I for developer console\n', 'gray');

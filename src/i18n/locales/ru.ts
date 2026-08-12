@@ -37,6 +37,8 @@ export const ru: TranslationKeys = {
 
   terminal: {
     defaultTitle: 'Терминал',
+    reconnect: 'Переподключиться',
+    connectionStatus: { connected: 'Подключено', disconnected: 'Отключено', reconnecting: 'Переподключение...', error: 'Ошибка подключения' },
     loading: 'Загрузка терминала...',
     initFailed: 'Не удалось инициализировать терминал: {{message}}',
     notInitialized: 'Терминал ещё не инициализирован, попробуйте позже',

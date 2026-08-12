@@ -143,6 +143,7 @@ export default class TerminalPlugin extends Plugin {
   private _aiLauncherSnapshotListeners: Set<(presetId: string, snapshot: AiLauncherStatusSnapshot) => void> = new Set();
   private _alwaysOnTopTerminalLeaf: WorkspaceLeaf | null = null;
   private pendingRestoredTerminals: WeakMap<WorkspaceLeaf, TerminalInstance> = new WeakMap();
+  private readonly remoteTerminalNodeIds = new WeakMap<TerminalInstance, string>();
 
   // Registered preset script commands
   private registeredPresetScriptCommandIds: Set<string> = new Set();
@@ -742,6 +743,7 @@ export default class TerminalPlugin extends Plugin {
     const terminal = await terminalService.createTerminalWithTransport(
       connections.createTerminalTransport(nodeId),
     );
+    this.remoteTerminalNodeIds.set(terminal, nodeId);
     const device = this.getPairedDeviceStore().get(nodeId);
     if (device) {
       terminal.setTitle(buildDeviceTerminalTitle(
@@ -752,6 +754,35 @@ export default class TerminalPlugin extends Plugin {
     }
 
     await this.openPreparedTerminal(terminal, terminalService);
+  }
+
+  isRemoteTerminal(terminal: TerminalInstance): boolean {
+    return this.remoteTerminalNodeIds.has(terminal);
+  }
+
+  async reconnectTerminalView(terminalView: TerminalView): Promise<void> {
+    const current = terminalView.getTerminalInstance();
+    if (!current) throw new Error(t('terminal.notInitialized'));
+
+    const terminalService = await this.getTerminalService();
+    const nodeId = this.remoteTerminalNodeIds.get(current);
+    let replacement: TerminalInstance;
+    if (nodeId) {
+      const connections = this.getDeviceConnectionManager();
+      if (!connections.isConnected(nodeId)) {
+        await connections.connect(nodeId);
+      }
+      replacement = await terminalService.createTerminalWithTransport(
+        connections.createTerminalTransport(nodeId),
+      );
+      this.remoteTerminalNodeIds.set(replacement, nodeId);
+    } else {
+      replacement = await terminalService.createTerminal();
+    }
+
+    replacement.setTitle(current.getTitle());
+    await terminalService.destroyTerminal(current.id);
+    terminalView.adoptTerminalInstance(replacement, { focus: true });
   }
 
   private async openPreparedTerminal(

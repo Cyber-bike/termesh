@@ -140,6 +140,13 @@ export interface TranslationKeys {
   // Terminal
   terminal: {
     defaultTitle: string;
+    reconnect: string;
+    connectionStatus: {
+      connected: string;
+      disconnected: string;
+      reconnecting: string;
+      error: string;
+    };
     loading: string;
     initFailed: string;
     notInitialized: string;
