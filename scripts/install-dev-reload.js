@@ -23,7 +23,7 @@ function createRequestId() {
 }
 
 export function createDevInstallRequest({
-  pluginId = 'termy',
+  pluginId = 'termesh',
   requestId = createRequestId(),
   requestedAt = new Date(),
   activeUntil = new Date(Date.now() + 2 * 60 * 1000),

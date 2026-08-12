@@ -1,6 +1,6 @@
 # Changelog
 
-All notable changes to Termy will be documented in this file.
+All notable changes to Termesh will be documented in this file.
 
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
@@ -15,6 +15,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ## [1.4.2] - 2026-07-31
 
 ### Added
+- Added a responsive device home that lists the local device and paired remote devices, refreshes live connection state, and opens device-specific terminal tabs.
+- Added device pairing, disconnect, and removal flows to the device home, plus a home button in every terminal.
+- Added terminal titles that capture the device name and active note name when the terminal is opened.
 - Added remote Relay login, device pairing and management, remote terminal sessions, and note-with-attachments transfer from the terminal view.
 - Added local and remote terminal transports behind one four-channel terminal interface, with device polling and explicit offline-mode enforcement.
 - Added self-service remote account registration and one-click pairing-code copy in the plugin settings.
@@ -26,6 +29,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Fixed
 - Fixed Windows Agent status always reporting that the process was not running.
 - Fixed macOS x64 Release builds installing the cross-compilation target into a different Rust toolchain than the pinned toolchain used by Cargo.
+
+### Changed
+- Renamed the plugin to Termesh with the community plugin ID `termesh` while retaining existing `termy` protocol and native-server compatibility identifiers.
+- Moved all device management out of settings and into the device home. Settings now keeps connection and terminal configuration only.
 
 ## [1.4.1] - 2026-05-16
 

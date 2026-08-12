@@ -37,6 +37,44 @@ export interface TranslationKeys {
     unloadedMessage: string;
   };
 
+  home: {
+    title: string;
+    description: string;
+    refresh: string;
+    refreshing: string;
+    addDevice: string;
+    addDeviceDescription: string;
+    localDevice: string;
+    localDeviceDescription: string;
+    available: string;
+    openTerminal: string;
+    deviceName: string;
+    deviceNamePlaceholder: string;
+    connectionCode: string;
+    connectionCodePlaceholder: string;
+    addingDevice: string;
+    deviceAdded: string;
+    moreActions: string;
+    disconnect: string;
+    removeDevice: string;
+    removeDeviceTitle: string;
+    removeDeviceDescription: string;
+    deviceRemoved: string;
+    returnHome: string;
+    neverConnected: string;
+    lastConnected: string;
+    statusDisconnected: string;
+    statusConnecting: string;
+    statusConnected: string;
+    statusError: string;
+    pairEmpty: string;
+    pairWrongPrefix: string;
+    pairBadCharacters: string;
+    pairTooShort: string;
+    pairUnparseable: string;
+    operationFailed: string;
+  };
+
   remote: {
     title: string;
     relayUrl: string;
@@ -72,6 +110,32 @@ export interface TranslationKeys {
     copyDestinationPath: string;
     destinationPathCopied: string;
     transferFailed: string;
+    v2: {
+      title: string;
+      description: string;
+      deviceName: string;
+      deviceNamePlaceholder: string;
+      connectionCode: string;
+      connectionCodePlaceholder: string;
+      addDevice: string;
+      addingDevice: string;
+      newTerminal: string;
+      removeDevice: string;
+      neverConnected: string;
+      lastConnected: string;
+      statusDisconnected: string;
+      statusConnecting: string;
+      statusConnected: string;
+      statusError: string;
+      deviceAdded: string;
+      deviceRemoved: string;
+      pairEmpty: string;
+      pairWrongPrefix: string;
+      pairBadCharacters: string;
+      pairTooShort: string;
+      pairUnparseable: string;
+      operationFailed: string;
+    };
     states: {
       LocalMode: string;
       RemoteIdle: string;
@@ -85,6 +149,13 @@ export interface TranslationKeys {
   // Terminal
   terminal: {
     defaultTitle: string;
+    reconnect: string;
+    connectionStatus: {
+      connected: string;
+      disconnected: string;
+      reconnecting: string;
+      error: string;
+    };
     loading: string;
     initFailed: string;
     notInitialized: string;

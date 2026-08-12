@@ -1,5 +1,7 @@
 # Termy 远程增强 — 支持多个并发远程终端
 
+> **历史文档，已被 v2.0 实际实现取代。** 多会话已经落地（`agent/src/session_table.rs`），但走的不是本文档设想的"不设上限 + 每会话流控"，而是`maxConcurrentSessions`（默认 8）软上限、超出即拒绝（`SESSION_LIMIT_REACHED`）不排队、没有单独的流控协议面。当前实际设计见《实现方案 - 开发版 v2.0.md》和 [plugin-handover.md](plugin-handover.md)。保留本文档只作为设计过程记录。
+
 ## Context
 
 当前每台设备同时只能开**一个**远程终端。第二个 `terminal.open` 会被 Agent 用 `DEVICE_BUSY`（"A remote terminal is already running"）直接拒掉。
@@ -166,7 +168,7 @@ cargo test --manifest-path relay/Cargo.toml
 # 协议未改动，但确认没被意外触碰
 cd protocol && npm test && cd .. && node scripts/sync-protocol.js --check
 
-# 插件（需 Node 22；Node 18 的转译变通见 docs/remote/building.md §6）
+# 插件（需 Node 22；Node 18 的转译变通见 docs/开发/building.md §6）
 pnpm test:remote
 
 # 端到端

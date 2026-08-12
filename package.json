@@ -1,6 +1,11 @@
 {
+<<<<<<< HEAD
+  "name": "termesh",
+  "version": "1.4.1",
+=======
   "name": "termy",
   "version": "1.4.3",
+>>>>>>> 19ea41a81529dc98800b5d66972f2ce982e86145
   "type": "module",
   "description": "Terminal emulator with split panes, reusable workflows, AI CLI context handoff, and zero setup. Powered by xterm.js and a bundled Rust PTY backend.",
   "main": "main.js",
@@ -51,6 +56,7 @@
     "ws": "^8.20.1"
   },
   "dependencies": {
+    "@number0/iroh": "1.1.0",
     "@xterm/addon-canvas": "^0.7.0",
     "@xterm/addon-fit": "^0.11.0",
     "@xterm/addon-search": "^0.16.0",

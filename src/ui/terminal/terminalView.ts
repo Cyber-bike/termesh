@@ -15,7 +15,7 @@ type FsModule = typeof import('fs');
 type PathModule = typeof import('path');
 
 import type { TerminalService } from '../../services/terminal/terminalService';
-import type { TerminalInstance } from '../../services/terminal/terminalInstance';
+import type { TerminalConnectionStatus, TerminalInstance } from '../../services/terminal/terminalInstance';
 import {
   collectFallbackDroppedTextPayload,
   collectPreferredDroppedTextPayload,
@@ -47,7 +47,6 @@ import { t } from '../../i18n';
 import { RenameTerminalModal } from './renameTerminalModal';
 import { capabilities, transition, type RemoteState } from '../../services/remote/remoteState';
 import { createVaultLinkSource, readVaultFile } from '../../services/remote/vaultLinkSource';
-import type { Disposable } from '../../services/remote/transport';
 type XtermTerminal = import('@xterm/xterm').Terminal;
 
 export const TERMINAL_VIEW_TYPE = 'terminal-view';
@@ -72,14 +71,13 @@ export class TerminalView extends ItemView {
   private fileUriLinkAddon: WebLinksAddon | null = null;
   private titleChangeCleanup: (() => void) | null = null;
   private searchStateCleanup: (() => void) | null = null;
+  private connectionStatusCleanup: (() => void) | null = null;
   private initPromise: Promise<TerminalInstance> | null = null;
   private initResolve: ((terminal: TerminalInstance) => void) | null = null;
   private initReject: ((error: Error) => void) | null = null;
   private remoteState: RemoteState = 'LocalMode';
   private remoteToolbar: HTMLElement | null = null;
-  private remoteSubscription: Disposable | null = null;
-  private pairingCode: { id: string; code: string } | null = null;
-  private lastTransferDestination: string | null = null;
+  private connectionStatus: TerminalConnectionStatus | 'reconnecting' = 'disconnected';
 
   private readonly fs: FsModule;
   private readonly path: PathModule;
@@ -156,7 +154,6 @@ export class TerminalView extends ItemView {
     this.createSearchUI();
 
     this.remoteToolbar = container.createDiv('terminal-remote-toolbar');
-    this.bindRemoteService();
     this.renderRemoteToolbar();
 
     this.terminalContainer = container.createDiv('terminal-container');
@@ -172,18 +169,6 @@ export class TerminalView extends ItemView {
       }
     }, 0);
     return Promise.resolve();
-  }
-
-  private bindRemoteService(): void {
-    this.remoteSubscription?.dispose();
-    this.remoteSubscription = this.terminalService?.getRemoteService().onDidChange(() => {
-      const snapshot = this.terminalService?.getRemoteService().getSnapshot();
-      if (this.remoteState !== 'LocalMode' && snapshot && !snapshot.connected && snapshot.error) {
-        this.setRemoteState(transition(this.remoteState, { type: 'connectionLost' }));
-      } else {
-        this.renderRemoteToolbar();
-      }
-    }) ?? null;
   }
 
   /**
@@ -290,9 +275,8 @@ export class TerminalView extends ItemView {
     this.titleChangeCleanup = null;
     this.searchStateCleanup?.();
     this.searchStateCleanup = null;
-    this.remoteSubscription?.dispose();
-    this.remoteSubscription = null;
-    this.terminalService?.getRemoteService().setRemoteMode(false);
+    this.connectionStatusCleanup?.();
+    this.connectionStatusCleanup = null;
     this.removeDropHandlers?.();
     this.removeDropHandlers = null;
     this.dragEnterDepth = 0;
@@ -329,6 +313,8 @@ export class TerminalView extends ItemView {
   adoptTerminalInstance(terminal: TerminalInstance, options: TerminalAttachOptions = {}): void {
     this.detachTerminalBindings();
     this.terminalInstance = terminal;
+    this.remoteState = this.getTerminalPlugin()?.isRemoteTerminal(terminal) ? 'Connected' : 'LocalMode';
+    this.connectionStatus = 'connected';
     this.initPromise = Promise.resolve(terminal);
     this.initResolve?.(terminal);
     this.initResolve = null;
@@ -340,11 +326,11 @@ export class TerminalView extends ItemView {
     this.setupResizeObserver();
     this.updateLeafHeader(this.leaf);
     this.updateDropHintText();
+    this.renderRemoteToolbar();
   }
 
   setTerminalService(terminalService: TerminalService): void {
     this.terminalService = terminalService;
-    this.bindRemoteService();
     this.renderRemoteToolbar();
   }
 
@@ -416,6 +402,11 @@ export class TerminalView extends ItemView {
       }
     });
 
+    this.connectionStatusCleanup = terminal.onConnectionStatusChange((status) => {
+      this.connectionStatus = status;
+      this.renderRemoteToolbar();
+    });
+
     terminal.setOnNewTerminal(() => {
       void this.createNewTerminal();
     });
@@ -451,6 +442,8 @@ export class TerminalView extends ItemView {
     this.titleChangeCleanup = null;
     this.searchStateCleanup?.();
     this.searchStateCleanup = null;
+    this.connectionStatusCleanup?.();
+    this.connectionStatusCleanup = null;
   }
 
   /**
@@ -597,7 +590,7 @@ export class TerminalView extends ItemView {
     if (!input) {
       debugLog('[Terminal DnD] No usable file path or text in drop payload');
       errorLog('[Terminal DnD] No usable path details:', this.describeDropPayload(dataTransfer));
-      new Notice('Termy: 未获取到可用文本或路径，请确认拖拽来源是否支持文本或文件。');
+      new Notice('Termesh: 未获取到可用文本或路径，请确认拖拽来源是否支持文本或文件。');
       return;
     }
 
@@ -657,212 +650,32 @@ export class TerminalView extends ItemView {
 
   private renderRemoteToolbar(): void {
     const toolbar = this.remoteToolbar;
-    const service = this.terminalService;
-    if (!toolbar || !service) return;
+    if (!toolbar) return;
     toolbar.empty();
-    const remoteService = service.getRemoteService();
-    const snapshot = remoteService.getSnapshot();
-    const ability = capabilities(this.remoteState);
+    const reconnectButton = toolbar.createEl('button', { text: t('terminal.reconnect') });
+    reconnectButton.disabled = !this.terminalInstance || this.connectionStatus === 'reconnecting';
+    reconnectButton.addEventListener('click', () => void this.reconnectTerminal());
 
-    const mode = toolbar.createEl('select', { attr: { 'aria-label': t('remote.mode') } });
-    mode.createEl('option', { text: t('remote.local'), value: 'local' });
-    mode.createEl('option', { text: t('remote.remote'), value: 'remote' });
-    mode.value = this.remoteState === 'LocalMode' ? 'local' : 'remote';
-    mode.addEventListener('change', () => void this.switchTerminalMode(mode.value === 'remote'));
-
-    if (this.remoteState === 'LocalMode') return;
-
-    if (!snapshot.authenticated) {
-      const relayUrlInput = toolbar.createEl('input', {
-        cls: 'terminal-remote-auth-input terminal-remote-relay-input',
-        attr: {
-          'aria-label': t('remote.relayUrl'),
-          placeholder: t('remote.relayUrl'),
-          type: 'url',
-        },
-      });
-      relayUrlInput.value = service.getRemoteRelayUrl();
-      const loginInput = toolbar.createEl('input', {
-        cls: 'terminal-remote-auth-input',
-        attr: {
-          'aria-label': t('remote.loginName'),
-          placeholder: t('remote.loginName'),
-          type: 'text',
-        },
-      });
-      const passwordInput = toolbar.createEl('input', {
-        cls: 'terminal-remote-auth-input',
-        attr: {
-          'aria-label': t('remote.password'),
-          placeholder: t('remote.password'),
-          type: 'password',
-        },
-      });
-      const loginButton = toolbar.createEl('button', { text: t('remote.login') });
-      const registerButton = toolbar.createEl('button', { text: t('remote.register') });
-      const controls = [relayUrlInput, loginInput, passwordInput, loginButton, registerButton];
-      const authenticate = async (register: boolean): Promise<void> => {
-        for (const control of controls) control.disabled = true;
-        try {
-          await service.setRemoteRelayUrl(relayUrlInput.value);
-          if (register) {
-            await remoteService.register(loginInput.value, passwordInput.value);
-          } else {
-            await remoteService.login(loginInput.value, passwordInput.value);
-          }
-        } catch (error) {
-          for (const control of controls) control.disabled = false;
-          new Notice(error instanceof Error ? error.message : String(error), 5000);
-        }
-      };
-      loginButton.addEventListener('click', () => void authenticate(false));
-      registerButton.addEventListener('click', () => void authenticate(true));
-      relayUrlInput.addEventListener('change', () => {
-        void service.setRemoteRelayUrl(relayUrlInput.value);
-      });
-      passwordInput.addEventListener('keydown', (event) => {
-        if (event.key === 'Enter') void authenticate(false);
-      });
-      return;
-    }
-
-    const devices = toolbar.createEl('select', { attr: { 'aria-label': t('remote.device') } });
-    devices.createEl('option', { text: t('remote.selectDevice'), value: '' });
-    for (const device of snapshot.devices) {
-      devices.createEl('option', {
-        text: `${device.name}${device.online ? '' : ` (${t('remote.offline')})`}`,
-        value: device.id,
-      });
-    }
-    devices.value = service.getSelectedRemoteDeviceId() ?? '';
-    devices.disabled = !ability.deviceSelection;
-    devices.addEventListener('change', () => {
-      void service.setSelectedRemoteDeviceId(devices.value || null);
-      this.setRemoteState(transition(this.remoteState, { type: 'chooseDevice' }));
+    toolbar.createSpan({
+      cls: `terminal-connection-status is-${this.connectionStatus}`,
+      text: t(`terminal.connectionStatus.${this.connectionStatus}`),
     });
-
-    const connectionButton = toolbar.createEl('button', {
-      text: snapshot.connected ? t('remote.disconnect') : t('remote.connect'),
-    });
-    connectionButton.disabled = this.remoteState === 'Connecting'
-      || (!snapshot.connected && !service.getSelectedRemoteDeviceId());
-    connectionButton.addEventListener('click', () => void this.toggleRemoteConnection());
-
-    if (this.pairingCode) {
-      toolbar.createEl('code', {
-        cls: 'terminal-remote-pairing-code',
-        text: this.pairingCode.code,
-        attr: { title: t('remote.pairingCodeDesc') },
-      });
-      const copyButton = toolbar.createEl('button', {
-        cls: 'clickable-icon',
-        attr: { 'aria-label': t('remote.copyPairingCode') },
-      });
-      setIcon(copyButton, 'copy');
-      copyButton.addEventListener('click', () => void this.copyPairingCode());
-      const revokeButton = toolbar.createEl('button', {
-        cls: 'clickable-icon',
-        attr: { 'aria-label': t('remote.revokePairingCode') },
-      });
-      setIcon(revokeButton, 'x');
-      revokeButton.addEventListener('click', () => void this.revokePairingCode());
-    } else {
-      const pairingButton = toolbar.createEl('button', { text: t('remote.createPairingCode') });
-      pairingButton.addEventListener('click', () => void this.createPairingCode(pairingButton));
-    }
-    if (this.lastTransferDestination) {
-      toolbar.createEl('code', {
-        cls: 'terminal-remote-destination-path',
-        text: this.lastTransferDestination,
-        attr: { title: this.lastTransferDestination },
-      });
-      const copyPathButton = toolbar.createEl('button', {
-        cls: 'clickable-icon',
-        attr: { 'aria-label': t('remote.copyDestinationPath') },
-      });
-      setIcon(copyPathButton, 'copy');
-      copyPathButton.addEventListener('click', () => void this.copyDestinationPath());
-    }
-    toolbar.createSpan({ text: t(`remote.states.${this.remoteState}`) });
   }
 
-  private async createPairingCode(button: HTMLButtonElement): Promise<void> {
-    const remoteService = this.terminalService?.getRemoteService();
-    if (!remoteService) return;
-    button.disabled = true;
+  private async reconnectTerminal(): Promise<void> {
+    const plugin = this.getTerminalPlugin();
+    if (!plugin || !this.terminalInstance || this.connectionStatus === 'reconnecting') return;
+    this.connectionStatus = 'reconnecting';
+    this.renderRemoteToolbar();
     try {
-      const created = await remoteService.createPairingCode();
-      this.pairingCode = { id: created.pairingCodeId, code: created.pairingCode };
-      this.renderRemoteToolbar();
+      await plugin.reconnectTerminalView(this);
+      this.connectionStatus = 'connected';
     } catch (error) {
-      button.disabled = false;
-      new Notice(error instanceof Error ? error.message : String(error), 5000);
-    }
-  }
-
-  private async copyPairingCode(): Promise<void> {
-    if (!this.pairingCode) return;
-    await navigator.clipboard.writeText(this.pairingCode.code);
-    new Notice(t('remote.pairingCodeCopied'));
-  }
-
-  private async revokePairingCode(): Promise<void> {
-    const remoteService = this.terminalService?.getRemoteService();
-    if (!remoteService || !this.pairingCode) return;
-    try {
-      await remoteService.revokePairingCode(this.pairingCode.id);
-      this.pairingCode = null;
-      this.renderRemoteToolbar();
-    } catch (error) {
-      new Notice(error instanceof Error ? error.message : String(error), 5000);
-    }
-  }
-
-  private async copyDestinationPath(): Promise<void> {
-    if (!this.lastTransferDestination) return;
-    await navigator.clipboard.writeText(this.lastTransferDestination);
-    new Notice(t('remote.destinationPathCopied'));
-  }
-
-  private async switchTerminalMode(remote: boolean): Promise<void> {
-    const service = this.terminalService;
-    if (!service) return;
-    if (this.terminalInstance) {
-      await service.destroyTerminal(this.terminalInstance.id);
-      this.terminalInstance = null;
-    }
-    service.getRemoteService().setRemoteMode(remote);
-    this.setRemoteState(transition(this.remoteState, { type: remote ? 'switchToRemote' : 'switchToLocal' }));
-    if (!remote) await this.replaceTerminal(false);
-  }
-
-  private async toggleRemoteConnection(): Promise<void> {
-    const service = this.terminalService;
-    if (!service) return;
-    const remoteService = service.getRemoteService();
-    if (remoteService.getSnapshot().connected) {
-      if (this.terminalInstance) await service.destroyTerminal(this.terminalInstance.id);
-      this.terminalInstance = null;
-      remoteService.disconnect();
-      this.setRemoteState(transition(this.remoteState, { type: 'disconnect' }));
-      return;
-    }
-    this.setRemoteState(transition(this.remoteState, { type: 'connect' }));
-    try {
-      await remoteService.connect();
-      await this.replaceTerminal(true);
-      this.setRemoteState(transition(this.remoteState, { type: 'opened' }));
-    } catch (error) {
+      this.connectionStatus = 'error';
       const message = error instanceof Error ? error.message : String(error);
-      this.setRemoteState(transition(this.remoteState, { type: 'openFailed' }));
       new Notice(message, 5000);
     }
-  }
-
-  private async replaceTerminal(remote: boolean): Promise<void> {
-    if (!this.terminalService) return;
-    const terminal = await this.terminalService.createTerminal(remote);
-    this.adoptTerminalInstance(terminal);
+    this.renderRemoteToolbar();
   }
 
   private async buildDroppedInput(dataTransfer: DataTransfer | null): Promise<{ text: string; usePaste: boolean } | null> {
@@ -1543,6 +1356,8 @@ export class TerminalView extends ItemView {
   private getTerminalPlugin(): {
     settings: TerminalSettings;
     activateTerminalView: () => Promise<void>;
+    reconnectTerminalView: (terminalView: TerminalView) => Promise<void>;
+    isRemoteTerminal: (terminal: TerminalInstance) => boolean;
     toggleAlwaysOnTopTerminal: (terminalView: TerminalView) => Promise<void>;
     getAlwaysOnTopTerminalLabel: (terminalView: TerminalView) => string;
     isAlwaysOnTopTerminal: (terminalView: TerminalView) => boolean;
@@ -1551,7 +1366,7 @@ export class TerminalView extends ItemView {
     const appWithPlugins = this.app as typeof this.app & {
       plugins?: { getPlugin?: (id: string) => unknown };
     };
-    const plugin = appWithPlugins.plugins?.getPlugin?.('termy');
+    const plugin = appWithPlugins.plugins?.getPlugin?.('termesh');
     if (!this.isTerminalPlugin(plugin)) return null;
     return plugin;
   }
@@ -1559,6 +1374,8 @@ export class TerminalView extends ItemView {
   private isTerminalPlugin(value: unknown): value is {
     settings: TerminalSettings;
     activateTerminalView: () => Promise<void>;
+    reconnectTerminalView: (terminalView: TerminalView) => Promise<void>;
+    isRemoteTerminal: (terminal: TerminalInstance) => boolean;
     toggleAlwaysOnTopTerminal: (terminalView: TerminalView) => Promise<void>;
     getAlwaysOnTopTerminalLabel: (terminalView: TerminalView) => string;
     isAlwaysOnTopTerminal: (terminalView: TerminalView) => boolean;
@@ -1568,12 +1385,16 @@ export class TerminalView extends ItemView {
     const candidate = value as {
       settings?: unknown;
       activateTerminalView?: unknown;
+      reconnectTerminalView?: unknown;
+      isRemoteTerminal?: unknown;
       toggleAlwaysOnTopTerminal?: unknown;
       getAlwaysOnTopTerminalLabel?: unknown;
       isAlwaysOnTopTerminal?: unknown;
       handleTerminalViewClosed?: unknown;
     };
     return typeof candidate.activateTerminalView === 'function'
+      && typeof candidate.reconnectTerminalView === 'function'
+      && typeof candidate.isRemoteTerminal === 'function'
       && typeof candidate.toggleAlwaysOnTopTerminal === 'function'
       && typeof candidate.getAlwaysOnTopTerminalLabel === 'function'
       && typeof candidate.isAlwaysOnTopTerminal === 'function'

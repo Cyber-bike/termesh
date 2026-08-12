@@ -98,7 +98,7 @@ export function renderReleaseBody({ version, changelogSection, repository = DEFA
     '   - **macOS (Intel)**: `termy-server-darwin-x64`',
     '   - **Linux (x64)**: `termy-server-linux-x64`',
     '   - **Linux (ARM64)**: `termy-server-linux-arm64`',
-    '3. Create directory: `.obsidian/plugins/termy/binaries/`',
+    '3. Create directory: `.obsidian/plugins/termesh/binaries/`',
     '4. Place core files in `termy/` and binary in `binaries/`',
     '5. Restart Obsidian and enable the plugin',
     '',

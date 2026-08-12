@@ -17,8 +17,14 @@ import type { ClaudeCodeIdeBridge } from './services/claudeCode/ideBridge';
 import type { AgentContextBridge } from './services/context/agentContextBridge';
 import { RemoteService } from './services/remote/remoteService';
 import { RelayClient } from './services/remote/relayClient';
+import { PairedDeviceStore } from './services/remote/pairedDeviceStore';
+import { DeviceConnectionManager } from './services/remote/deviceConnections';
+import { createIrohLoader } from './services/remote/irohRuntime';
+import type { IrohModule } from './services/remote/irohStreams';
+import { normalizeControllerIdentitySeed } from './services/remote/controllerIdentity';
 import { requestWithObsidian } from './services/remote/obsidianRelayRequest';
 import { TERMINAL_VIEW_TYPE, TerminalView } from './ui/terminal/terminalView';
+import { DEVICE_HOME_VIEW_TYPE, DeviceHomeView } from './ui/home/deviceHomeView';
 import { ChangelogModal } from './ui/changelog/changelogModal';
 import { i18n, t } from './i18n';
 import { debugLog, errorLog } from './utils/logger';
@@ -47,6 +53,7 @@ import {
 } from './services/terminal/commandAvailability';
 import { clearCommandVersionCache, probeCommandVersion } from './services/terminal/commandVersionProbe';
 import { clearLatestVersionCache, fetchLatestVersion } from './services/terminal/latestVersionRegistry';
+import { buildDeviceTerminalTitle } from './services/terminal/deviceTerminalTitle';
 import {
   buildAiLauncherStatusSnapshot,
   readinessToBadge,
@@ -100,6 +107,8 @@ export default class TerminalPlugin extends Plugin {
   private _serverManager: ServerManager | null = null;
   private _terminalService: TerminalService | null = null;
   private _remoteService: RemoteService | null = null;
+  private _pairedDeviceStore: PairedDeviceStore | null = null;
+  private _deviceConnections: DeviceConnectionManager | null = null;
   private _claudeCodeIdeBridge: ClaudeCodeIdeBridge | null = null;
   private _agentContextBridge: AgentContextBridge | null = null;
   private _changelogContentCache: string | null = null;
@@ -134,6 +143,7 @@ export default class TerminalPlugin extends Plugin {
   private _aiLauncherSnapshotListeners: Set<(presetId: string, snapshot: AiLauncherStatusSnapshot) => void> = new Set();
   private _alwaysOnTopTerminalLeaf: WorkspaceLeaf | null = null;
   private pendingRestoredTerminals: WeakMap<WorkspaceLeaf, TerminalInstance> = new WeakMap();
+  private readonly remoteTerminalNodeIds = new WeakMap<TerminalInstance, string>();
 
   // Registered preset script commands
   private registeredPresetScriptCommandIds: Set<string> = new Set();
@@ -214,6 +224,40 @@ export default class TerminalPlugin extends Plugin {
     return this._remoteService;
   }
 
+  getPairedDeviceStore(): PairedDeviceStore {
+    if (!this._pairedDeviceStore) {
+      this._pairedDeviceStore = PairedDeviceStore.fromJSON(this.settings.pairedDevices);
+    }
+    return this._pairedDeviceStore;
+  }
+
+  loadIroh(): Promise<IrohModule> {
+    return createIrohLoader(this.getPluginDir())();
+  }
+
+  getDeviceConnectionManager(): DeviceConnectionManager {
+    if (!this._deviceConnections) {
+      this._deviceConnections = new DeviceConnectionManager({
+        loadIroh: () => this.loadIroh(),
+        store: this.getPairedDeviceStore(),
+        identitySeed: this.settings.controllerIdentitySeed,
+        onIdentityCreated: (seed) => {
+          this.settings.controllerIdentitySeed = [...seed];
+          void this.saveSettings().catch((error) => {
+            errorLog('[TerminalPlugin] Failed to persist controller identity:', error);
+          });
+        },
+        profile: 'production',
+      });
+      this._deviceConnections.onDidChange(() => {
+        void this.saveSettings().catch((error) => {
+          errorLog('[TerminalPlugin] Failed to persist paired device state:', error);
+        });
+      });
+    }
+    return this._deviceConnections;
+  }
+
   /**
    * Called when the plugin loads
    */
@@ -248,6 +292,10 @@ export default class TerminalPlugin extends Plugin {
         // Create a placeholder view; the actual initialization happens when the user opens it
         return new TerminalViewPlaceholder(leaf, this);
       }
+    );
+    this.registerView(
+      DEVICE_HOME_VIEW_TYPE,
+      (leaf: WorkspaceLeaf) => new DeviceHomeView(leaf, this),
     );
 
     // Register all commands
@@ -318,6 +366,15 @@ export default class TerminalPlugin extends Plugin {
 
     this._remoteService?.dispose();
     this._remoteService = null;
+
+    if (this._deviceConnections) {
+      try {
+        await this._deviceConnections.dispose();
+      } catch (error) {
+        errorLog('[TerminalPlugin] Failed to dispose device connections:', error);
+      }
+      this._deviceConnections = null;
+    }
 
     // Stop the server
     if (this._serverManager) {
@@ -449,6 +506,8 @@ export default class TerminalPlugin extends Plugin {
       // Ensure the serverConnection config exists
       serverConnection: this.normalizeServerConnectionSettings(loaded?.serverConnection),
       remoteConnection: this.normalizeRemoteConnectionSettings(loaded?.remoteConnection),
+      pairedDevices: this.normalizePairedDevices(loaded?.pairedDevices),
+      controllerIdentitySeed: normalizeControllerIdentitySeed(loaded?.controllerIdentitySeed),
       // Ensure the presetScripts config exists
       presetScripts: normalizedPresetScripts,
     };
@@ -461,6 +520,10 @@ export default class TerminalPlugin extends Plugin {
     this.settings.presetScripts = this.normalizePresetScripts(this.settings.presetScripts);
     this.settings.serverConnection = this.normalizeServerConnectionSettings(this.settings.serverConnection);
     this.settings.remoteConnection = this.normalizeRemoteConnectionSettings(this.settings.remoteConnection);
+    this.settings.pairedDevices = this._pairedDeviceStore
+      ? this._pairedDeviceStore.toJSON()
+      : this.normalizePairedDevices(this.settings.pairedDevices);
+    this.settings.controllerIdentitySeed = normalizeControllerIdentitySeed(this.settings.controllerIdentitySeed);
     await this.saveData(this.settings);
     
     // Update debug mode
@@ -544,6 +607,15 @@ export default class TerminalPlugin extends Plugin {
   }
 
   /**
+   * Round-trips the persisted paired-device list through PairedDeviceStore
+   * so a hand-edited or downgraded data.json cannot leave malformed entries
+   * (see PairedDeviceStore.fromJSON) in this.settings.
+   */
+  private normalizePairedDevices(value: unknown): TerminalSettings['pairedDevices'] {
+    return PairedDeviceStore.fromJSON(value).toJSON();
+  }
+
+  /**
    * Register feature visibility configuration
    */
   private registerFeatureVisibility(): void {
@@ -554,7 +626,7 @@ export default class TerminalPlugin extends Plugin {
         icon: TERMY_RIBBON_ICON_ID,
         tooltip: t('ribbon.terminalTooltip'),
         callback: () => {
-          void this.activateTerminalView();
+          void this.activateDeviceHome();
         },
       },
       onVisibilityChange: () => {
@@ -592,7 +664,7 @@ export default class TerminalPlugin extends Plugin {
     iconEl.addClass('terminal-status-bar-icon');
     const labelEl = activeDocument.createElement('span');
     labelEl.addClass('terminal-status-bar-label');
-    labelEl.textContent = 'Termy';
+    labelEl.textContent = t('plugin.name');
     this._statusBarItem.append(iconEl, labelEl);
     
     // Add click handler
@@ -645,6 +717,99 @@ export default class TerminalPlugin extends Plugin {
     // If focusing new instances is enabled, switch to the new tab
     if (this.settings.focusNewInstance) {
       workspace.setActiveLeaf(leaf, { focus: true });
+    }
+  }
+
+  async activateDeviceHome(targetLeaf?: WorkspaceLeaf): Promise<void> {
+    const { workspace } = this.app;
+    const existingLeaf = workspace.getLeavesOfType(DEVICE_HOME_VIEW_TYPE)[0];
+    const leaf = existingLeaf ?? targetLeaf ?? workspace.getLeaf('tab');
+    if (!existingLeaf) {
+      await leaf.setViewState({ type: DEVICE_HOME_VIEW_TYPE, active: true });
+    }
+    workspace.setActiveLeaf(leaf, { focus: true });
+  }
+
+  getActiveNoteName(): string | null {
+    const file = this.app.workspace.getActiveFile();
+    return file?.extension.toLowerCase() === 'md' ? file.basename : null;
+  }
+
+  async openLocalDeviceTerminal(noteName = this.getActiveNoteName()): Promise<void> {
+    const terminalService = await this.getTerminalService();
+    const terminal = await terminalService.createTerminal();
+    terminal.setTitle(buildDeviceTerminalTitle(
+      t('home.localDevice'),
+      noteName,
+      t('terminal.defaultTitle'),
+    ));
+    await this.openPreparedTerminal(terminal, terminalService);
+  }
+
+  async openRemoteTerminal(nodeId: string, noteName = this.getActiveNoteName()): Promise<void> {
+    const connections = this.getDeviceConnectionManager();
+    if (!connections.isConnected(nodeId)) {
+      await connections.connect(nodeId);
+    }
+
+    const terminalService = await this.getTerminalService();
+    const terminal = await terminalService.createTerminalWithTransport(
+      connections.createTerminalTransport(nodeId),
+    );
+    this.remoteTerminalNodeIds.set(terminal, nodeId);
+    const device = this.getPairedDeviceStore().get(nodeId);
+    if (device) {
+      terminal.setTitle(buildDeviceTerminalTitle(
+        device.name,
+        noteName,
+        t('terminal.defaultTitle'),
+      ));
+    }
+
+    await this.openPreparedTerminal(terminal, terminalService);
+  }
+
+  isRemoteTerminal(terminal: TerminalInstance): boolean {
+    return this.remoteTerminalNodeIds.has(terminal);
+  }
+
+  async reconnectTerminalView(terminalView: TerminalView): Promise<void> {
+    const current = terminalView.getTerminalInstance();
+    if (!current) throw new Error(t('terminal.notInitialized'));
+
+    const terminalService = await this.getTerminalService();
+    const nodeId = this.remoteTerminalNodeIds.get(current);
+    let replacement: TerminalInstance;
+    if (nodeId) {
+      const connections = this.getDeviceConnectionManager();
+      if (!connections.isConnected(nodeId)) {
+        await connections.connect(nodeId);
+      }
+      replacement = await terminalService.createTerminalWithTransport(
+        connections.createTerminalTransport(nodeId),
+      );
+      this.remoteTerminalNodeIds.set(replacement, nodeId);
+    } else {
+      replacement = await terminalService.createTerminal();
+    }
+
+    replacement.setTitle(current.getTitle());
+    await terminalService.destroyTerminal(current.id);
+    terminalView.adoptTerminalInstance(replacement, { focus: true });
+  }
+
+  private async openPreparedTerminal(
+    terminal: TerminalInstance,
+    terminalService: TerminalService,
+  ): Promise<void> {
+    const leaf = this.getLeafForNewTerminal();
+    this.pendingRestoredTerminals.set(leaf, terminal);
+    try {
+      await this.activateTerminalView(leaf);
+    } catch (error) {
+      this.pendingRestoredTerminals.delete(leaf);
+      await terminalService.destroyTerminal(terminal.id);
+      throw error;
     }
   }
 
@@ -1025,7 +1190,7 @@ export default class TerminalPlugin extends Plugin {
           return false;
         }
         if (!checking) {
-          void this.activateTerminalView();
+          void this.activateDeviceHome();
         }
         return true;
       }
@@ -1579,7 +1744,7 @@ export default class TerminalPlugin extends Plugin {
       terminalAction.textContent = t('commands.openTerminal');
       terminalAction.addEventListener('click', () => {
         const leaf = this.findLeafByEmptyView(emptyView);
-        void this.activateTerminalView(leaf ?? undefined);
+        void this.activateDeviceHome(leaf ?? undefined);
       });
 
       // Add it to the actions list

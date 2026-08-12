@@ -10,29 +10,36 @@ name = "termy-agent"
 path = "src/main.rs"
 
 # Versions are pinned exactly per doc 1.2.
+#
+# The V1 relay stack (tokio-tungstenite, direct rustls/tokio-rustls,
+# webpki-roots, futures-util, chrono, termy-protocol) left with client.rs:
+# v2.0 has no relay account and no WSS control channel (doc 6.1). iroh
+# brings its own TLS internally.
 [dependencies]
 tokio = { version = "=1.49.0", features = ["rt-multi-thread", "net", "sync", "signal", "macros", "time", "fs", "io-util", "process"] }
-tokio-tungstenite = { version = "=0.28.0", default-features = false, features = ["rustls-tls-webpki-roots", "connect"] }
-rustls = { version = "=0.23.31", default-features = false, features = ["ring", "std", "tls12"] }
-tokio-rustls = { version = "=0.26.4", default-features = false, features = ["ring", "tls12"] }
-webpki-roots = "=0.26.11"
-futures-util = "=0.3.31"
 
 portable-pty = "=0.9.0"
 
 serde = { version = "=1.0.228", features = ["derive"] }
 serde_json = "=1.0.149"
 uuid = { version = "=1.20.0", features = ["v4", "serde"] }
-chrono = { version = "=0.4.42", default-features = false, features = ["std", "serde", "clock"] }
 
 clap = { version = "=4.5.40", features = ["derive"] }
 thiserror = "=2.0.18"
-tracing = "=0.1.41"
+tracing = "=0.1.44"
 tracing-subscriber = { version = "=0.3.20", features = ["env-filter"] }
 base64 = "=0.22.1"
 rand = "=0.8.5"
 
-termy-protocol = { path = "../protocol/generated/rust" }
+# Device identity keypair (v2.0 doc 5.1/7.1). Pinned per the convention above;
+# iroh's SecretKey wraps the same construction, and p2p.rs proves the two
+# derive identical public keys from one seed.
+ed25519-dalek = { version = "=2.1.1", features = ["rand_core"] }
+
+# v2.0 P2P transport (doc 6.1, phase A). The agent side is NOT gated on the
+# A0 Electron spike - that only concerns the plugin's JS binding.
+iroh = "=1.0.3"
+iroh-tickets = "=1.0.0"
 
 # Job Object based process-tree teardown, per doc 7.5.
 [target.'cfg(windows)'.dependencies]

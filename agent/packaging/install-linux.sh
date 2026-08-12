@@ -54,19 +54,17 @@ cat <<INSTRUCTIONS
 
 Installed. Next:
 
-  1. Create a pairing code in the Obsidian plugin.
-  2. Bind this machine:
-
-       termy-agent bind --code <pairing-code> --relay https://<your-relay-host>
-
-  3. Start it:
+  1. Start it:
 
        systemctl --user enable --now ${UNIT_NAME}
 
-  4. Check on it:
+  2. Get the connection code (no account, no pairing service - the code is
+     printed by the running agent and also readable afterwards):
 
        termy-agent status
        journalctl --user -u ${UNIT_NAME} -f
+
+  3. Paste that code into Termy's "添加设备" in Obsidian.
 
 The agent and the remote shell run as $(id -un). Nothing here runs as root
 after installation.

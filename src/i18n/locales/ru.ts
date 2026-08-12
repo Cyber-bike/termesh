@@ -20,19 +20,25 @@ export const ru: TranslationKeys = {
   },
 
   plugin: {
-    name: 'Termy',
-    loadingMessage: 'Загрузка плагина Termy',
-    loadedMessage: 'Плагин Termy загружен',
-    unloadingMessage: 'Выгрузка плагина Termy',
-    unloadedMessage: 'Плагин Termy выгружен',
+    name: 'Termesh',
+    loadingMessage: 'Загрузка плагина Termesh',
+    loadedMessage: 'Плагин Termesh загружен',
+    unloadingMessage: 'Выгрузка плагина Termesh',
+    unloadedMessage: 'Плагин Termesh выгружен',
+  },
+
+  home: {
+    title: 'Devices', description: 'Open a new terminal on this device or a paired device.', refresh: 'Refresh device status', refreshing: 'Refreshing...', addDevice: 'Add device', addDeviceDescription: 'Paste the device code shown by the agent', localDevice: 'This device', localDeviceDescription: 'Open a terminal on this device', available: 'Available', openTerminal: 'Open terminal', deviceName: 'Device name', deviceNamePlaceholder: 'Optional display name', connectionCode: 'Device code', connectionCodePlaceholder: 'Paste an endpoint device code', addingDevice: 'Adding...', deviceAdded: 'Device added.', moreActions: 'More device actions', disconnect: 'Disconnect', removeDevice: 'Remove device', removeDeviceTitle: 'Remove device?', removeDeviceDescription: 'Remove “{{name}}” and its device code from this device.', deviceRemoved: 'Device removed.', returnHome: 'Return to device home', neverConnected: 'Never connected', lastConnected: 'Last connected: {{time}}', statusDisconnected: 'Disconnected', statusConnecting: 'Connecting', statusConnected: 'Connected', statusError: 'Connection failed', pairEmpty: 'Paste a device code.', pairWrongPrefix: 'This is not a valid endpoint device code.', pairBadCharacters: 'The device code contains invalid characters.', pairTooShort: 'The device code is incomplete.', pairUnparseable: 'The device code could not be parsed. Copy it again from the agent.', operationFailed: 'Device operation failed: {{message}}',
   },
 
   remote: {
-    title: 'Remote terminal', relayUrl: 'Relay URL', relayUrlDesc: 'HTTPS endpoint used for remote terminals', loginName: 'Login name', password: 'Password', login: 'Log in', loginRequired: 'Log in to your remote account', register: 'Register', loggedInAs: 'Logged in as {{login}}', logout: 'Log out', pairingCode: 'Pairing code', pairingCodeDesc: 'Copy this code for the termy-agent bind command', copyPairingCode: 'Copy pairing code', pairingCodeCopied: 'Pairing code copied', createPairingCode: 'Create pairing code', revokePairingCode: 'Revoke pairing code', devices: 'Devices', refreshDevices: 'Refresh devices', noDevices: 'No paired devices', mode: 'Terminal mode', local: 'Local', remote: 'Remote', device: 'Device', selectDevice: 'Select a device', offline: 'Offline', connect: 'Connect', disconnect: 'Disconnect', notConnected: 'Connect to a remote device before sending a note.', dropSingleMarkdown: 'Drop one Markdown note from this vault.', transferComplete: 'Note transfer complete.', transferCompleteAt: 'Transferred to: {{path}}', copyDestinationPath: 'Copy destination path', destinationPathCopied: 'Destination path copied', transferFailed: 'Note transfer failed: {{message}}', states: { LocalMode: 'Local', RemoteIdle: 'Remote idle', Connecting: 'Connecting', Connected: 'Connected', Transferring: 'Transferring', Error: 'Error' },
+    title: 'Remote terminal', relayUrl: 'Relay URL', relayUrlDesc: 'HTTPS endpoint used for remote terminals', loginName: 'Login name', password: 'Password', login: 'Log in', logout: 'Log out', pairingCode: 'Pairing code', createPairingCode: 'Create pairing code', revokePairingCode: 'Revoke pairing code', devices: 'Devices', refreshDevices: 'Refresh devices', noDevices: 'No paired devices', mode: 'Terminal mode', local: 'Local', remote: 'Remote', device: 'Device', selectDevice: 'Select a device', offline: 'Offline', connect: 'Connect', disconnect: 'Disconnect', notConnected: 'Connect to a remote device before sending a note.', dropSingleMarkdown: 'Drop one Markdown note from this vault.', transferComplete: 'Note transfer complete.', transferFailed: 'Note transfer failed: {{message}}', v2: { title: 'Directly connected devices', description: 'Pair devices with an agent connection code and open encrypted remote terminals.', deviceName: 'Device name', deviceNamePlaceholder: 'Optional display name', connectionCode: 'Connection code', connectionCodePlaceholder: 'Paste an endpoint connection code', addDevice: 'Add device', addingDevice: 'Adding...', newTerminal: 'New terminal', removeDevice: 'Remove', neverConnected: 'Never connected', lastConnected: 'Last connected: {{time}}', statusDisconnected: 'Disconnected', statusConnecting: 'Connecting', statusConnected: 'Connected', statusError: 'Connection error', deviceAdded: 'Device added.', deviceRemoved: 'Device removed.', pairEmpty: 'Paste a connection code.', pairWrongPrefix: 'This is not a valid endpoint connection code.', pairBadCharacters: 'The connection code contains invalid characters.', pairTooShort: 'The connection code is incomplete.', pairUnparseable: 'The connection code could not be parsed. Copy it again from the agent.', operationFailed: 'Remote device operation failed: {{message}}' }, states: { LocalMode: 'Local', RemoteIdle: 'Remote idle', Connecting: 'Connecting', Connected: 'Connected', Transferring: 'Transferring', Error: 'Error' },
   },
 
   terminal: {
     defaultTitle: 'Терминал',
+    reconnect: 'Переподключиться',
+    connectionStatus: { connected: 'Подключено', disconnected: 'Отключено', reconnecting: 'Переподключение...', error: 'Ошибка подключения' },
     loading: 'Загрузка терминала...',
     initFailed: 'Не удалось инициализировать терминал: {{message}}',
     notInitialized: 'Терминал ещё не инициализирован, попробуйте позже',
@@ -72,8 +78,8 @@ export const ru: TranslationKeys = {
   },
 
   commands: {
-    openTerminal: 'Открыть терминал Termy',
-    showChangelog: 'Termy: показать список изменений',
+    openTerminal: 'Открыть Termesh',
+    showChangelog: 'Termesh: показать список изменений',
     terminalSearch: 'Терминал: поиск',
     terminalClear: 'Терминал: очистить экран',
     terminalCopy: 'Терминал: копировать',
@@ -95,7 +101,7 @@ export const ru: TranslationKeys = {
   },
 
   ribbon: {
-    terminalTooltip: 'Открыть терминал Termy',
+    terminalTooltip: 'Открыть Termesh',
   },
 
   visibility: {
@@ -176,7 +182,7 @@ export const ru: TranslationKeys = {
       advanced: 'Дополнительно',
     },
     header: {
-      title: 'Termy',
+      title: 'Termesh',
       feedbackText: 'Спасибо за использование! Обратная связь: ',
       feedbackLink: 'GitHub',
       communityLink: 'Telegram',
@@ -321,7 +327,7 @@ export const ru: TranslationKeys = {
       offlineMode: 'Офлайн-режим',
       offlineModeDesc: 'При включении пропускает проверку версии бинарника и автозагрузку',
       binaryDownloadSource: 'Источник загрузки бинарника',
-      binaryDownloadSourceDesc: 'Выберите, откуда Termy загружает нативный бинарник: из GitHub Release или Cloudflare R2',
+      binaryDownloadSourceDesc: 'Выберите, откуда Termesh загружает нативный бинарник: из GitHub Release или Cloudflare R2',
       binaryDownloadSourceGithubRelease: 'GitHub Release',
       binaryDownloadSourceCloudflareR2: 'Cloudflare R2',
       binaryDownloadNow: 'Скачать бинарник сейчас',
@@ -338,7 +344,7 @@ export const ru: TranslationKeys = {
   modals: {
     changelog: {
       title: 'Список изменений',
-      subtitle: 'Обновления в Termy {{version}}',
+      subtitle: 'Обновления в Termesh {{version}}',
       loading: 'Загрузка списка изменений...',
       unavailable: 'Не удалось загрузить список изменений для этой версии.',
       openRelease: 'Открыть страницу релиза',
@@ -355,7 +361,7 @@ export const ru: TranslationKeys = {
     launcherInstall: {
       titleNotInstalled: '{{name}} не установлен',
       titleUpdate: 'Обновить {{name}}',
-      descriptionNotInstalled: 'Termy не нашёл «{{command}}» в PATH. Установите CLI на свой компьютер, затем повторите попытку.',
+      descriptionNotInstalled: 'Termesh не нашёл «{{command}}» в PATH. Установите CLI на свой компьютер, затем повторите попытку.',
       descriptionUpdate: 'Доступен новый релиз {{name}} ({{local}} → {{latest}}). Выполните команду ниже в системном терминале, чтобы обновиться.',
       detectedCommand: 'Обнаруженная команда',
       versionLabel: 'Версия',
@@ -364,7 +370,7 @@ export const ru: TranslationKeys = {
       cardTitleUpgradeOneClick: 'Обновление в один клик',
       cardDescInstall: 'Скопируйте эту команду и выполните её в системном терминале. Как только исполняемый файл станет доступен из вашей оболочки, лаунчер автоматически его обнаружит.',
       cardDescUpgrade: 'Скопируйте эту команду и выполните её в системном терминале для обновления. Как только новая версия станет доступна из оболочки, лаунчер автоматически её обнаружит.',
-      cardDescUpgradeOneClick: 'Нажмите «Обновить сейчас», чтобы выполнить эту команду в терминале Termy, либо скопируйте её и запустите вручную.',
+      cardDescUpgradeOneClick: 'Нажмите «Обновить сейчас», чтобы выполнить эту команду в терминале Termesh, либо скопируйте её и запустите вручную.',
       buttonCopy: 'Копировать',
       buttonClose: 'Закрыть',
       buttonOpenDocs: 'Открыть инструкцию по установке',

@@ -60,28 +60,25 @@ export class TerminalSettingTab extends PluginSettingTab {
     const section = containerEl.createDiv({ cls: 'terminal-settings-card' });
     new Setting(section).setName(t('remote.title')).setHeading();
 
+    new Setting(section).setName(t('remote.relayUrl')).setDesc(t('remote.relayUrlDesc')).addText((text) => {
+      text.setValue(settings.relayUrl).onChange((value) => {
+        settings.relayUrl = value;
+        void this.plugin.saveSettings();
+      });
+    });
+    new Setting(section).setName(t('remote.loginName')).addText((text) => {
+      text.onChange((value) => { login = value; });
+    });
+    new Setting(section).setName(t('remote.password')).addText((text) => {
+      text.inputEl.type = 'password';
+      text.onChange((value) => { password = value; });
+    });
     new Setting(section)
       .setName(t('remote.loggedInAs', { login: settings.authSession?.login ?? '' }))
       .addButton((button) => button.setButtonText(t('remote.logout')).onClick(() => {
         service.logout();
         this.display();
       }));
-
-    new Setting(section).setName(t('remote.devices')).addButton((button) => button
-      .setButtonText(t('remote.refreshDevices')).onClick(async () => {
-        try { await service.refreshDevices(); this.display(); }
-        catch (error) { new Notice(error instanceof Error ? error.message : String(error), 5000); }
-      }));
-    const devices = snapshot.devices;
-    if (devices.length === 0) section.createDiv({ text: t('remote.noDevices') });
-    for (const device of devices) {
-      new Setting(section).setName(device.name)
-        .setDesc(`${device.platform} · ${device.online ? t('remote.states.Connected') : t('remote.offline')}`)
-        .addButton((button) => button.setButtonText(t('common.delete')).onClick(async () => {
-          try { await service.deleteDevice(device.id); this.display(); }
-          catch (error) { new Notice(error instanceof Error ? error.message : String(error), 5000); }
-        }));
-    }
   }
 
   /**

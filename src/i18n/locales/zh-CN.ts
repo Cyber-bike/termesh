@@ -20,19 +20,25 @@ export const zhCN: TranslationKeys = {
   },
 
   plugin: {
-    name: 'Termy',
-    loadingMessage: '正在加载 Termy 插件',
-    loadedMessage: 'Termy 插件已加载',
-    unloadingMessage: '正在卸载 Termy 插件',
-    unloadedMessage: 'Termy 插件已卸载',
+    name: 'Termesh',
+    loadingMessage: '正在加载 Termesh 插件',
+    loadedMessage: 'Termesh 插件已加载',
+    unloadingMessage: '正在卸载 Termesh 插件',
+    unloadedMessage: 'Termesh 插件已卸载',
+  },
+
+  home: {
+    title: '设备', description: '从本机或已配对设备打开新终端。', refresh: '刷新设备状态', refreshing: '正在刷新...', addDevice: '添加设备', addDeviceDescription: '粘贴 Agent 显示的设备码', localDevice: '本机', localDeviceDescription: '在当前设备上打开终端', available: '可用', openTerminal: '打开终端', deviceName: '设备名称', deviceNamePlaceholder: '可选的显示名称', connectionCode: '设备码', connectionCodePlaceholder: '粘贴 endpoint 设备码', addingDevice: '正在添加...', deviceAdded: '设备已添加。', moreActions: '更多设备操作', disconnect: '断开连接', removeDevice: '移除设备', removeDeviceTitle: '移除设备？', removeDeviceDescription: '将从本机删除“{{name}}”及其设备码。', deviceRemoved: '设备已移除。', returnHome: '返回设备首页', neverConnected: '从未连接', lastConnected: '上次连接：{{time}}', statusDisconnected: '未连接', statusConnecting: '连接中', statusConnected: '已连接', statusError: '连接失败', pairEmpty: '请粘贴设备码。', pairWrongPrefix: '这不是有效的 endpoint 设备码。', pairBadCharacters: '设备码包含无效字符。', pairTooShort: '设备码不完整。', pairUnparseable: '无法解析设备码，请从 Agent 重新复制。', operationFailed: '设备操作失败：{{message}}',
   },
 
   remote: {
-    title: '远程终端', relayUrl: 'Relay 地址', relayUrlDesc: '远程终端使用的 HTTPS 服务地址', loginName: '登录名', password: '密码', login: '登录', loginRequired: '请先登录远程账号', register: '注册', loggedInAs: '已登录：{{login}}', logout: '退出登录', pairingCode: '配对码', pairingCodeDesc: '复制后用于 termy-agent bind 命令', copyPairingCode: '复制配对码', pairingCodeCopied: '配对码已复制', createPairingCode: '生成配对码', revokePairingCode: '撤销配对码', devices: '设备', refreshDevices: '刷新设备', noDevices: '暂无已配对设备', mode: '终端模式', local: '本地', remote: '远程', device: '设备', selectDevice: '选择设备', offline: '离线', connect: '连接', disconnect: '断开', notConnected: '请先连接远程设备再发送笔记。', dropSingleMarkdown: '请从当前仓库拖入一个 Markdown 笔记。', transferComplete: '笔记传输完成。', transferCompleteAt: '已传输到：{{path}}', copyDestinationPath: '复制接收路径', destinationPathCopied: '接收路径已复制', transferFailed: '笔记传输失败：{{message}}', states: { LocalMode: '本地', RemoteIdle: '远程待机', Connecting: '连接中', Connected: '已连接', Transferring: '传输中', Error: '错误' },
+    title: '远程终端', relayUrl: 'Relay 地址', relayUrlDesc: '远程终端使用的 HTTPS 服务地址', loginName: '登录名', password: '密码', login: '登录', logout: '退出登录', pairingCode: '配对码', createPairingCode: '生成配对码', revokePairingCode: '撤销配对码', devices: '设备', refreshDevices: '刷新设备', noDevices: '暂无已配对设备', mode: '终端模式', local: '本地', remote: '远程', device: '设备', selectDevice: '选择设备', offline: '离线', connect: '连接', disconnect: '断开', notConnected: '请先连接远程设备再发送笔记。', dropSingleMarkdown: '请从当前仓库拖入一个 Markdown 笔记。', transferComplete: '笔记传输完成。', transferFailed: '笔记传输失败：{{message}}', v2: { title: '直连设备', description: '使用 Agent 连接码添加设备，并打开端到端加密的远程终端。', deviceName: '设备名称', deviceNamePlaceholder: '可选的显示名称', connectionCode: '连接码', connectionCodePlaceholder: '粘贴 endpoint 连接码', addDevice: '添加设备', addingDevice: '正在添加...', newTerminal: '新建终端', removeDevice: '移除', neverConnected: '从未连接', lastConnected: '上次连接：{{time}}', statusDisconnected: '未连接', statusConnecting: '连接中', statusConnected: '已连接', statusError: '连接失败', deviceAdded: '设备已添加。', deviceRemoved: '设备已移除。', pairEmpty: '请粘贴连接码。', pairWrongPrefix: '这不是有效的 endpoint 连接码。', pairBadCharacters: '连接码包含无效字符。', pairTooShort: '连接码不完整。', pairUnparseable: '无法解析连接码，请从 Agent 重新复制。', operationFailed: '远程设备操作失败：{{message}}' }, states: { LocalMode: '本地', RemoteIdle: '远程待机', Connecting: '连接中', Connected: '已连接', Transferring: '传输中', Error: '错误' },
   },
 
   terminal: {
     defaultTitle: 'Terminal',
+    reconnect: '重连',
+    connectionStatus: { connected: '已连接', disconnected: '已断开', reconnecting: '正在重连...', error: '连接失败' },
     loading: '正在加载终端...',
     initFailed: '初始化终端失败：{{message}}',
     notInitialized: '终端尚未初始化，请稍候再试',
@@ -72,8 +78,8 @@ export const zhCN: TranslationKeys = {
   },
 
   commands: {
-    openTerminal: '打开Termy终端',
-    showChangelog: 'Termy：显示更新日志',
+    openTerminal: '打开 Termesh',
+    showChangelog: 'Termesh：显示更新日志',
     terminalSearch: '终端：搜索',
     terminalClear: '终端：清屏',
     terminalCopy: '终端：复制',
@@ -95,7 +101,7 @@ export const zhCN: TranslationKeys = {
   },
 
   ribbon: {
-    terminalTooltip: '打开Termy终端',
+    terminalTooltip: '打开 Termesh',
   },
 
   visibility: {
@@ -176,7 +182,7 @@ export const zhCN: TranslationKeys = {
       advanced: '高级选项',
     },
     header: {
-      title: 'Termy',
+      title: 'Termesh',
       feedbackText: '感谢使用！欢迎反馈：',
       feedbackLink: 'GitHub',
       communityLink: 'Telegram 群组',
@@ -321,7 +327,7 @@ export const zhCN: TranslationKeys = {
       offlineMode: '离线模式',
       offlineModeDesc: '启用后，跳过二进制版本检查与自动下载',
       binaryDownloadSource: '二进制下载来源',
-      binaryDownloadSourceDesc: '选择 Termy 原生二进制从 GitHub Release 还是 Cloudflare R2 下载',
+      binaryDownloadSourceDesc: '选择 Termesh 原生二进制从 GitHub Release 还是 Cloudflare R2 下载',
       binaryDownloadSourceGithubRelease: 'GitHub Release',
       binaryDownloadSourceCloudflareR2: 'Cloudflare R2',
       binaryDownloadNow: '立即下载二进制',
@@ -338,7 +344,7 @@ export const zhCN: TranslationKeys = {
   modals: {
     changelog: {
       title: '更新日志',
-      subtitle: 'Termy {{version}} 更新内容',
+      subtitle: 'Termesh {{version}} 更新内容',
       loading: '正在加载更新日志...',
       unavailable: '暂时无法加载当前版本的更新日志。',
       openRelease: '打开发布页',
@@ -355,7 +361,7 @@ export const zhCN: TranslationKeys = {
     launcherInstall: {
       titleNotInstalled: '{{name}} 尚未安装',
       titleUpdate: '更新 {{name}}',
-      descriptionNotInstalled: 'Termy 在 PATH 中未找到 “{{command}}”。请先在本机安装该 CLI，然后再尝试启动。',
+      descriptionNotInstalled: 'Termesh 在 PATH 中未找到 “{{command}}”。请先在本机安装该 CLI，然后再尝试启动。',
       descriptionUpdate: '{{name}} 有新版本可用（{{local}} → {{latest}}）。在系统终端中运行下面的命令进行升级。',
       detectedCommand: '检测命令',
       versionLabel: '版本',
@@ -364,7 +370,7 @@ export const zhCN: TranslationKeys = {
       cardTitleUpgradeOneClick: '一键升级',
       cardDescInstall: '复制下面的命令并在系统终端中运行。一旦该可执行文件可被 shell 识别，此启动器将自动检测到。',
       cardDescUpgrade: '复制下面的命令并在系统终端中运行以完成升级。新版本对 shell 可见后，此启动器会自动识别。',
-      cardDescUpgradeOneClick: '点击 “立即更新” 在 Termy 终端中运行此命令，或复制后自行运行。',
+      cardDescUpgradeOneClick: '点击 “立即更新” 在 Termesh 终端中运行此命令，或复制后自行运行。',
       buttonCopy: '复制',
       buttonClose: '关闭',
       buttonOpenDocs: '打开安装文档',

@@ -146,6 +146,7 @@ export interface TerminalOptions {
 export type SearchStateCallback = (visible: boolean) => void;
 /** Font size change callback */
 export type FontSizeChangeCallback = (fontSize: number) => void;
+export type TerminalConnectionStatus = 'connected' | 'disconnected' | 'error';
 /** Renderer change callback */
 export type RendererChangeCallback = (renderer: 'canvas' | 'webgl') => void;
 
@@ -190,6 +191,8 @@ export class TerminalInstance {
   // Font size state
   private currentFontSize: number;
   private fontSizeChangeCallbacks: Set<FontSizeChangeCallback> = new Set();
+  private connectionStatusCallbacks = new Set<(status: TerminalConnectionStatus) => void>();
+  private connectionStatus: TerminalConnectionStatus = 'disconnected';
   private readonly minFontSize = 8;
   private readonly maxFontSize = 32;
 
@@ -569,6 +572,7 @@ export class TerminalInstance {
       this.setupTransportHandlers();
       this.setupXtermHandlers();
       this.isInitialized = true;
+      this.setConnectionStatus('connected');
       debugLog('[Terminal] 终端已初始化');
     } catch (error) {
       try { await transport.close(); } catch { /* ignore cleanup failures */ }
@@ -601,12 +605,14 @@ export class TerminalInstance {
     
     // Handle exit events (session-level)
     this.exitSubscription = this.transport.onExit((event) => {
+      this.setConnectionStatus('disconnected');
       debugLog('[Terminal] PTY 会话退出, code:', event.exitCode);
       this.xterm.write(`\r\n\x1b[33m[会话已结束, 退出码: ${event.exitCode ?? 'unknown'}]\x1b[0m\r\n`);
     });
     
     // Handle error events (session-level)
     this.errorSubscription = this.transport.onError((code: string, message: string) => {
+      this.setConnectionStatus('error');
       errorLog('[Terminal] PTY 错误:', code, message);
       this.xterm.write(`\r\n\x1b[1;31m[错误] ${message}\x1b[0m\r\n`);
     });
@@ -1823,6 +1829,18 @@ export class TerminalInstance {
     return () => {
       this.fontSizeChangeCallbacks.delete(callback);
     };
+  }
+
+  onConnectionStatusChange(callback: (status: TerminalConnectionStatus) => void): () => void {
+    this.connectionStatusCallbacks.add(callback);
+    callback(this.connectionStatus);
+    return () => this.connectionStatusCallbacks.delete(callback);
+  }
+
+  private setConnectionStatus(status: TerminalConnectionStatus): void {
+    if (this.connectionStatus === status) return;
+    this.connectionStatus = status;
+    for (const callback of this.connectionStatusCallbacks) callback(status);
   }
 
   // ==================== Context Menu Callback Setup ====================
