@@ -4,7 +4,7 @@
  */
 
 import type { App } from 'obsidian';
-import { Notice, PluginSettingTab, Setting, setIcon } from 'obsidian';
+import { PluginSettingTab, setIcon } from 'obsidian';
 import type TerminalPlugin from '../main';
 import { TerminalSettingsRenderer } from './renderers/terminalSettingsRenderer';
 import type { RendererContext } from './types';
@@ -48,37 +48,6 @@ export class TerminalSettingTab extends PluginSettingTab {
 
     // Render terminal settings
     this.terminalRenderer.render(context);
-    this.renderRemoteSettings(contentEl);
-  }
-
-  private renderRemoteSettings(containerEl: HTMLElement): void {
-    const settings = this.plugin.settings.remoteConnection;
-    const service = this.plugin.getRemoteService();
-    const snapshot = service.getSnapshot();
-    if (!snapshot.authenticated) return;
-
-    const section = containerEl.createDiv({ cls: 'terminal-settings-card' });
-    new Setting(section).setName(t('remote.title')).setHeading();
-
-    new Setting(section).setName(t('remote.relayUrl')).setDesc(t('remote.relayUrlDesc')).addText((text) => {
-      text.setValue(settings.relayUrl).onChange((value) => {
-        settings.relayUrl = value;
-        void this.plugin.saveSettings();
-      });
-    });
-    new Setting(section).setName(t('remote.loginName')).addText((text) => {
-      text.onChange((value) => { login = value; });
-    });
-    new Setting(section).setName(t('remote.password')).addText((text) => {
-      text.inputEl.type = 'password';
-      text.onChange((value) => { password = value; });
-    });
-    new Setting(section)
-      .setName(t('remote.loggedInAs', { login: settings.authSession?.login ?? '' }))
-      .addButton((button) => button.setButtonText(t('remote.logout')).onClick(() => {
-        service.logout();
-        this.display();
-      }));
   }
 
   /**

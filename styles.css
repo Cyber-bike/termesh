@@ -1365,6 +1365,9 @@
 .terminal-connection-status.is-error {
   color: var(--text-error);
 }
+.terminal-directory-tree-toggle.is-active {
+  color: var(--interactive-accent);
+}
 /* Terminal view main container - with background image */
 .terminal-view-container.has-background-image {
   background-color: transparent;
@@ -1386,6 +1389,140 @@
 /* Terminal container - with background image */
 .terminal-container.has-background-image {
   background-color: transparent;
+}
+/* Row wrapper for terminal + directory tree panel (candidate doc: 目录树与双向文件传输) */
+.terminal-body {
+  display: flex;
+  flex-direction: row;
+  flex: 1;
+  min-height: 0;
+  width: 100%;
+  overflow: hidden;
+}
+.terminal-body .terminal-container {
+  flex: 1;
+  min-width: 0;
+}
+.directory-tree-panel {
+  --directory-tree-panel-width: 260px;
+  display: flex;
+  flex-direction: column;
+  width: var(--directory-tree-panel-width);
+  min-width: 0;
+  flex-shrink: 0;
+  position: relative;
+  background-color: var(--background-primary);
+  overflow: hidden;
+}
+.directory-tree-panel--left {
+  order: -1;
+  border-right: 1px solid var(--background-modifier-border);
+}
+.directory-tree-panel--right {
+  border-left: 1px solid var(--background-modifier-border);
+}
+.directory-tree-panel--left .directory-tree-panel__resizer {
+  right: -3px;
+}
+.directory-tree-panel--right .directory-tree-panel__resizer {
+  left: -3px;
+}
+.directory-tree-panel__header {
+  display: flex;
+  align-items: center;
+  gap: 2px;
+  padding: 4px 6px;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+.directory-tree-panel__icon-btn {
+  width: 24px;
+  height: 24px;
+  flex-shrink: 0;
+}
+.directory-tree-panel__path {
+  padding: 4px 8px;
+  font-size: var(--font-ui-smaller);
+  color: var(--text-muted);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  border-bottom: 1px solid var(--background-modifier-border);
+}
+.directory-tree-panel__tree {
+  flex: 1;
+  min-height: 0;
+  overflow-y: auto;
+  overflow-x: hidden;
+  padding: 4px 0;
+}
+.directory-tree-panel__resizer {
+  position: absolute;
+  top: 0;
+  bottom: 0;
+  width: 6px;
+  cursor: col-resize;
+  z-index: 1;
+}
+.directory-tree-panel__resizer:hover {
+  background-color: var(--interactive-accent);
+  opacity: 0.4;
+}
+.directory-tree-panel__row {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  height: 24px;
+  padding-left: calc(6px + var(--directory-tree-depth, 0) * 16px);
+  padding-right: 6px;
+  cursor: default;
+  border-radius: 4px;
+}
+.directory-tree-panel__row:hover {
+  background-color: var(--background-modifier-hover);
+}
+.directory-tree-panel__row.is-drop-target {
+  background-color: var(--interactive-accent);
+  opacity: 0.7;
+}
+.directory-tree-panel__caret {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: var(--text-muted);
+  transition: transform 0.1s ease;
+}
+.directory-tree-panel__row.is-expanded .directory-tree-panel__caret {
+  transform: rotate(90deg);
+}
+.directory-tree-panel__node-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 14px;
+  height: 14px;
+  flex-shrink: 0;
+  color: var(--text-muted);
+}
+.directory-tree-panel__node-name {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  font-size: var(--font-ui-small);
+}
+.directory-tree-panel__children.is-hidden {
+  display: none;
+}
+.directory-tree-panel__empty,
+.directory-tree-panel__error {
+  padding: 4px 12px;
+  font-size: var(--font-ui-smaller);
+  color: var(--text-faint);
+}
+.directory-tree-panel__error {
+  color: var(--text-error);
 }
 .terminal-drop-hint {
   --terminal-drop-mask-color: color-mix(in srgb, var(--background-primary) 74%, transparent);

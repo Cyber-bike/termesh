@@ -35,8 +35,21 @@ function makeFakeWorld() {
   });
 
   const fakeBi = (): IrohBiStream => {
-    // Replies to the first frame (open) with an opened frame, like serve.rs.
-    const pending: number[][] = [];
+    // Replies to the first frame (open -> opened, fsList -> fsListResult,
+    // transferManifest -> transferAccepted, transferComplete ->
+    // transferResult), like serve.rs's `serve_bi_stream` dispatch. A proper
+    // waiter queue (not just "shift or hang forever") matters for transfer:
+    // its round trip needs a *second* reply (transferResult) that is only
+    // pushed after the reader has already made its first `read()` call and
+    // found the queue empty in between.
+    const items: number[][] = [];
+    let waiter: (() => void) | null = null;
+    const push = (item: number[]): void => {
+      items.push(item);
+      const resolve = waiter;
+      waiter = null;
+      resolve?.();
+    };
     return {
       send: {
         async writeAll(bytes) {
@@ -44,11 +57,74 @@ function makeFakeWorld() {
           decoder.push(Uint8Array.from(bytes));
           const frame = decoder.nextFrame();
           if (frame?.kind === 'open') {
-            pending.push(
+            push(
               Array.from(
                 encodeTerminalStreamFrame({
                   kind: 'opened',
                   payload: { sessionId: 'session-9', shell: '/bin/fake' },
+                }),
+              ),
+            );
+          }
+          if (frame?.kind === 'fsList') {
+            push(
+              Array.from(
+                encodeTerminalStreamFrame({
+                  kind: 'fsListResult',
+                  payload: { entries: [{ name: 'readme.md', isDirectory: false }] },
+                }),
+              ),
+            );
+          }
+          if (frame?.kind === 'transferManifest') {
+            push(
+              Array.from(
+                encodeTerminalStreamFrame({
+                  kind: 'transferAccepted',
+                  payload: { grantedBytes: 4 * 1024 * 1024 },
+                }),
+              ),
+            );
+          }
+          if (frame?.kind === 'transferComplete') {
+            push(
+              Array.from(
+                encodeTerminalStreamFrame({
+                  kind: 'transferResult',
+                  payload: { success: true, code: null, message: '' },
+                }),
+              ),
+            );
+          }
+          if (frame?.kind === 'transferPullRequest') {
+            push(
+              Array.from(
+                encodeTerminalStreamFrame({
+                  kind: 'transferPullManifest',
+                  payload: { entries: [{ index: 0, relativePath: 'a.md', size: 1 }] },
+                }),
+              ),
+            );
+          }
+          if (frame?.kind === 'transferCredit') {
+            push(
+              Array.from(
+                encodeTerminalStreamFrame({
+                  kind: 'transferChunk',
+                  payload: { fileIndex: 0, offset: 0, data: new TextEncoder().encode('a') },
+                }),
+              ),
+            );
+            push(
+              Array.from(
+                encodeTerminalStreamFrame({ kind: 'transferFileEnd', payload: { fileIndex: 0, sentSize: 1 } }),
+              ),
+            );
+            push(
+              Array.from(
+                encodeTerminalStreamFrame({
+                  kind: 'transferResult',
+                  payload: { success: true, code: null, message: '' },
                 }),
               ),
             );
@@ -58,7 +134,12 @@ function makeFakeWorld() {
       },
       recv: {
         async read() {
-          return pending.shift() ?? new Promise<never>(() => {});
+          if (items.length === 0) {
+            await new Promise<void>((resolve) => {
+              waiter = resolve;
+            });
+          }
+          return items.shift();
         },
       },
     };
@@ -266,6 +347,59 @@ test('createTerminalTransport opens sessions on the device connection', async ()
 
   assert.deepEqual(info, { sessionId: 'session-9', shell: '/bin/fake' });
   assert.equal(world.connection.biOpened, 1, 'one bi-stream per session');
+});
+
+test('createDirectoryTreeSource lists a remote directory over the device connection', async () => {
+  const world = makeFakeWorld();
+  const { manager } = makeManager(world);
+
+  assert.throws(() => manager.createDirectoryTreeSource(NODE_ID), /connect to the device/);
+
+  await manager.connect(NODE_ID);
+  const source = manager.createDirectoryTreeSource(NODE_ID);
+  const entries = await source.list('/home/user/project');
+
+  assert.deepEqual(entries, [{ name: 'readme.md', isDirectory: false }]);
+  assert.equal(world.connection.biOpened, 1, 'one bi-stream per list() call');
+});
+
+test('createTransferSender sends a note and resolves success over the device connection', async () => {
+  const world = makeFakeWorld();
+  const { manager } = makeManager(world);
+
+  assert.throws(
+    () => manager.createTransferSender(NODE_ID, 't1', [{ index: 0, relativePath: 'a.md', size: 1 }], async () => new Uint8Array()),
+    /connect to the device/,
+  );
+
+  await manager.connect(NODE_ID);
+  const sender = manager.createTransferSender(
+    NODE_ID,
+    't1',
+    [{ index: 0, relativePath: 'a.md', size: 1 }],
+    async () => new TextEncoder().encode('a'),
+  );
+  const outcome = await sender.run();
+
+  assert.deepEqual(outcome, { success: true, code: null, message: '' });
+  assert.equal(world.connection.biOpened, 1, 'one bi-stream per transfer');
+});
+
+test('createTransferPuller pulls a file and resolves with its content over the device connection', async () => {
+  const world = makeFakeWorld();
+  const { manager } = makeManager(world);
+
+  assert.throws(() => manager.createTransferPuller(NODE_ID, '/home/user/a.md'), /connect to the device/);
+
+  await manager.connect(NODE_ID);
+  const puller = manager.createTransferPuller(NODE_ID, '/home/user/a.md');
+  const outcome = await puller.run();
+
+  assert.equal(outcome.success, true);
+  assert.equal(outcome.files.length, 1);
+  assert.equal(outcome.files[0].relativePath, 'a.md');
+  assert.equal(new TextDecoder().decode(outcome.files[0].data), 'a');
+  assert.equal(world.connection.biOpened, 1, 'one bi-stream per pull');
 });
 
 test('disconnect and dispose tear things down', async () => {

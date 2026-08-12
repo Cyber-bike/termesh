@@ -32,7 +32,11 @@ export const ru: TranslationKeys = {
   },
 
   remote: {
-    title: 'Remote terminal', relayUrl: 'Relay URL', relayUrlDesc: 'HTTPS endpoint used for remote terminals', loginName: 'Login name', password: 'Password', login: 'Log in', logout: 'Log out', pairingCode: 'Pairing code', createPairingCode: 'Create pairing code', revokePairingCode: 'Revoke pairing code', devices: 'Devices', refreshDevices: 'Refresh devices', noDevices: 'No paired devices', mode: 'Terminal mode', local: 'Local', remote: 'Remote', device: 'Device', selectDevice: 'Select a device', offline: 'Offline', connect: 'Connect', disconnect: 'Disconnect', notConnected: 'Connect to a remote device before sending a note.', dropSingleMarkdown: 'Drop one Markdown note from this vault.', transferComplete: 'Note transfer complete.', transferFailed: 'Note transfer failed: {{message}}', v2: { title: 'Directly connected devices', description: 'Pair devices with an agent connection code and open encrypted remote terminals.', deviceName: 'Device name', deviceNamePlaceholder: 'Optional display name', connectionCode: 'Connection code', connectionCodePlaceholder: 'Paste an endpoint connection code', addDevice: 'Add device', addingDevice: 'Adding...', newTerminal: 'New terminal', removeDevice: 'Remove', neverConnected: 'Never connected', lastConnected: 'Last connected: {{time}}', statusDisconnected: 'Disconnected', statusConnecting: 'Connecting', statusConnected: 'Connected', statusError: 'Connection error', deviceAdded: 'Device added.', deviceRemoved: 'Device removed.', pairEmpty: 'Paste a connection code.', pairWrongPrefix: 'This is not a valid endpoint connection code.', pairBadCharacters: 'The connection code contains invalid characters.', pairTooShort: 'The connection code is incomplete.', pairUnparseable: 'The connection code could not be parsed. Copy it again from the agent.', operationFailed: 'Remote device operation failed: {{message}}' }, states: { LocalMode: 'Local', RemoteIdle: 'Remote idle', Connecting: 'Connecting', Connected: 'Connected', Transferring: 'Transferring', Error: 'Error' },
+    notConnected: 'Connect to a remote device before sending a note.',
+    dropSingleMarkdown: 'Drop one Markdown note from this vault.',
+    transferComplete: 'Note transfer complete.',
+    transferCompleteAt: 'Note transfer complete: {{path}}',
+    transferFailed: 'Note transfer failed: {{message}}',
   },
 
   terminal: {
@@ -77,9 +81,24 @@ export const ru: TranslationKeys = {
     },
   },
 
+  directoryTree: {
+    goUp: 'Перейти в родительский каталог',
+    refresh: 'Обновить',
+    toggleDockSide: 'Переключить сторону',
+    close: 'Закрыть дерево каталогов',
+    empty: 'Пустой каталог',
+    copyToVault: 'Скопировать в хранилище',
+    copyToVaultDone: 'Скопировано в хранилище.',
+    copyToVaultFailed: 'Не удалось скопировать в хранилище: {{message}}',
+    dropCopyDone: 'Скопировано в {{path}}.',
+    dropCopyFailed: 'Не удалось скопировать: {{message}}',
+    dropRejectedNotVaultItem: 'Перетащите заметку, вложение или папку из этого хранилища.',
+  },
+
   commands: {
     openTerminal: 'Открыть Termesh',
     showChangelog: 'Termesh: показать список изменений',
+    terminalToggleDirectoryTree: 'Терминал: переключить дерево каталогов',
     terminalSearch: 'Терминал: поиск',
     terminalClear: 'Терминал: очистить экран',
     terminalCopy: 'Терминал: копировать',

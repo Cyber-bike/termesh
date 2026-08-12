@@ -32,7 +32,11 @@ export const zhCN: TranslationKeys = {
   },
 
   remote: {
-    title: '远程终端', relayUrl: 'Relay 地址', relayUrlDesc: '远程终端使用的 HTTPS 服务地址', loginName: '登录名', password: '密码', login: '登录', logout: '退出登录', pairingCode: '配对码', createPairingCode: '生成配对码', revokePairingCode: '撤销配对码', devices: '设备', refreshDevices: '刷新设备', noDevices: '暂无已配对设备', mode: '终端模式', local: '本地', remote: '远程', device: '设备', selectDevice: '选择设备', offline: '离线', connect: '连接', disconnect: '断开', notConnected: '请先连接远程设备再发送笔记。', dropSingleMarkdown: '请从当前仓库拖入一个 Markdown 笔记。', transferComplete: '笔记传输完成。', transferFailed: '笔记传输失败：{{message}}', v2: { title: '直连设备', description: '使用 Agent 连接码添加设备，并打开端到端加密的远程终端。', deviceName: '设备名称', deviceNamePlaceholder: '可选的显示名称', connectionCode: '连接码', connectionCodePlaceholder: '粘贴 endpoint 连接码', addDevice: '添加设备', addingDevice: '正在添加...', newTerminal: '新建终端', removeDevice: '移除', neverConnected: '从未连接', lastConnected: '上次连接：{{time}}', statusDisconnected: '未连接', statusConnecting: '连接中', statusConnected: '已连接', statusError: '连接失败', deviceAdded: '设备已添加。', deviceRemoved: '设备已移除。', pairEmpty: '请粘贴连接码。', pairWrongPrefix: '这不是有效的 endpoint 连接码。', pairBadCharacters: '连接码包含无效字符。', pairTooShort: '连接码不完整。', pairUnparseable: '无法解析连接码，请从 Agent 重新复制。', operationFailed: '远程设备操作失败：{{message}}' }, states: { LocalMode: '本地', RemoteIdle: '远程待机', Connecting: '连接中', Connected: '已连接', Transferring: '传输中', Error: '错误' },
+    notConnected: '请先连接远程设备再发送笔记。',
+    dropSingleMarkdown: '请从当前仓库拖入一个 Markdown 笔记。',
+    transferComplete: '笔记传输完成。',
+    transferCompleteAt: '笔记传输完成：{{path}}',
+    transferFailed: '笔记传输失败：{{message}}',
   },
 
   terminal: {
@@ -77,10 +81,25 @@ export const zhCN: TranslationKeys = {
     },
   },
 
+  directoryTree: {
+    goUp: '返回上级目录',
+    refresh: '刷新',
+    toggleDockSide: '切换停靠方向',
+    close: '关闭目录树',
+    empty: '空目录',
+    copyToVault: '复制到 Vault',
+    copyToVaultDone: '已复制到 Vault。',
+    copyToVaultFailed: '复制到 Vault 失败：{{message}}',
+    dropCopyDone: '已复制到 {{path}}。',
+    dropCopyFailed: '复制失败：{{message}}',
+    dropRejectedNotVaultItem: '请从当前仓库拖入笔记、附件或文件夹。',
+  },
+
   commands: {
     openTerminal: '打开 Termesh',
     showChangelog: 'Termesh：显示更新日志',
     terminalSearch: '终端：搜索',
+    terminalToggleDirectoryTree: '终端：切换目录树',
     terminalClear: '终端：清屏',
     terminalCopy: '终端：复制',
     terminalPaste: '终端：粘贴',

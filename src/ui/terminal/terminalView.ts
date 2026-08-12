@@ -47,6 +47,11 @@ import { t } from '../../i18n';
 import { RenameTerminalModal } from './renameTerminalModal';
 import { capabilities, transition, type RemoteState } from '../../services/remote/remoteState';
 import { createVaultLinkSource, readVaultFile } from '../../services/remote/vaultLinkSource';
+import type { Disposable } from '../../services/remote/transport';
+import { DirectoryTreePanel } from './directoryTreePanel';
+import { LocalDirectoryTreeSource } from '../../services/terminal/directoryTreeSource';
+import { copyFsEntryToVault, copyVaultEntryToDirectory, type FsAccess } from '../../services/terminal/directoryTreeDrop';
+import { getHomeDir, isWindows } from '../../utils/platform';
 type XtermTerminal = import('@xterm/xterm').Terminal;
 
 export const TERMINAL_VIEW_TYPE = 'terminal-view';
@@ -78,6 +83,11 @@ export class TerminalView extends ItemView {
   private remoteState: RemoteState = 'LocalMode';
   private remoteToolbar: HTMLElement | null = null;
   private connectionStatus: TerminalConnectionStatus | 'reconnecting' = 'disconnected';
+  private lastTransferDestination: string | null = null;
+
+  private terminalBody: HTMLElement | null = null;
+  private directoryTreePanel: DirectoryTreePanel | null = null;
+  private directoryTreeVisible = false;
 
   private readonly fs: FsModule;
   private readonly path: PathModule;
@@ -156,7 +166,8 @@ export class TerminalView extends ItemView {
     this.remoteToolbar = container.createDiv('terminal-remote-toolbar');
     this.renderRemoteToolbar();
 
-    this.terminalContainer = container.createDiv('terminal-container');
+    this.terminalBody = container.createDiv('terminal-body');
+    this.terminalContainer = this.terminalBody.createDiv('terminal-container');
     this.ensureDropHint();
     this.hideDropHint();
     if (!this.removeDropHandlers) {
@@ -281,6 +292,10 @@ export class TerminalView extends ItemView {
     this.removeDropHandlers = null;
     this.dragEnterDepth = 0;
     this.dropHintEl = null;
+    this.directoryTreePanel?.destroy();
+    this.directoryTreePanel = null;
+    this.directoryTreeVisible = false;
+    this.terminalBody = null;
 
     if (this.terminalInstance) {
       try {
@@ -642,6 +657,146 @@ export class TerminalView extends ItemView {
     return null;
   }
 
+  /**
+   * Like `resolveDroppedMarkdownFile` but not restricted to a single
+   * Markdown note: the directory tree accepts any note, attachment, or
+   * folder dragged from the vault (candidate doc §4.1 point 5). Files and
+   * folders resolve the same way `normalizeDroppedMarkdownLinkpath` already
+   * resolves note links; the name is inherited from that helper, not a
+   * markdown restriction baked into its logic.
+   */
+  private resolveDroppedVaultEntries(dataTransfer: DataTransfer | null): Array<TFile | TFolder> {
+    if (!dataTransfer) return [];
+    const candidates = [
+      dataTransfer.getData('text/plain'),
+      dataTransfer.getData('text/uri-list'),
+      ...Array.from(dataTransfer.files).map((file) => file.name),
+    ].flatMap((candidate) => candidate.split(/\r?\n/));
+
+    const results: Array<TFile | TFolder> = [];
+    const seenPaths = new Set<string>();
+    for (const candidate of candidates) {
+      const path = normalizeDroppedMarkdownLinkpath(candidate);
+      if (!path) continue;
+      const direct = this.app.vault.getAbstractFileByPath(normalizeVaultPath(path));
+      const resolved = direct instanceof TFile || direct instanceof TFolder
+        ? direct
+        : this.app.metadataCache.getFirstLinkpathDest(path, '');
+      if ((resolved instanceof TFile || resolved instanceof TFolder) && !seenPaths.has(resolved.path)) {
+        seenPaths.add(resolved.path);
+        results.push(resolved);
+      }
+    }
+    return results;
+  }
+
+  private buildDirectoryTreeFsAccess(): FsAccess {
+    return {
+      promises: this.fs.promises,
+      join: (...segments: string[]) => this.path.join(...segments),
+    };
+  }
+
+  toggleDirectoryTree(): void {
+    if (this.directoryTreeVisible) {
+      this.closeDirectoryTree();
+    } else {
+      this.openDirectoryTree();
+    }
+  }
+
+  private openDirectoryTree(): void {
+    if (!this.terminalBody) return;
+
+    if (!this.directoryTreePanel) {
+      this.directoryTreePanel = new DirectoryTreePanel(
+        new LocalDirectoryTreeSource(this.fs),
+        {
+          join: (...segments: string[]) => this.path.join(...segments),
+          dirname: (target: string) => this.path.dirname(target),
+          basename: (target: string) => this.path.basename(target),
+        },
+        {
+          onActivateDirectory: (path) => this.activateDirectoryFromTree(path),
+          onDropToPath: (dataTransfer, targetPath) => void this.handleDirectoryTreeDrop(dataTransfer, targetPath),
+          onCopyToVault: (path, isDirectory, baseName) => void this.handleCopyToVault(path, isDirectory, baseName),
+          onRequestClose: () => this.closeDirectoryTree(),
+        },
+      );
+    }
+
+    if (!this.directoryTreePanel.element.isConnected) {
+      this.terminalBody.appendChild(this.directoryTreePanel.element);
+    }
+
+    this.directoryTreeVisible = true;
+    this.renderRemoteToolbar();
+
+    const rootPath = this.terminalInstance?.getCwd() ?? this.terminalInstance?.getInitialCwd() ?? getHomeDir();
+    void this.directoryTreePanel.setRootPath(rootPath);
+  }
+
+  private closeDirectoryTree(): void {
+    this.directoryTreePanel?.destroy();
+    this.directoryTreePanel = null;
+    this.directoryTreeVisible = false;
+    this.renderRemoteToolbar();
+  }
+
+  private activateDirectoryFromTree(path: string): void {
+    const terminal = this.terminalInstance;
+    if (!terminal) return;
+    const quoted = /\s/.test(path) ? `"${path}"` : path;
+    const command = isWindows() ? `cd /d ${quoted}` : `cd ${quoted}`;
+    terminal.sendText(`${command}\r`);
+    terminal.focus();
+  }
+
+  private async handleDirectoryTreeDrop(dataTransfer: DataTransfer, targetPath: string): Promise<void> {
+    const entries = this.resolveDroppedVaultEntries(dataTransfer);
+    if (entries.length === 0) {
+      new Notice(t('directoryTree.dropRejectedNotVaultItem'));
+      return;
+    }
+
+    const fsAccess = this.buildDirectoryTreeFsAccess();
+    try {
+      for (const entry of entries) {
+        await copyVaultEntryToDirectory(this.app, entry, targetPath, fsAccess);
+      }
+      new Notice(t('directoryTree.dropCopyDone', { path: targetPath }));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      new Notice(t('directoryTree.dropCopyFailed', { message }), 5000);
+    }
+  }
+
+  private async handleCopyToVault(absolutePath: string, isDirectory: boolean, baseName: string): Promise<void> {
+    const fsAccess = this.buildDirectoryTreeFsAccess();
+    try {
+      await copyFsEntryToVault(
+        this.app,
+        absolutePath,
+        isDirectory,
+        this.resolveActiveVaultFolder(),
+        fsAccess,
+        baseName,
+      );
+      new Notice(t('directoryTree.copyToVaultDone'));
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      new Notice(t('directoryTree.copyToVaultFailed', { message }), 5000);
+    }
+  }
+
+  /** Candidate doc §6.4: active file's folder, or vault root if none. */
+  private resolveActiveVaultFolder(): string {
+    const activeFile = this.app.workspace.getActiveFile();
+    const parent = activeFile?.parent;
+    if (!parent || parent.path === '/') return '';
+    return parent.path;
+  }
+
   private setRemoteState(state: RemoteState): void {
     this.remoteState = state;
     this.terminalInstance?.setInputEnabled(capabilities(state).input);
@@ -655,6 +810,14 @@ export class TerminalView extends ItemView {
     const reconnectButton = toolbar.createEl('button', { text: t('terminal.reconnect') });
     reconnectButton.disabled = !this.terminalInstance || this.connectionStatus === 'reconnecting';
     reconnectButton.addEventListener('click', () => void this.reconnectTerminal());
+
+    const treeToggleBtn = toolbar.createEl('button', {
+      cls: 'clickable-icon terminal-directory-tree-toggle',
+      attr: { 'aria-label': t('commands.terminalToggleDirectoryTree') },
+    });
+    setIcon(treeToggleBtn, 'folder-tree');
+    treeToggleBtn.toggleClass('is-active', this.directoryTreeVisible);
+    treeToggleBtn.addEventListener('click', () => this.toggleDirectoryTree());
 
     toolbar.createSpan({
       cls: `terminal-connection-status is-${this.connectionStatus}`,
