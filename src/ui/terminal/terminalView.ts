@@ -48,6 +48,7 @@ import { t } from '../../i18n';
 import { RenameTerminalModal } from './renameTerminalModal';
 import { capabilities, transition, type RemoteState } from '../../services/remote/remoteState';
 import { createVaultLinkSource, readVaultFile } from '../../services/remote/vaultLinkSource';
+import { checkQuotas, collect } from '../../services/remote/noteCollector';
 import { DirectoryTreePanel } from './directoryTreePanel';
 import { LocalDirectoryTreeSource } from '../../services/terminal/directoryTreeSource';
 import type { DirectoryTreeSource } from '../../services/terminal/directoryTreeSource';
@@ -90,7 +91,6 @@ export class TerminalView extends ItemView {
   private remoteState: RemoteState = 'LocalMode';
   private remoteToolbar: HTMLElement | null = null;
   private connectionStatus: TerminalConnectionStatus | 'reconnecting' = 'disconnected';
-  private lastTransferDestination: string | null = null;
 
   private terminalBody: HTMLElement | null = null;
   private directoryTreePanel: DirectoryTreePanel | null = null;
@@ -569,6 +569,13 @@ export class TerminalView extends ItemView {
   }
 
   private getDropHintText(): string {
+    // A connected remote terminal only accepts a single Markdown note (the
+    // same constraint `resolveDroppedMarkdownFile` enforces on drop), so
+    // warn about it up front instead of showing the LocalMode-oriented
+    // paste hint, which never applies here.
+    if (this.remoteState === 'Connected') {
+      return t('remote.dropSingleMarkdown');
+    }
     return t('terminal.dropHintPasteFilePath');
   }
 
@@ -627,17 +634,30 @@ export class TerminalView extends ItemView {
       return;
     }
 
+    // The terminal's `remoteState` is driven by the device connection this
+    // terminal actually rides (see `isRemoteTerminal`), not by the legacy
+    // relay-based `RemoteService` - so the transfer must go out over the
+    // same `DeviceConnectionManager` connection, matching how the directory
+    // tree already sends dropped vault entries (`sendVaultEntriesToRemote`).
+    const nodeId = this.getRemoteNodeId();
+    const connections = nodeId ? this.getTerminalPlugin()?.getDeviceConnectionManager() : null;
+    if (!nodeId || !connections) {
+      new Notice(t('remote.notConnected'));
+      return;
+    }
+
     this.setRemoteState(transition(this.remoteState, { type: 'dropNote' }));
     try {
-      const outcome = await this.terminalService?.getRemoteService().transfer(
-        createVaultLinkSource(this.app, file),
-        (path) => readVaultFile(this.app, path),
-      );
-      if (!outcome?.success) throw new Error(outcome?.message ?? 'Transfer failed');
-      this.lastTransferDestination = outcome.destinationPath ?? null;
-      new Notice(this.lastTransferDestination
-        ? t('remote.transferCompleteAt', { path: this.lastTransferDestination })
-        : t('remote.transferComplete'));
+      const collected = collect(createVaultLinkSource(this.app, file));
+      if (!collected.ok) throw new Error(collected.error ?? 'Unable to collect dropped note');
+      const quota = checkQuotas(collected.files);
+      if (!quota.ok) throw new Error(quota.error ?? 'Transfer quota exceeded');
+
+      const outcome = await connections
+        .createTransferSender(nodeId, crypto.randomUUID(), collected.files, (path) => readVaultFile(this.app, path))
+        .run();
+      if (!outcome.success) throw new Error(outcome.message || 'Transfer failed');
+      new Notice(t('remote.transferComplete'));
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       new Notice(t('remote.transferFailed', { message }), 5000);
@@ -898,10 +918,10 @@ export class TerminalView extends ItemView {
     reconnectButton.addEventListener('click', () => void this.reconnectTerminal());
 
     const treeToggleBtn = toolbar.createEl('button', {
-      cls: 'clickable-icon terminal-directory-tree-toggle',
+      cls: 'terminal-directory-tree-toggle',
+      text: t('directoryTree.toggle'),
       attr: { 'aria-label': t('commands.terminalToggleDirectoryTree') },
     });
-    setIcon(treeToggleBtn, 'folder-tree');
     treeToggleBtn.toggleClass('is-active', this.directoryTreeVisible);
     treeToggleBtn.addEventListener('click', () => this.toggleDirectoryTree());
 

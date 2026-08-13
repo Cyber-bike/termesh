@@ -82,6 +82,7 @@ export const ja: TranslationKeys = {
   },
 
   directoryTree: {
+    toggle: 'ディレクトリツリー',
     goUp: '親ディレクトリへ',
     refresh: '更新',
     toggleDockSide: 'ドッキング位置を切り替え',

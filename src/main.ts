@@ -499,6 +499,11 @@ export default class TerminalPlugin extends Plugin {
       void this.refreshAiLauncherAvailability().catch((error) => {
         errorLog('[TerminalPlugin] Failed to refresh AI launcher availability:', error);
       });
+      // Reconnect previously-connected devices instead of leaving them
+      // disconnected until the user clicks each one.
+      void this.autoConnectPairedDevices().catch((error) => {
+        errorLog('[TerminalPlugin] Failed to auto-connect paired devices:', error);
+      });
     });
 
     // Add the settings tab
@@ -921,6 +926,20 @@ export default class TerminalPlugin extends Plugin {
       t('terminal.defaultTitle'),
     ));
     await this.openPreparedTerminal(terminal, terminalService);
+  }
+
+  /**
+   * Reconnects every device that has connected successfully at least once
+   * before, so the device list is already live by the time the user looks
+   * at it instead of requiring a manual click. Also doubles as a warm-up:
+   * binding the iroh endpoint here (well before any user-initiated connect)
+   * avoids the first-click failures that happen when a connect attempt
+   * races the endpoint's just-completed bind.
+   */
+  private async autoConnectPairedDevices(): Promise<void> {
+    const connections = this.getDeviceConnectionManager();
+    const devices = this.getPairedDeviceStore().list().filter((device) => device.lastConnectedAt !== null);
+    await Promise.allSettled(devices.map((device) => connections.connect(device.nodeId)));
   }
 
   async openRemoteTerminal(nodeId: string, noteName = this.getActiveNoteName()): Promise<void> {

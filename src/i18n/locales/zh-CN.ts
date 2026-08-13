@@ -82,6 +82,7 @@ export const zhCN: TranslationKeys = {
   },
 
   directoryTree: {
+    toggle: '目录树',
     goUp: '返回上级目录',
     refresh: '刷新',
     toggleDockSide: '切换停靠方向',

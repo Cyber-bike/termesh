@@ -82,6 +82,7 @@ export const en: TranslationKeys = {
   },
 
   directoryTree: {
+    toggle: 'Directory tree',
     goUp: 'Go to parent directory',
     refresh: 'Refresh',
     toggleDockSide: 'Switch side',

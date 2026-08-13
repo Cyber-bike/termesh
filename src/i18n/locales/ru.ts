@@ -82,6 +82,7 @@ export const ru: TranslationKeys = {
   },
 
   directoryTree: {
+    toggle: 'Дерево каталогов',
     goUp: 'Перейти в родительский каталог',
     refresh: 'Обновить',
     toggleDockSide: 'Переключить сторону',

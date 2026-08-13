@@ -82,6 +82,7 @@ export const ko: TranslationKeys = {
   },
 
   directoryTree: {
+    toggle: '디렉터리 트리',
     goUp: '상위 디렉터리로 이동',
     refresh: '새로고침',
     toggleDockSide: '고정 위치 전환',

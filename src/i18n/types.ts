@@ -133,6 +133,7 @@ export interface TranslationKeys {
 
   // Directory tree panel
   directoryTree: {
+    toggle: string;
     goUp: string;
     refresh: string;
     toggleDockSide: string;
