@@ -28,6 +28,7 @@ use iroh::endpoint::{Connection, RecvStream, SendStream, VarInt};
 use iroh::Endpoint;
 use tokio::sync::mpsc;
 use uuid::Uuid;
+use std::path::Path;
 
 use crate::config::ShellConfig;
 use crate::fs_browse;
@@ -564,7 +565,7 @@ fn resolve_transfer_root(
     options: &ServeOptions,
 ) -> std::path::PathBuf {
     if let Some(path) = target_path {
-        return std::path::PathBuf::from(path);
+        return fs_browse::expand_user_path(Path::new(path));
     }
     if let Some(id) = session_id {
         let mut table = table.lock().expect("session table poisoned");

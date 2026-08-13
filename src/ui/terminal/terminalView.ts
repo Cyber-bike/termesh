@@ -47,7 +47,6 @@ import { t } from '../../i18n';
 import { RenameTerminalModal } from './renameTerminalModal';
 import { capabilities, transition, type RemoteState } from '../../services/remote/remoteState';
 import { createVaultLinkSource, readVaultFile } from '../../services/remote/vaultLinkSource';
-import type { Disposable } from '../../services/remote/transport';
 import { DirectoryTreePanel } from './directoryTreePanel';
 import { LocalDirectoryTreeSource } from '../../services/terminal/directoryTreeSource';
 import type { DirectoryTreeSource } from '../../services/terminal/directoryTreeSource';
@@ -755,7 +754,21 @@ export class TerminalView extends ItemView {
     this.directoryTreeVisible = true;
     this.renderRemoteToolbar();
 
-    const rootPath = this.terminalInstance?.getCwd() ?? this.terminalInstance?.getInitialCwd() ?? getHomeDir();
+    const terminal = this.terminalInstance;
+    const nodeId = this.getRemoteNodeId();
+    let rootPath = terminal?.getCwd() ?? getHomeDir();
+
+    // Remote terminals can only browse the agent's filesystem, so avoid
+    // falling back to the local vault path when no remote cwd has been
+    // detected yet. Use the remote home sentinel instead; the agent expands
+    // it to the real home directory.
+    if (nodeId && terminal) {
+      const initialCwd = terminal.getInitialCwd();
+      if (!terminal.getCwd() || rootPath === initialCwd) {
+        rootPath = '~';
+      }
+    }
+
     void this.directoryTreePanel.setRootPath(rootPath);
   }
 
@@ -809,7 +822,7 @@ export class TerminalView extends ItemView {
     if (!connections) throw new Error('Remote connection is not available');
 
     for (const entry of entries) {
-      const { files, readFile } = await collectVaultEntryForTransfer(entry);
+      const { files, readFile } = collectVaultEntryForTransfer(entry);
       if (files.length === 0) continue;
       const outcome = await connections
         .createTransferSender(nodeId, crypto.randomUUID(), files, readFile, null, targetPath)

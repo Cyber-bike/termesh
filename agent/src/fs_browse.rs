@@ -15,11 +15,44 @@ use std::path::{Path, PathBuf};
 use crate::termstream::FsEntry;
 use crate::transfer::{MAX_FILES, MAX_FILE_BYTES, MAX_TRANSFER_BYTES};
 
+fn resolve_home_dir() -> Option<PathBuf> {
+    std::env::var_os("HOME")
+        .or_else(|| std::env::var_os("USERPROFILE"))
+        .map(PathBuf::from)
+}
+
+fn expand_tilde_path(path: &Path, home_dir: Option<&Path>) -> PathBuf {
+    let raw = path.to_string_lossy();
+    let Some(home_dir) = home_dir else {
+        return path.to_path_buf();
+    };
+
+    if raw == "~" {
+        return home_dir.to_path_buf();
+    }
+
+    if let Some(rest) = raw.strip_prefix("~/").or_else(|| raw.strip_prefix("~\\")) {
+        let mut expanded = home_dir.to_path_buf();
+        if !rest.is_empty() {
+            expanded.push(rest);
+        }
+        return expanded;
+    }
+
+    path.to_path_buf()
+}
+
+pub(crate) fn expand_user_path(path: &Path) -> PathBuf {
+    expand_tilde_path(path, resolve_home_dir().as_deref())
+}
+
 /// Lists the direct children of `path` (not recursive), directories
 /// before files, each group alphabetical - same ordering `directoryTreeSource.ts`
 /// applies on the local side, so the two data sources behave identically
 /// from the panel's point of view.
 pub fn list_directory(path: &Path) -> io::Result<Vec<FsEntry>> {
+    let path = expand_user_path(path);
+
     let mut entries: Vec<FsEntry> = fs::read_dir(path)?
         .filter_map(|entry| entry.ok())
         .map(|entry| {
@@ -59,7 +92,8 @@ pub struct PullEntry {
 /// reused here so a pull cannot be used to exfiltrate an unbounded amount
 /// of data any more than a push can be used to write one.
 pub fn walk_for_pull(path: &Path) -> Result<Vec<PullEntry>, String> {
-    let metadata = fs::symlink_metadata(path).map_err(|e| e.to_string())?;
+    let path = expand_user_path(path);
+    let metadata = fs::symlink_metadata(&path).map_err(|e| e.to_string())?;
     let base_name = path
         .file_name()
         .map(|n| n.to_string_lossy().into_owned())
@@ -67,7 +101,7 @@ pub fn walk_for_pull(path: &Path) -> Result<Vec<PullEntry>, String> {
 
     let mut entries = Vec::new();
     if metadata.is_dir() {
-        walk_dir_for_pull(path, &base_name, &mut entries).map_err(|e| e.to_string())?;
+        walk_dir_for_pull(&path, &base_name, &mut entries).map_err(|e| e.to_string())?;
     } else if metadata.is_file() {
         entries.push(PullEntry {
             index: 0,
@@ -239,6 +273,13 @@ mod tests {
         fs::create_dir(&empty).unwrap();
         let err = walk_for_pull(&empty).unwrap_err();
         assert!(err.contains("nothing to send"), "got: {err}");
+    }
+
+    #[test]
+    fn expand_tilde_path_uses_the_home_directory_when_present() {
+        let home = tempfile::tempdir().unwrap();
+        let expanded = super::expand_tilde_path(Path::new("~/notes/demo.md"), Some(home.path()));
+        assert_eq!(expanded, home.path().join("notes/demo.md"));
     }
 
     #[test]

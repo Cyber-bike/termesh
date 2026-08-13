@@ -73,7 +73,7 @@ export class LocalDirectoryTreeSource implements DirectoryTreeSource {
   }
 
   watch(path: string, onChange: (kind: DirectoryChangeKind) => void): Disposable {
-    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    let debounceTimer: number | null = null;
     let pendingKind: DirectoryChangeKind = 'unknown';
 
     const flush = (): void => {
@@ -85,7 +85,7 @@ export class LocalDirectoryTreeSource implements DirectoryTreeSource {
     const scheduleFlush = (kind: DirectoryChangeKind): void => {
       pendingKind = pendingKind === 'unknown' ? kind : pendingKind;
       if (debounceTimer) return;
-      debounceTimer = setTimeout(flush, WATCH_DEBOUNCE_MS);
+      debounceTimer = window.setTimeout(flush, WATCH_DEBOUNCE_MS);
     };
 
     let watcher: MinimalFsWatcher | null = null;
@@ -100,7 +100,7 @@ export class LocalDirectoryTreeSource implements DirectoryTreeSource {
     }
 
     return toDisposable(() => {
-      if (debounceTimer) clearTimeout(debounceTimer);
+      if (debounceTimer) window.clearTimeout(debounceTimer);
       watcher?.close();
     });
   }

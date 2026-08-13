@@ -164,7 +164,7 @@ export async function writePulledFilesToVault(
 
 export interface VaultTransferSource {
   files: CollectedFile[];
-  readFile(relativePath: string): Promise<Uint8Array>;
+  readFile: (relativePath: string) => Promise<Uint8Array>;
 }
 
 /**
@@ -176,7 +176,7 @@ export interface VaultTransferSource {
  * already does for the local case - the remote and local send directions
  * should behave identically except for where the bytes end up.
  */
-export async function collectVaultEntryForTransfer(entry: TFile | TFolder): Promise<VaultTransferSource> {
+export function collectVaultEntryForTransfer(entry: TFile | TFolder): VaultTransferSource {
   const filesByPath = new Map<string, TFile>();
 
   if (entry instanceof TFileClass) {
