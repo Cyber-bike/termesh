@@ -138,7 +138,9 @@ export interface TranslationKeys {
     toggleDockSide: string;
     close: string;
     empty: string;
+    pathInput: string;
     copyToVault: string;
+    copyToVaultChooseFolderPlaceholder: string;
     copyToVaultDone: string;
     copyToVaultFailed: string;
     dropCopyDone: string;

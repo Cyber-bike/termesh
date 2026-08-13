@@ -12,13 +12,18 @@
  *    drag-resize handle), not Obsidian's native pane-split, and not a true
  *    "grab this button and drop it on an edge" gesture — dock side is a
  *    two-state toggle button instead. See dev doc §4 decision 3 for why.
- *  - The "copy a tree entry into the vault" direction is a context-menu
- *    action, not drag-out. A renderer-only Obsidian plugin has no reliable
- *    way to originate a real OS file drag that Obsidian's own file
- *    explorer (which expects its *own* internal drag payload, not an
- *    arbitrary one) would accept as "create these vault files" — see the
- *    dev doc's front-matter note. Right-click "复制到 Vault" is the
- *    reliable substitute for that direction.
+  *  - The "copy a tree entry into the vault" direction has two entry
+ *    points: right-click "复制到 Vault", and dragging a row out. The drag
+ *    isn't a real OS-level file drag (a renderer-only Obsidian plugin has
+ *    no reliable way to originate one that Obsidian's own file explorer,
+ *    which expects its *own* internal drag payload, would accept) - rows
+ *    are draggable with a plugin-private MIME type instead
+ *    (`DIRECTORY_TREE_DRAG_MIME`, `directoryTreeDrop.ts`), which only a
+ *    listener this plugin itself registers on Obsidian's file-explorer pane
+ *    (in `main.ts`, once, plugin-wide) recognizes; every other drop target
+ *    - Obsidian's own move-file handling, a real OS file drag - never sees
+ *    this MIME type and behaves exactly as if the row weren't draggable at
+ *    all.
  */
 
 import type { Menu as ObsidianMenu } from 'obsidian';
@@ -26,6 +31,7 @@ import { Menu, setIcon } from 'obsidian';
 
 import type { Disposable } from '../../services/remote/transport.ts';
 import type { DirectoryEntry, DirectoryTreeSource } from '../../services/terminal/directoryTreeSource.ts';
+import { DIRECTORY_TREE_DRAG_MIME, type DirectoryTreeDragPayload } from '../../services/terminal/directoryTreeDrop.ts';
 import { t } from '../../i18n';
 
 export type DockSide = 'left' | 'right';
@@ -35,6 +41,8 @@ export interface DirectoryTreePanelCallbacks {
   onActivateDirectory(path: string): void;
   /** A vault drag landed on a directory node; caller resolves and copies the payload. */
   onDropToPath(dataTransfer: DataTransfer, targetPath: string): void;
+  /** The dock-side toggle button was used; caller may persist the new side. */
+  onDockSideChange?(side: DockSide): void;
   /** "复制到 Vault" was chosen from a node's context menu. */
   onCopyToVault(path: string, isDirectory: boolean, baseName: string): void;
   /** The panel was closed via its own header button. */
@@ -55,12 +63,12 @@ export class DirectoryTreePanel {
   readonly element: HTMLElement;
 
   private readonly headerEl: HTMLElement;
-  private readonly pathLabelEl: HTMLElement;
+  private readonly pathInputEl: HTMLInputElement;
   private readonly treeRootEl: HTMLElement;
   private readonly resizerEl: HTMLElement;
 
   private rootPath: string | null = null;
-  private dockSide: DockSide = 'right';
+  private dockSide: DockSide;
   private width = DEFAULT_WIDTH_PX;
 
   /** One watch subscription per directory currently rendered as expanded. */
@@ -72,13 +80,22 @@ export class DirectoryTreePanel {
     private readonly source: DirectoryTreeSource,
     private readonly pathApi: PathApi,
     private readonly callbacks: DirectoryTreePanelCallbacks,
+    initialDockSide: DockSide = 'right',
+    /** The device this tree browses, or `null` for the local filesystem - stamped onto each row's drag payload. */
+    private readonly remoteNodeId: string | null = null,
   ) {
+    this.dockSide = initialDockSide;
     this.element = createDiv('directory-tree-panel');
 
     this.headerEl = this.element.createDiv('directory-tree-panel__header');
     this.buildHeaderControls();
 
-    this.pathLabelEl = this.element.createDiv('directory-tree-panel__path');
+    this.pathInputEl = this.element.createEl('input', {
+      cls: 'directory-tree-panel__path',
+      type: 'text',
+      attr: { spellcheck: 'false', 'aria-label': t('directoryTree.pathInput') },
+    });
+    this.bindPathInput();
 
     this.treeRootEl = this.element.createDiv('directory-tree-panel__tree');
 
@@ -87,6 +104,28 @@ export class DirectoryTreePanel {
 
     this.applyDockSide();
     this.applyWidth();
+  }
+
+  /** Enter navigates to the typed path; Escape or blur without Enter reverts the display. */
+  private bindPathInput(): void {
+    this.pathInputEl.addEventListener('keydown', (event) => {
+      if (event.key === 'Enter') {
+        event.preventDefault();
+        const target = this.pathInputEl.value.trim();
+        if (target && target !== this.rootPath) {
+          void this.setRootPath(target);
+        }
+        this.pathInputEl.blur();
+      } else if (event.key === 'Escape') {
+        event.preventDefault();
+        this.pathInputEl.value = this.rootPath ?? '';
+        this.pathInputEl.blur();
+      }
+    });
+    this.pathInputEl.addEventListener('blur', () => {
+      this.pathInputEl.value = this.rootPath ?? '';
+    });
+    this.pathInputEl.addEventListener('focus', () => this.pathInputEl.select());
   }
 
   private buildHeaderControls(): void {
@@ -172,8 +211,10 @@ export class DirectoryTreePanel {
   }
 
   setDockSide(side: DockSide): void {
+    if (this.dockSide === side) return;
     this.dockSide = side;
     this.applyDockSide();
+    this.callbacks.onDockSideChange?.(side);
   }
 
   private applyDockSide(): void {
@@ -183,8 +224,8 @@ export class DirectoryTreePanel {
 
   async setRootPath(rootPath: string, options: { keepExpanded?: boolean } = {}): Promise<void> {
     this.rootPath = rootPath;
-    this.pathLabelEl.setText(rootPath);
-    this.pathLabelEl.setAttribute('title', rootPath);
+    this.pathInputEl.value = rootPath;
+    this.pathInputEl.setAttribute('title', rootPath);
 
     if (!options.keepExpanded) {
       this.expandedPaths.clear();
@@ -279,13 +320,35 @@ export class DirectoryTreePanel {
       this.showNodeContextMenu(event, fullPath, entry.isDirectory, entry.name);
     });
 
+    // Draggable out to Obsidian's file explorer (see this file's top doc
+    // comment) - not a real OS file drag, just a same-window HTML5 drag
+    // carrying a plugin-private payload that only main.ts's explorer-drop
+    // listener recognizes.
+    row.draggable = true;
+    row.addEventListener('dragstart', (event) => {
+      if (!event.dataTransfer) return;
+      const payload: DirectoryTreeDragPayload = {
+        path: fullPath,
+        isDirectory: entry.isDirectory,
+        baseName: entry.name,
+        nodeId: this.remoteNodeId,
+      };
+      event.dataTransfer.setData(DIRECTORY_TREE_DRAG_MIME, JSON.stringify(payload));
+      event.dataTransfer.effectAllowed = 'copy';
+    });
+
     if (entry.isDirectory) {
       row.addEventListener('dragover', (event) => {
+        // A row we ourselves made draggable passing back over another row
+        // in the same tree isn't a vault-drop - let it fall through as a
+        // no-op instead of flashing this row as a drop target.
+        if (event.dataTransfer?.types.includes(DIRECTORY_TREE_DRAG_MIME)) return;
         event.preventDefault();
         row.addClass('is-drop-target');
       });
       row.addEventListener('dragleave', () => row.removeClass('is-drop-target'));
       row.addEventListener('drop', (event) => {
+        if (event.dataTransfer?.types.includes(DIRECTORY_TREE_DRAG_MIME)) return;
         event.preventDefault();
         event.stopPropagation();
         row.removeClass('is-drop-target');

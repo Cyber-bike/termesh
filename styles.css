@@ -1440,13 +1440,24 @@
   flex-shrink: 0;
 }
 .directory-tree-panel__path {
+  width: 100%;
   padding: 4px 8px;
   font-size: var(--font-ui-smaller);
+  font-family: inherit;
   color: var(--text-muted);
   white-space: nowrap;
   overflow: hidden;
   text-overflow: ellipsis;
+  border: none;
   border-bottom: 1px solid var(--background-modifier-border);
+  border-radius: 0;
+  background-color: transparent;
+  box-shadow: none;
+}
+.directory-tree-panel__path:focus {
+  color: var(--text-normal);
+  background-color: var(--background-modifier-form-field);
+  box-shadow: none;
 }
 .directory-tree-panel__tree {
   flex: 1;
@@ -1474,7 +1485,7 @@
   height: 24px;
   padding-left: calc(6px + var(--directory-tree-depth, 0) * 16px);
   padding-right: 6px;
-  cursor: default;
+  cursor: grab;
   border-radius: 4px;
 }
 .directory-tree-panel__row:hover {

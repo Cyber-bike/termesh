@@ -29,6 +29,7 @@ import {
   getVaultRelativePathFromAbsolute,
   isBasenameOnlyTerminalToken,
   isAbsoluteTerminalPath,
+  isWindowsStylePath,
   joinTerminalPaths,
   normalizeDroppedEntryReference,
   normalizeDroppedMarkdownLinkpath,
@@ -52,9 +53,8 @@ import { LocalDirectoryTreeSource } from '../../services/terminal/directoryTreeS
 import type { DirectoryTreeSource } from '../../services/terminal/directoryTreeSource';
 import {
   collectVaultEntryForTransfer,
-  copyFsEntryToVault,
   copyVaultEntryToDirectory,
-  writePulledFilesToVault,
+  type DirectoryTreeDragPayload,
   type FsAccess,
 } from '../../services/terminal/directoryTreeDrop';
 import type { DeviceConnectionManager } from '../../services/remote/deviceConnections';
@@ -704,6 +704,31 @@ export class TerminalView extends ItemView {
     };
   }
 
+  /**
+   * A remote directory tree lists a device that may not share the local
+   * machine's OS, so joining/splitting its paths with the local `path`
+   * module (win32 on a Windows control machine, say, joining a Linux
+   * agent's paths) mangles separators and breaks every `fsList` past the
+   * first level. Node's `path` module always exposes `.win32`/`.posix`
+   * regardless of the host OS, so each call picks the one matching what the
+   * path itself looks like rather than assuming it matches the local OS.
+   */
+  private buildDirectoryTreePathApi(isRemote: boolean): { join(...segments: string[]): string; dirname(target: string): string; basename(target: string): string } {
+    if (!isRemote) {
+      return {
+        join: (...segments: string[]) => this.path.join(...segments),
+        dirname: (target: string) => this.path.dirname(target),
+        basename: (target: string) => this.path.basename(target),
+      };
+    }
+    const moduleFor = (sample: string) => (isWindowsStylePath(sample) ? this.path.win32 : this.path.posix);
+    return {
+      join: (...segments: string[]) => moduleFor(segments[0] ?? '').join(...segments),
+      dirname: (target: string) => moduleFor(target).dirname(target),
+      basename: (target: string) => moduleFor(target).basename(target),
+    };
+  }
+
   toggleDirectoryTree(): void {
     if (this.directoryTreeVisible) {
       this.closeDirectoryTree();
@@ -731,19 +756,24 @@ export class TerminalView extends ItemView {
     if (!this.terminalBody) return;
 
     if (!this.directoryTreePanel) {
+      const plugin = this.getTerminalPlugin();
       this.directoryTreePanel = new DirectoryTreePanel(
         this.buildDirectoryTreeSource(),
-        {
-          join: (...segments: string[]) => this.path.join(...segments),
-          dirname: (target: string) => this.path.dirname(target),
-          basename: (target: string) => this.path.basename(target),
-        },
+        this.buildDirectoryTreePathApi(this.getRemoteNodeId() !== null),
         {
           onActivateDirectory: (path) => this.activateDirectoryFromTree(path),
           onDropToPath: (dataTransfer, targetPath) => void this.handleDirectoryTreeDrop(dataTransfer, targetPath),
           onCopyToVault: (path, isDirectory, baseName) => void this.handleCopyToVault(path, isDirectory, baseName),
           onRequestClose: () => this.closeDirectoryTree(),
+          onDockSideChange: (side) => {
+            const current = this.getTerminalPlugin();
+            if (!current) return;
+            current.settings.directoryTreeDockSide = side;
+            void current.saveSettings();
+          },
         },
+        plugin?.settings.directoryTreeDockSide ?? 'right',
+        this.getRemoteNodeId(),
       );
     }
 
@@ -783,7 +813,11 @@ export class TerminalView extends ItemView {
     const terminal = this.terminalInstance;
     if (!terminal) return;
     const quoted = /\s/.test(path) ? `"${path}"` : path;
-    const command = isWindows() ? `cd /d ${quoted}` : `cd ${quoted}`;
+    // A remote terminal's OS can differ from the local machine's, so the
+    // path's own shape decides which `cd` syntax to send, not `isWindows()`
+    // (that only describes the machine running Obsidian).
+    const targetIsWindows = this.getRemoteNodeId() !== null ? isWindowsStylePath(path) : isWindows();
+    const command = targetIsWindows ? `cd /d ${quoted}` : `cd ${quoted}`;
     terminal.sendText(`${command}\r`);
     terminal.focus();
   }
@@ -831,39 +865,22 @@ export class TerminalView extends ItemView {
     }
   }
 
+  /**
+   * The right-click "复制到 Vault" entry point. Dragging a row out to a
+   * folder in Obsidian's real file explorer is the other entry point to
+   * the same underlying copy - see `main.ts`'s explorer-drop listener,
+   * which calls the plugin-level `copyDirectoryTreeEntryToVaultWithPicker`
+   * directly (with a folder already resolved from where the drop landed)
+   * since that isn't tied to any one open terminal view.
+   */
   private async handleCopyToVault(absolutePath: string, isDirectory: boolean, baseName: string): Promise<void> {
-    const nodeId = this.getRemoteNodeId();
-    try {
-      if (nodeId) {
-        const connections = this.getTerminalPlugin()?.getDeviceConnectionManager();
-        if (!connections) throw new Error('Remote connection is not available');
-        const outcome = await connections.createTransferPuller(nodeId, absolutePath).run();
-        if (!outcome.success) throw new Error(outcome.message || 'Pull failed');
-        await writePulledFilesToVault(this.app, outcome.files, this.resolveActiveVaultFolder());
-      } else {
-        const fsAccess = this.buildDirectoryTreeFsAccess();
-        await copyFsEntryToVault(
-          this.app,
-          absolutePath,
-          isDirectory,
-          this.resolveActiveVaultFolder(),
-          fsAccess,
-          baseName,
-        );
-      }
-      new Notice(t('directoryTree.copyToVaultDone'));
-    } catch (error) {
-      const message = error instanceof Error ? error.message : String(error);
-      new Notice(t('directoryTree.copyToVaultFailed', { message }), 5000);
-    }
-  }
-
-  /** Candidate doc §6.4: active file's folder, or vault root if none. */
-  private resolveActiveVaultFolder(): string {
-    const activeFile = this.app.workspace.getActiveFile();
-    const parent = activeFile?.parent;
-    if (!parent || parent.path === '/') return '';
-    return parent.path;
+    const entry: DirectoryTreeDragPayload = {
+      path: absolutePath,
+      isDirectory,
+      baseName,
+      nodeId: this.getRemoteNodeId(),
+    };
+    await this.getTerminalPlugin()?.copyDirectoryTreeEntryToVaultWithPicker(entry);
   }
 
   private setRemoteState(state: RemoteState): void {
@@ -1596,6 +1613,8 @@ export class TerminalView extends ItemView {
     getAlwaysOnTopTerminalLabel: (terminalView: TerminalView) => string;
     isAlwaysOnTopTerminal: (terminalView: TerminalView) => boolean;
     handleTerminalViewClosed: (terminalView: TerminalView) => void;
+    saveSettings: () => Promise<void>;
+    copyDirectoryTreeEntryToVaultWithPicker: (entry: DirectoryTreeDragPayload, explicitTargetFolder?: string) => Promise<void>;
   } | null {
     const appWithPlugins = this.app as typeof this.app & {
       plugins?: { getPlugin?: (id: string) => unknown };
@@ -1616,6 +1635,8 @@ export class TerminalView extends ItemView {
     getAlwaysOnTopTerminalLabel: (terminalView: TerminalView) => string;
     isAlwaysOnTopTerminal: (terminalView: TerminalView) => boolean;
     handleTerminalViewClosed: (terminalView: TerminalView) => void;
+    saveSettings: () => Promise<void>;
+    copyDirectoryTreeEntryToVaultWithPicker: (entry: DirectoryTreeDragPayload, explicitTargetFolder?: string) => Promise<void>;
   } {
     if (!value || typeof value !== 'object') return false;
     const candidate = value as {
@@ -1629,6 +1650,8 @@ export class TerminalView extends ItemView {
       getAlwaysOnTopTerminalLabel?: unknown;
       isAlwaysOnTopTerminal?: unknown;
       handleTerminalViewClosed?: unknown;
+      saveSettings?: unknown;
+      copyDirectoryTreeEntryToVaultWithPicker?: unknown;
     };
     return typeof candidate.activateTerminalView === 'function'
       && typeof candidate.reconnectTerminalView === 'function'
@@ -1639,6 +1662,8 @@ export class TerminalView extends ItemView {
       && typeof candidate.getAlwaysOnTopTerminalLabel === 'function'
       && typeof candidate.isAlwaysOnTopTerminal === 'function'
       && typeof candidate.handleTerminalViewClosed === 'function'
+      && typeof candidate.saveSettings === 'function'
+      && typeof candidate.copyDirectoryTreeEntryToVaultWithPicker === 'function'
       && typeof candidate.settings === 'object';
   }
 }

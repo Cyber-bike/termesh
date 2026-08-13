@@ -132,6 +132,16 @@ export interface TerminalSettings {
   // Latest version whose changelog modal has already been shown
   lastSeenChangelogVersion: string;
 
+  // Which side the remote/local directory tree panel docks to, remembered
+  // across sessions so it doesn't reset to the default every time.
+  directoryTreeDockSide: 'left' | 'right';
+
+  // Last vault folder chosen via the directory tree's "复制到 Vault" folder
+  // picker, remembered as the next default. '' means the vault root; null
+  // means the picker has never been used yet (default to the active note's
+  // folder instead).
+  directoryTreeLastCopyToVaultFolder: string | null;
+
   // Debug settings
   enableDebugLog: boolean;
 }
@@ -414,4 +424,6 @@ export const DEFAULT_TERMINAL_SETTINGS: TerminalSettings = {
   checkAiLauncherUpdates: true,
   lastSeenChangelogVersion: '',
   enableDebugLog: false,
+  directoryTreeDockSide: 'right',
+  directoryTreeLastCopyToVaultFolder: null,
 };

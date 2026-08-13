@@ -1,5 +1,7 @@
 import type { View, WorkspaceLeaf } from 'obsidian';
 import { addIcon, FileSystemAdapter, Modal, Notice, Plugin, normalizePath, setIcon, setTooltip } from 'obsidian';
+import * as nodeFs from 'fs';
+import * as nodePath from 'path';
 import {
   DEFAULT_PRESET_SCRIPTS,
   DEFAULT_TERMINAL_SETTINGS,
@@ -24,6 +26,13 @@ import type { IrohModule } from './services/remote/irohStreams';
 import { normalizeControllerIdentitySeed } from './services/remote/controllerIdentity';
 import { requestWithObsidian } from './services/remote/obsidianRelayRequest';
 import { TERMINAL_VIEW_TYPE, TerminalView } from './ui/terminal/terminalView';
+import {
+  copyDirectoryTreeEntryToVault,
+  DIRECTORY_TREE_DRAG_MIME,
+  type DirectoryTreeDragPayload,
+  type FsAccess,
+} from './services/terminal/directoryTreeDrop';
+import { pickVaultDestinationFolder } from './ui/terminal/vaultFolderSuggestModal';
 import { DEVICE_HOME_VIEW_TYPE, DeviceHomeView } from './ui/home/deviceHomeView';
 import { ChangelogModal } from './ui/changelog/changelogModal';
 import { i18n, t } from './i18n';
@@ -258,6 +267,127 @@ export default class TerminalPlugin extends Plugin {
     return this._deviceConnections;
   }
 
+  private buildDirectoryTreeFsAccess(): FsAccess {
+    return {
+      promises: nodeFs.promises,
+      join: (...segments: string[]) => nodePath.join(...segments),
+    };
+  }
+
+  /** Active note's folder, or the vault root if there is none. */
+  private resolveActiveVaultFolder(): string {
+    const activeFile = this.app.workspace.getActiveFile();
+    const parent = activeFile?.parent;
+    if (!parent || parent.path === '/') return '';
+    return parent.path;
+  }
+
+  /**
+   * Copies one directory-tree entry (local or remote) into the vault -
+   * shared by the panel's right-click "复制到 Vault" (`terminalView.ts`'s
+   * `handleCopyToVault`) and by dropping a dragged row onto a folder in
+   * Obsidian's real file explorer (`registerDirectoryTreeExplorerDrop`
+   * below, which resolves `explicitTargetFolder` from where the drop
+   * landed). Lives on the plugin rather than a `TerminalView` because
+   * neither entry point is tied to one specific open terminal.
+   *
+   * Without an explicit target, this asks via `VaultFolderSuggestModal`,
+   * defaulting to the last folder chosen (or the active note's folder the
+   * first time), and remembers the choice as the next default.
+   */
+  async copyDirectoryTreeEntryToVaultWithPicker(
+    entry: DirectoryTreeDragPayload,
+    explicitTargetFolder?: string,
+  ): Promise<void> {
+    let targetFolder = explicitTargetFolder;
+    if (targetFolder === undefined) {
+      const defaultFolder = this.settings.directoryTreeLastCopyToVaultFolder ?? this.resolveActiveVaultFolder();
+      const picked = await pickVaultDestinationFolder(this.app, defaultFolder);
+      if (picked === null) return; // user dismissed the picker without choosing
+      targetFolder = picked;
+    }
+
+    try {
+      const connections = entry.nodeId ? this.getDeviceConnectionManager() : null;
+      await copyDirectoryTreeEntryToVault(this.app, connections, this.buildDirectoryTreeFsAccess(), entry, targetFolder);
+      new Notice(t('directoryTree.copyToVaultDone'));
+      this.settings.directoryTreeLastCopyToVaultFolder = targetFolder;
+      void this.saveSettings();
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      new Notice(t('directoryTree.copyToVaultFailed', { message }), 5000);
+    }
+  }
+
+  /**
+   * Lets a directory-tree row (draggable, `directoryTreePanel.ts`) be
+   * dropped directly onto a folder in Obsidian's real file explorer to
+   * copy it there - registered once, plugin-wide, rather than per
+   * `TerminalView`, since there is exactly one file explorer regardless of
+   * how many terminal tabs are open. Filters on `DIRECTORY_TREE_DRAG_MIME`
+   * so this never reacts to Obsidian's own internal note-move drags or a
+   * real OS-level file drop; anything else falls through untouched.
+   *
+   * Reads Obsidian's file-explorer internals to find which folder the drop
+   * landed on (`.nav-folder-title[data-path]` - undocumented but has held
+   * stable across Obsidian versions and is relied on by other community
+   * plugins/themes). If that markup ever changes, this fails safe: the
+   * drop still copies, just to the vault root instead of the exact folder.
+   */
+  private registerDirectoryTreeExplorerDrop(): void {
+    const explorerContainers = (): HTMLElement[] =>
+      this.app.workspace.getLeavesOfType('file-explorer').map((leaf) => leaf.view.containerEl);
+
+    const isOurDrag = (event: DragEvent): boolean =>
+      event.dataTransfer?.types.includes(DIRECTORY_TREE_DRAG_MIME) ?? false;
+
+    const explorerContainerFor = (event: DragEvent): HTMLElement | null => {
+      const target = event.target;
+      if (!(target instanceof Node)) return null;
+      return explorerContainers().find((container) => container.contains(target)) ?? null;
+    };
+
+    this.registerDomEvent(document, 'dragover', (event) => {
+      if (!isOurDrag(event) || !explorerContainerFor(event)) return;
+      event.preventDefault();
+    }, { capture: true });
+
+    this.registerDomEvent(document, 'drop', (event) => {
+      if (!isOurDrag(event) || !explorerContainerFor(event)) return;
+      event.preventDefault();
+      event.stopPropagation();
+
+      const raw = event.dataTransfer?.getData(DIRECTORY_TREE_DRAG_MIME);
+      if (!raw) return;
+      let entry: DirectoryTreeDragPayload;
+      try {
+        entry = JSON.parse(raw) as DirectoryTreeDragPayload;
+      } catch {
+        return;
+      }
+
+      void this.copyDirectoryTreeEntryToVaultWithPicker(entry, this.resolveExplorerDropFolder(event.target));
+    }, { capture: true });
+  }
+
+  /**
+   * Vault folder for wherever a drop landed inside the file explorer: the
+   * folder itself if dropped on a `.nav-folder-title`, the containing
+   * folder if dropped on a `.nav-file-title` (matching how dropping onto a
+   * file files it alongside that file, not inside it), or the vault root
+   * if dropped somewhere else in the explorer (e.g. empty space).
+   */
+  private resolveExplorerDropFolder(eventTarget: EventTarget | null): string {
+    if (!(eventTarget instanceof Element)) return '';
+    const folderPath = eventTarget.closest('.nav-folder-title')?.getAttribute('data-path');
+    if (folderPath) return folderPath;
+    const filePath = eventTarget.closest('.nav-file-title')?.getAttribute('data-path');
+    if (!filePath) return '';
+    // Vault paths are always '/'-separated regardless of host OS.
+    const parent = nodePath.posix.dirname(filePath);
+    return parent === '.' ? '' : parent;
+  }
+
   /**
    * Called when the plugin loads
    */
@@ -300,6 +430,10 @@ export default class TerminalPlugin extends Plugin {
 
     // Register all commands
     this.registerCommands();
+
+    // Lets a directory-tree row be dropped directly onto a folder in
+    // Obsidian's real file explorer to copy it there (see the method doc).
+    this.registerDirectoryTreeExplorerDrop();
 
     void this.initializeClaudeCodeIdeBridge().catch((error) => {
       errorLog('[TerminalPlugin] Failed to initialize Claude Code IDE bridge:', error);

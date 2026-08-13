@@ -23,7 +23,27 @@ import { TFile as TFileClass, TFolder as TFolderClass } from 'obsidian';
 import { checkRelativePath, normalizeVaultPath } from '../remote/pathSafety.ts';
 import type { CollectedFile } from '../remote/noteCollector.ts';
 import type { PulledFile } from '../remote/transferStreamPuller.ts';
+import type { DeviceConnectionManager } from '../remote/deviceConnections.ts';
 import { resolveUniqueVaultPath } from './directoryTreeVaultNaming.ts';
+
+/**
+ * Custom drag MIME for a directory-tree row (candidate doc "目录树与双向文件
+ * 传输" §4.1 point 5's replacement for a real OS-level drag - see
+ * `directoryTreePanel.ts`'s doc comment). Distinct from anything Obsidian or
+ * the OS itself would ever produce, so a global drop listener (registered
+ * once, plugin-wide, in `main.ts`) can tell "this drag came from our own
+ * tree" apart from Obsidian's internal note-move drags and real OS file
+ * drops, and ignore everything else untouched.
+ */
+export const DIRECTORY_TREE_DRAG_MIME = 'application/x-termy-directory-tree-entry';
+
+export interface DirectoryTreeDragPayload {
+  path: string;
+  isDirectory: boolean;
+  baseName: string;
+  /** The device the entry lives on, or `null` for the local filesystem. */
+  nodeId: string | null;
+}
 
 interface MinimalFsPromises {
   mkdir(path: string, options: { recursive: true }): Promise<string | undefined>;
@@ -160,6 +180,28 @@ export async function writePulledFilesToVault(
     fileCount += 1;
   }
   return { fileCount };
+}
+
+/**
+ * Copies one directory-tree entry (local or remote, per `entry.nodeId`)
+ * into `targetVaultFolder`. Shared by the panel's right-click "复制到
+ * Vault" and by dropping a dragged entry onto a folder in Obsidian's real
+ * file explorer, so both entry points behave identically.
+ */
+export async function copyDirectoryTreeEntryToVault(
+  app: App,
+  connections: Pick<DeviceConnectionManager, 'createTransferPuller'> | null,
+  fsAccess: FsAccess,
+  entry: DirectoryTreeDragPayload,
+  targetVaultFolder: string,
+): Promise<CopyResult> {
+  if (entry.nodeId) {
+    if (!connections) throw new Error('Remote connection is not available');
+    const outcome = await connections.createTransferPuller(entry.nodeId, entry.path).run();
+    if (!outcome.success) throw new Error(outcome.message || 'Pull failed');
+    return writePulledFilesToVault(app, outcome.files, targetVaultFolder);
+  }
+  return copyFsEntryToVault(app, entry.path, entry.isDirectory, targetVaultFolder, fsAccess, entry.baseName);
 }
 
 export interface VaultTransferSource {

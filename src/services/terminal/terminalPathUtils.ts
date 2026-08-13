@@ -11,6 +11,17 @@ function isWindowsPlatform(platform: TerminalPlatform): boolean {
   return platform === 'win32';
 }
 
+/**
+ * Sniffs whether `sample` is a Windows-style absolute path (drive letter or
+ * UNC), for callers that don't otherwise know a *remote* target's OS - e.g.
+ * a directory-tree path returned by a remote agent, which may run a
+ * different OS than the controlling machine. `process.platform` is the
+ * wrong signal there since it describes the local machine, not the target.
+ */
+export function isWindowsStylePath(sample: string): boolean {
+  return /^[A-Za-z]:[\\/]/.test(sample) || sample.startsWith('\\\\');
+}
+
 function getPathModule(platform: TerminalPlatform) {
   return isWindowsPlatform(platform) ? win32Path : posixPath;
 }
