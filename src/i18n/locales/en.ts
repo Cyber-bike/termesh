@@ -34,6 +34,7 @@ export const en: TranslationKeys = {
   remote: {
     notConnected: 'Connect to a remote device before sending a note.',
     dropSingleMarkdown: 'Drop one Markdown note from this vault.',
+    dropRejected: 'Not a Markdown file - the note transfer was rejected.',
     transferComplete: 'Note transfer complete.',
     transferCompleteAt: 'Note transfer complete: {{path}}',
     transferFailed: 'Note transfer failed: {{message}}',

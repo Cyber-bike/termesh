@@ -78,6 +78,7 @@ export interface TranslationKeys {
   remote: {
     notConnected: string;
     dropSingleMarkdown: string;
+    dropRejected: string;
     transferComplete: string;
     transferCompleteAt: string;
     transferFailed: string;

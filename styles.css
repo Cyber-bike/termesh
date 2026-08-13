@@ -1620,6 +1620,34 @@
   transform: translateY(0) scale(1);
   opacity: 1;
 }
+/* Connected-mode drag hint: a small tooltip that tracks the cursor instead
+   of masking the whole terminal, so dragging a note over a remote terminal
+   doesn't read as "this becomes terminal input" the way the full-screen
+   paste hint above does. */
+.terminal-drop-cursor-hint {
+  position: fixed;
+  z-index: var(--layer-tooltip, 70);
+  top: 0;
+  left: 0;
+  max-width: min(70vw, 360px);
+  padding: 6px 10px;
+  border-radius: 8px;
+  border: 1px solid color-mix(in srgb, var(--interactive-accent) 40%, var(--background-modifier-border) 60%);
+  background: var(--background-primary);
+  color: var(--text-normal);
+  font-size: 12px;
+  font-weight: 600;
+  line-height: 1.4;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  box-shadow: 0 6px 16px color-mix(in srgb, black 20%, transparent);
+  pointer-events: none;
+  opacity: 0;
+  transition: opacity 120ms ease-out;
+}
+.terminal-drop-cursor-hint.is-visible {
+  opacity: 1;
+}
 /* Terminal background image layer - separate background layer; opacity affects only the background */
 .terminal-background-image {
   position: absolute;

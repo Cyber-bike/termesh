@@ -34,6 +34,7 @@ export const zhCN: TranslationKeys = {
   remote: {
     notConnected: '请先连接远程设备再发送笔记。',
     dropSingleMarkdown: '请从当前仓库拖入一个 Markdown 笔记。',
+    dropRejected: '非 Markdown 文件，已拒绝该笔记传输。',
     transferComplete: '笔记传输完成。',
     transferCompleteAt: '笔记传输完成：{{path}}',
     transferFailed: '笔记传输失败：{{message}}',

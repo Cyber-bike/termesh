@@ -76,6 +76,7 @@ export class TerminalView extends ItemView {
   private terminalInstance: TerminalInstance | null = null;
   private terminalContainer: HTMLElement | null = null;
   private dropHintEl: HTMLElement | null = null;
+  private dropCursorHintEl: HTMLElement | null = null;
   private dragEnterDepth = 0;
   private removeDropHandlers: (() => void) | null = null;
   private searchContainer: HTMLElement | null = null;
@@ -299,6 +300,8 @@ export class TerminalView extends ItemView {
     this.removeDropHandlers = null;
     this.dragEnterDepth = 0;
     this.dropHintEl = null;
+    this.dropCursorHintEl?.remove();
+    this.dropCursorHintEl = null;
     this.directoryTreePanel?.destroy();
     this.directoryTreePanel = null;
     this.directoryTreeVisible = false;
@@ -508,12 +511,12 @@ export class TerminalView extends ItemView {
     const onDragEnter = (event: DragEvent): void => {
       claimDragEvent(event);
       this.dragEnterDepth += 1;
-      this.showDropHint();
+      this.showDropHintForState(event);
     };
 
     const onDragOver = (event: DragEvent): void => {
       claimDragEvent(event);
-      this.showDropHint();
+      this.showDropHintForState(event);
     };
 
     const onDragLeave = (event: DragEvent): void => {
@@ -523,7 +526,7 @@ export class TerminalView extends ItemView {
       const leftContainer = !relatedTarget || !container.contains(relatedTarget);
       if (this.dragEnterDepth === 0 || leftContainer) {
         this.dragEnterDepth = 0;
-        this.hideDropHint();
+        this.hideAllDropHints();
       }
     };
 
@@ -550,6 +553,8 @@ export class TerminalView extends ItemView {
       for (const dispose of cleanup.splice(0)) {
         dispose();
       }
+      this.dropCursorHintEl?.remove();
+      this.dropCursorHintEl = null;
     };
   }
 
@@ -601,9 +606,61 @@ export class TerminalView extends ItemView {
     this.dropHintEl?.classList.remove('is-visible');
   }
 
+  private ensureDropCursorHint(): void {
+    if (this.dropCursorHintEl && this.dropCursorHintEl.isConnected) return;
+    const doc = this.contentEl.ownerDocument;
+    const hint = doc.createElement('div');
+    hint.className = 'terminal-drop-cursor-hint';
+    this.dropCursorHintEl = hint;
+    doc.body.appendChild(hint);
+  }
+
+  private positionDropCursorHint(event: DragEvent): void {
+    if (!this.dropCursorHintEl) return;
+    const offset = 16;
+    this.dropCursorHintEl.style.left = `${event.clientX + offset}px`;
+    this.dropCursorHintEl.style.top = `${event.clientY + offset}px`;
+  }
+
+  private showDropCursorHint(event: DragEvent): void {
+    this.ensureDropCursorHint();
+    if (this.dropCursorHintEl) {
+      this.dropCursorHintEl.textContent = this.getDropHintText();
+    }
+    this.positionDropCursorHint(event);
+    this.dropCursorHintEl?.classList.add('is-visible');
+  }
+
+  private hideDropCursorHint(): void {
+    this.dropCursorHintEl?.classList.remove('is-visible');
+  }
+
+  /**
+   * Connected mode sends the dropped note to the remote device rather than
+   * typing it into the terminal, so covering the whole terminal with the
+   * paste-oriented full-screen hint (`showDropHint`) wrongly frames the
+   * drop as terminal input. A small tooltip that tracks the cursor keeps
+   * the "this note goes to the device" framing instead of "this becomes
+   * terminal text" without blocking the terminal view underneath.
+   */
+  private showDropHintForState(event: DragEvent): void {
+    if (this.remoteState === 'Connected') {
+      this.hideDropHint();
+      this.showDropCursorHint(event);
+      return;
+    }
+    this.hideDropCursorHint();
+    this.showDropHint();
+  }
+
+  private hideAllDropHints(): void {
+    this.hideDropHint();
+    this.hideDropCursorHint();
+  }
+
   private resetDropHintState(): void {
     this.dragEnterDepth = 0;
-    this.hideDropHint();
+    this.hideAllDropHints();
   }
 
   private async handleDrop(dataTransfer: DataTransfer | null): Promise<void> {
@@ -630,7 +687,7 @@ export class TerminalView extends ItemView {
   private async handleRemoteDrop(dataTransfer: DataTransfer | null): Promise<void> {
     const file = this.resolveDroppedMarkdownFile(dataTransfer);
     if (!file) {
-      new Notice(t('remote.dropSingleMarkdown'));
+      new Notice(t('remote.dropRejected'));
       return;
     }
 
@@ -646,6 +703,13 @@ export class TerminalView extends ItemView {
       return;
     }
 
+    // No directory was explicitly chosen (unlike a directory-tree drop), so
+    // land the note in the terminal's current directory instead of leaving
+    // it up to the agent's generic receive folder - and tell the user where
+    // that is, the same way `dropCopyDone` already reports a directory-tree
+    // drop's destination.
+    const targetPath = this.getRemoteDropTargetPath();
+
     this.setRemoteState(transition(this.remoteState, { type: 'dropNote' }));
     try {
       const collected = collect(createVaultLinkSource(this.app, file));
@@ -654,16 +718,32 @@ export class TerminalView extends ItemView {
       if (!quota.ok) throw new Error(quota.error ?? 'Transfer quota exceeded');
 
       const outcome = await connections
-        .createTransferSender(nodeId, crypto.randomUUID(), collected.files, (path) => readVaultFile(this.app, path))
+        .createTransferSender(nodeId, crypto.randomUUID(), collected.files, (path) => readVaultFile(this.app, path), null, targetPath)
         .run();
       if (!outcome.success) throw new Error(outcome.message || 'Transfer failed');
-      new Notice(t('remote.transferComplete'));
+      new Notice(t('remote.transferCompleteAt', { path: targetPath }));
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       new Notice(t('remote.transferFailed', { message }), 5000);
     } finally {
       this.setRemoteState(transition(this.remoteState, { type: 'transferFinished' }));
     }
+  }
+
+  /**
+   * Best-known landing directory for a note dropped straight onto the
+   * terminal (no directory-tree target chosen). Mirrors `openDirectoryTree`'s
+   * cwd-detection: `getCwd()` falls back to the *local* initial cwd when the
+   * remote shell hasn't reported one yet, which would be a nonsense path on
+   * the remote OS, so that case instead uses `~` - the same sentinel the
+   * agent already expands to the real home directory.
+   */
+  private getRemoteDropTargetPath(): string {
+    const terminal = this.terminalInstance;
+    if (!terminal) return '~';
+    const cwd = terminal.getCwd();
+    if (!cwd || cwd === terminal.getInitialCwd()) return '~';
+    return cwd;
   }
 
   private resolveDroppedMarkdownFile(dataTransfer: DataTransfer | null): TFile | null {
