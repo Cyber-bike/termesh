@@ -1495,6 +1495,15 @@
   background-color: var(--interactive-accent);
   opacity: 0.7;
 }
+/* Drop-target feedback for dragging a directory-tree row onto Obsidian's own
+   file explorer (main.ts's registerDirectoryTreeExplorerDrop) - Obsidian's
+   native highlight never fires for this drag since it carries a
+   plugin-private MIME type Obsidian doesn't recognize. */
+.nav-folder-title.termy-directory-tree-drop-target,
+.nav-file-title.termy-directory-tree-drop-target {
+  background-color: var(--interactive-accent);
+  opacity: 0.7;
+}
 .directory-tree-panel__caret {
   display: flex;
   align-items: center;

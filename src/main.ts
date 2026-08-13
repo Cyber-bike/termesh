@@ -78,6 +78,7 @@ const REPOSITORY_URL = 'https://github.com/jiang-zhong-xi/ReqFirst';
 const CHANGELOG_URL = `${REPOSITORY_URL}/blob/master/CHANGELOG.md`;
 const EMBEDDED_CHANGELOG_SOURCE_PATH = 'CHANGELOG.md';
 const ALWAYS_ON_TOP_TAB_BADGE_CLASS = 'termy-always-on-top-tab-badge';
+const DIRECTORY_TREE_DROP_HIGHLIGHT_CLASS = 'termy-directory-tree-drop-target';
 
 type ChangelogDetails = {
   requestedVersion: string;
@@ -310,7 +311,12 @@ export default class TerminalPlugin extends Plugin {
     try {
       const connections = entry.nodeId ? this.getDeviceConnectionManager() : null;
       await copyDirectoryTreeEntryToVault(this.app, connections, this.buildDirectoryTreeFsAccess(), entry, targetFolder);
-      new Notice(t('directoryTree.copyToVaultDone'));
+      // Names the actual destination folder rather than a generic "done" -
+      // the drop entry point resolves that folder from wherever the mouse
+      // landed in the file explorer, so surfacing it is the only way for
+      // the user to notice a resolve-target miss (e.g. dropped past the end
+      // of the tree and it landed at vault root instead of a subfolder).
+      new Notice(t('directoryTree.dropCopyDone', { path: targetFolder === '' ? '/' : targetFolder }));
       this.settings.directoryTreeLastCopyToVaultFolder = targetFolder;
       void this.saveSettings();
     } catch (error) {
@@ -347,12 +353,49 @@ export default class TerminalPlugin extends Plugin {
       return explorerContainers().find((container) => container.contains(target)) ?? null;
     };
 
+    // Obsidian's own file-explorer drop-target highlight only reacts to
+    // drag payloads *it* recognizes, so a plugin-private MIME type (see
+    // `DIRECTORY_TREE_DRAG_MIME`'s doc comment) never gets Obsidian's native
+    // hover feedback. Drawing our own highlight on whichever row the drag is
+    // currently over is the only way to show the user where the drop will
+    // land - same underlying element `resolveExplorerDropFolder` resolves,
+    // so the highlighted row is always the one that will actually receive
+    // the copy.
+    let highlighted: HTMLElement | null = null;
+    const setHighlighted = (next: HTMLElement | null): void => {
+      if (highlighted === next) return;
+      highlighted?.removeClass(DIRECTORY_TREE_DROP_HIGHLIGHT_CLASS);
+      next?.addClass(DIRECTORY_TREE_DROP_HIGHLIGHT_CLASS);
+      highlighted = next;
+    };
+    const rowElementFor = (eventTarget: EventTarget | null): HTMLElement | null => {
+      if (!(eventTarget instanceof Element)) return null;
+      const row = eventTarget.closest('.nav-folder-title, .nav-file-title');
+      return row instanceof HTMLElement ? row : null;
+    };
+
     this.registerDomEvent(document, 'dragover', (event) => {
-      if (!isOurDrag(event) || !explorerContainerFor(event)) return;
+      if (!isOurDrag(event) || !explorerContainerFor(event)) {
+        setHighlighted(null);
+        return;
+      }
       event.preventDefault();
+      setHighlighted(rowElementFor(event.target));
     }, { capture: true });
 
+    this.registerDomEvent(document, 'dragleave', (event) => {
+      if (!isOurDrag(event)) return;
+      // Only clear once the drag actually leaves the explorer container,
+      // not on every dragleave fired while moving between sibling rows
+      // inside it (those get an immediate dragover right after that would
+      // otherwise just re-set the same highlight).
+      if (!explorerContainerFor(event)) setHighlighted(null);
+    }, { capture: true });
+
+    this.registerDomEvent(document, 'dragend', () => setHighlighted(null), { capture: true });
+
     this.registerDomEvent(document, 'drop', (event) => {
+      setHighlighted(null);
       if (!isOurDrag(event) || !explorerContainerFor(event)) return;
       event.preventDefault();
       event.stopPropagation();
