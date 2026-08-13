@@ -197,9 +197,13 @@ export class TerminalService {
       // Use the preloaded module
       const { TerminalInstance } = await preloadTerminalInstance();
       
-      // Get the working directory if auto-entering the vault directory is enabled
+      // Get the working directory if auto-entering the vault directory is
+      // enabled - only for local shells: the vault's path is a path on
+      // *this* machine, meaningless as a starting cwd for a remote
+      // terminal riding a transport (the agent starts its shell in its own
+      // home directory, see `agent/src/serve.rs`'s `serve_terminal_session`).
       let cwd: string | undefined;
-      if (this.settings.autoEnterVaultDirectory) {
+      if (!transport && this.settings.autoEnterVaultDirectory) {
         cwd = this.getVaultPath();
         if (cwd) {
           debugLog(`[TerminalService] 自动进入项目目录: ${cwd}`);
