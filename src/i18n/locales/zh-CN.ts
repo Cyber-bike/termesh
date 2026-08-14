@@ -38,6 +38,9 @@ export const zhCN: TranslationKeys = {
     transferComplete: '笔记传输完成。',
     transferCompleteAt: '笔记传输完成：{{path}}',
     transferFailed: '笔记传输失败：{{message}}',
+    sendToTerminalExecute: '发送到终端执行',
+    sendToTerminalTooltip: '选择终端',
+    linkedNotesSkipped: '以下链接笔记未能收集，已跳过：{{details}}',
   },
 
   terminal: {

@@ -42,6 +42,17 @@ export function createVaultLinkSource(app: App, note: TFile): LinkSource {
   };
 }
 
+/**
+ * Same as `createVaultLinkSource`, but looks the note up by vault-relative
+ * path instead of taking a `TFile` directly — used by the v3.1 recursive
+ * collector to build a `LinkSource` for each note it discovers while
+ * walking links, not just the one the user triggered the send from.
+ */
+export function createVaultLinkSourceForPath(app: App, path: string): LinkSource | null {
+  const file = app.vault.getFileByPath(path);
+  return file ? createVaultLinkSource(app, file) : null;
+}
+
 /** Reads a vault file's bytes for sending. */
 export async function readVaultFile(app: App, path: string): Promise<Uint8Array> {
   const file = app.vault.getFileByPath(path);

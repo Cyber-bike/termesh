@@ -49,6 +49,11 @@ export interface CollectResult {
   error?: string;
   /** Links that were skipped, for the debug log. */
   skipped: string[];
+  /**
+   * Resolved vault paths of linked notes that were not recursed into here
+   * (v3.1 doc §4: the recursive collector walks these itself).
+   */
+  linkedNotes: string[];
 }
 
 export function isExternal(raw: string): boolean {
@@ -77,20 +82,22 @@ export function looksLikeAttachment(raw: string): boolean {
 
 export function collect(source: LinkSource): CollectResult {
   const skipped: string[] = [];
+  const linkedNotes: string[] = [];
   const rootPath = normalizeVaultPath(source.rootNotePath);
 
   const rootCheck = checkRelativePath(rootPath);
   if (!rootCheck.ok) {
-    return { ok: false, files: [], skipped, error: describeRejection(rootPath, rootCheck) };
+    return { ok: false, files: [], skipped, linkedNotes, error: describeRejection(rootPath, rootCheck) };
   }
 
   const rootSize = source.sizeOf(rootPath);
   if (rootSize === null) {
-    return { ok: false, files: [], skipped, error: `${rootPath} no longer exists in the vault.` };
+    return { ok: false, files: [], skipped, linkedNotes, error: `${rootPath} no longer exists in the vault.` };
   }
 
   const files: CollectedFile[] = [{ index: 0, relativePath: rootPath, size: rootSize }];
   const seen = new Set([rootPath]);
+  const seenNotes = new Set<string>();
 
   for (const link of source.links()) {
     if (isExternal(link.raw)) {
@@ -106,6 +113,7 @@ export function collect(source: LinkSource): CollectResult {
           ok: false,
           files: [],
           skipped,
+          linkedNotes,
           error: `Attachment "${link.raw}" could not be found in the vault.`,
         };
       }
@@ -117,8 +125,13 @@ export function collect(source: LinkSource): CollectResult {
     const resolved = normalizeVaultPath(link.resolved);
 
     if (extensionOf(resolved) === 'md') {
-      // Doc 10.1: links to other notes are not followed.
+      // Doc 10.1: links to other notes are not followed here (v3.1 doc §4:
+      // the recursive collector walks `linkedNotes` itself).
       skipped.push(`${resolved} (markdown, not recursed)`);
+      if (resolved !== rootPath && !seenNotes.has(resolved)) {
+        seenNotes.add(resolved);
+        linkedNotes.push(resolved);
+      }
       continue;
     }
 
@@ -126,7 +139,7 @@ export function collect(source: LinkSource): CollectResult {
 
     const check = checkRelativePath(resolved);
     if (!check.ok) {
-      return { ok: false, files: [], skipped, error: describeRejection(resolved, check) };
+      return { ok: false, files: [], skipped, linkedNotes, error: describeRejection(resolved, check) };
     }
 
     const size = source.sizeOf(resolved);
@@ -135,6 +148,7 @@ export function collect(source: LinkSource): CollectResult {
         ok: false,
         files: [],
         skipped,
+        linkedNotes,
         error: `Attachment "${resolved}" could not be read.`,
       };
     }
@@ -143,7 +157,7 @@ export function collect(source: LinkSource): CollectResult {
     files.push({ index: files.length, relativePath: resolved, size });
   }
 
-  return { ok: true, files, skipped };
+  return { ok: true, files, skipped, linkedNotes };
 }
 
 /** Doc 4.12 and 8.4. */

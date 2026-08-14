@@ -1,5 +1,5 @@
 import type { View, WorkspaceLeaf } from 'obsidian';
-import { addIcon, FileSystemAdapter, Modal, Notice, Plugin, normalizePath, setIcon, setTooltip } from 'obsidian';
+import { addIcon, FileSystemAdapter, MarkdownView, Modal, Notice, Plugin, TFile, normalizePath, setIcon, setTooltip } from 'obsidian';
 import * as nodeFs from 'fs';
 import * as nodePath from 'path';
 import {
@@ -33,6 +33,12 @@ import {
   type FsAccess,
 } from './services/terminal/directoryTreeDrop';
 import { pickVaultDestinationFolder } from './ui/terminal/vaultFolderSuggestModal';
+import {
+  listConnectedTerminals,
+  showTerminalPickerMenu,
+  type ConnectedTerminal,
+} from './ui/terminal/terminalPickerMenu';
+import { sendNoteRecursively } from './services/remote/sendNoteRecursively';
 import { DEVICE_HOME_VIEW_TYPE, DeviceHomeView } from './ui/home/deviceHomeView';
 import { ChangelogModal } from './ui/changelog/changelogModal';
 import { i18n, t } from './i18n';
@@ -478,6 +484,10 @@ export default class TerminalPlugin extends Plugin {
     // Obsidian's real file explorer to copy it there (see the method doc).
     this.registerDirectoryTreeExplorerDrop();
 
+    // v3.1's two new send entries: right-click "send to terminal and
+    // execute" and the note toolbar's "send to terminal" button.
+    this.registerNoteSendToTerminalEntries();
+
     void this.initializeClaudeCodeIdeBridge().catch((error) => {
       errorLog('[TerminalPlugin] Failed to initialize Claude Code IDE bridge:', error);
     });
@@ -491,6 +501,7 @@ export default class TerminalPlugin extends Plugin {
       if (this.settings.visibility.showInNewTab) {
         this.registerNewTabTerminalAction();
       }
+      this.injectSendToTerminalActions();
       void this.maybeShowChangelogOnFirstOpen().catch((error) => {
         errorLog('[TerminalPlugin] Failed to show changelog on first open:', error);
       });
@@ -1908,6 +1919,79 @@ export default class TerminalPlugin extends Plugin {
 
   private isTerminalView(view: View | null | undefined): view is TerminalView {
     return !!view && view.getViewType() === TERMINAL_VIEW_TYPE;
+  }
+
+  /**
+   * v3.1 doc §2/§3: right-click "send to terminal and execute" on any
+   * markdown note, plus a "send to terminal" button in the note's own
+   * toolbar. Both open the same terminal picker and hand off to
+   * `sendNoteToPickedTerminal` — they differ only in wording (§3: the
+   * toolbar entry's own one-line summary uses "发送", not "执行", so unlike
+   * the context-menu entry it does not frame this as running a task).
+   */
+  private registerNoteSendToTerminalEntries(): void {
+    this.registerEvent(
+      this.app.workspace.on('file-menu', (menu, file) => {
+        if (!(file instanceof TFile) || file.extension !== 'md') return;
+        menu.addItem((item) => {
+          item
+            .setTitle(t('remote.sendToTerminalExecute'))
+            .setIcon('terminal')
+            .onClick((evt: MouseEvent) => {
+              const terminals = listConnectedTerminals(this.app, this);
+              showTerminalPickerMenu(evt, terminals, (terminal) => {
+                void this.sendNoteToPickedTerminal(file, terminal);
+              });
+            });
+        });
+      })
+    );
+
+    this.registerEvent(
+      this.app.workspace.on('layout-change', () => {
+        this.injectSendToTerminalActions();
+      })
+    );
+  }
+
+  /** Note instances already carrying the toolbar button, so it is added once per view instance. */
+  private readonly noteToolbarSendActionInjected = new WeakSet<MarkdownView>();
+
+  private injectSendToTerminalActions(): void {
+    for (const leaf of this.app.workspace.getLeavesOfType('markdown')) {
+      const view = leaf.view;
+      if (!(view instanceof MarkdownView) || this.noteToolbarSendActionInjected.has(view)) continue;
+      this.noteToolbarSendActionInjected.add(view);
+
+      view.addAction('terminal', t('remote.sendToTerminalTooltip'), (evt: MouseEvent) => {
+        const file = view.file;
+        if (!file) return;
+        const terminals = listConnectedTerminals(this.app, this);
+        showTerminalPickerMenu(evt, terminals, (terminal) => {
+          void this.sendNoteToPickedTerminal(file, terminal);
+        });
+      });
+    }
+  }
+
+  private async sendNoteToPickedTerminal(file: TFile, terminal: ConnectedTerminal): Promise<void> {
+    const connections = this.getDeviceConnectionManager();
+    const targetPath = terminal.view.getRemoteDropTargetPath();
+    try {
+      const result = await sendNoteRecursively(this.app, file, terminal.nodeId, connections, targetPath);
+      if (!result.success) {
+        new Notice(t('remote.transferFailed', { message: result.message ?? 'Transfer failed' }), 5000);
+        return;
+      }
+      new Notice(t('remote.transferCompleteAt', { path: targetPath }));
+      if (result.skippedNotes.length > 0) {
+        const details = result.skippedNotes.map((s) => `${s.path}: ${s.reason}`).join('; ');
+        new Notice(t('remote.linkedNotesSkipped', { details }), 8000);
+      }
+    } catch (error) {
+      const message = error instanceof Error ? error.message : String(error);
+      new Notice(t('remote.transferFailed', { message }), 5000);
+    }
   }
 
   /**

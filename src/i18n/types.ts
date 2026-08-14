@@ -82,6 +82,9 @@ export interface TranslationKeys {
     transferComplete: string;
     transferCompleteAt: string;
     transferFailed: string;
+    sendToTerminalExecute: string;
+    sendToTerminalTooltip: string;
+    linkedNotesSkipped: string;
   };
 
   // Terminal

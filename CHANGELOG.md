@@ -7,6 +7,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ## [Unreleased]
 
+### Added
+- Added two new ways to send a note to a connected terminal: right-click a note to send it and have the terminal's agent execute it, or use the new toolbar button in the note view. Both recursively collect every note the note links to (and their attachments), not just the note itself.
+
 ## [1.4.3] - 2026-07-31
 
 ### Fixed

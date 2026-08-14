@@ -38,6 +38,9 @@ export const en: TranslationKeys = {
     transferComplete: 'Note transfer complete.',
     transferCompleteAt: 'Note transfer complete: {{path}}',
     transferFailed: 'Note transfer failed: {{message}}',
+    sendToTerminalExecute: 'Send to terminal to execute',
+    sendToTerminalTooltip: 'Select terminal',
+    linkedNotesSkipped: 'These linked notes could not be collected and were skipped: {{details}}',
   },
 
   terminal: {

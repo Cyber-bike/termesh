@@ -737,8 +737,12 @@ export class TerminalView extends ItemView {
    * remote shell hasn't reported one yet, which would be a nonsense path on
    * the remote OS, so that case instead uses `~` - the same sentinel the
    * agent already expands to the real home directory.
+   *
+   * Public because `sendNoteRecursively` (v3.1's right-click/toolbar send
+   * entries) reuses this exact priority for terminals it did not itself
+   * receive a drop on.
    */
-  private getRemoteDropTargetPath(): string {
+  getRemoteDropTargetPath(): string {
     const terminal = this.terminalInstance;
     if (!terminal) return '~';
     const cwd = terminal.getCwd();
