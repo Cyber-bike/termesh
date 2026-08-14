@@ -10,27 +10,27 @@ v2.0 **不需要部署任何云端服务**——没有账号、没有云端 Rela
 
 ### 1.1 Ubuntu
 
+一条命令装好并启动，直接打印连接码，不需要 GitHub 仓库checkout：
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/jiang-zhong-xi/ReqFirst/main/agent/packaging/install-linux.sh | bash
+```
+
+脚本自动完成：没传本地二进制路径时从最新 Release 下载 `termy-agent-linux-x64` 并校验 sha256、把二进制装到 `~/.local/bin`、把 user unit 装到 `~/.config/systemd/user`、启用 lingering、`systemctl --user enable --now`、等待 Agent 上线后直接打印连接码。全程只有一步需要交互（见下）。
+
+从本地构建安装（跳过下载）：
+
 ```bash
 ./agent/packaging/install-linux.sh /path/to/termy-agent
 ```
 
-脚本做三件事：把二进制装到 `~/.local/bin`、把 user unit 装到 `~/.config/systemd/user`、启用 lingering。
-
 **关于权限**：`loginctl enable-linger` 在多数发行版需要一次 root 或 polkit 认证，脚本用 `sudo` 处理这一步。口径是"**安装时一次性 sudo，运行时 Agent 与远程 shell 全程非 root**"。不启用 lingering 的话，SSH 一断 Agent 就被杀。
 
-启动并拿连接码：
-
-```bash
-systemctl --user enable --now termy-agent.service
-termy-agent status
-journalctl --user -u termy-agent -f
-```
-
-**没有配对步骤。** `status` 直接打印一个连接码，把它贴进 Termy 插件的"添加设备"即可——不需要登录、不需要先在服务端生成配对码。
+**没有配对步骤。** 安装脚本跑完直接打印连接码，把它贴进 Termy 插件的"添加设备"即可——不需要登录、不需要先在服务端生成配对码。装完之后随时可以用 `termy-agent status` 再看一次连接码，或 `journalctl --user -u termy-agent -f` 看日志。
 
 ### 1.2 Windows
 
-`termy-agent.exe` 子命令与 Linux 完全一致。配置在 `%APPDATA%\TermyAgent\config.json`。开机自启可以用任务计划程序或注册为服务，MVP 未提供安装脚本；要运行的命令是 `termy-agent.exe run`。
+`termy-agent.exe` 子命令与 Linux 完全一致，**除了不带子命令时的行为**：双击 `termy-agent.exe`（不带任何参数）等价于 `termy-agent.exe run`——会打开一个控制台窗口并打印连接码，窗口保持打开直到 Ctrl-C 或出错；如果启动就失败（比如身份锁已被占用），窗口也会停住等按 Enter 再关，不会一闪而过。命令行里显式敲 `termy-agent.exe run` 行为不变。配置在 `%APPDATA%\TermyAgent\config.json`。开机自启可以用任务计划程序或注册为服务，MVP 未提供安装脚本。
 
 ### 1.3 CLI 参考
 

@@ -9,6 +9,10 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Added
 - Added two new ways to send a note to a connected terminal: right-click a note to send it and have the terminal's agent execute it, or use the new toolbar button in the note view. Both recursively collect every note the note links to (and their attachments), not just the note itself.
+- Added a one-line remote install for the Ubuntu agent (`curl -fsSL .../install-linux.sh | bash`): it downloads and verifies the latest release binary, installs the systemd user service, and starts it, printing the connection code at the end without further manual steps.
+
+### Changed
+- Double-clicking `termy-agent.exe` on Windows now starts the agent directly (equivalent to `termy-agent.exe run`) and keeps the console window open, instead of closing immediately with a missing-subcommand error.
 
 ## [1.4.3] - 2026-07-31
 

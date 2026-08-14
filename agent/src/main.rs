@@ -17,8 +17,12 @@ use termy_agent::{lock, state};
 #[derive(Parser)]
 #[command(name = "termy-agent", version, about = "Termy remote terminal agent")]
 struct Cli {
+    /// Defaults to `run` when omitted, so double-clicking termy-agent.exe on
+    /// Windows (which launches it with no arguments) opens a console and
+    /// prints the connection code instead of erroring on a missing
+    /// subcommand and closing before anyone can read it.
     #[command(subcommand)]
-    command: Command,
+    command: Option<Command>,
 }
 
 #[derive(Subcommand)]
@@ -63,20 +67,40 @@ async fn main() -> ExitCode {
         )
         .init();
 
-    match run().await {
+    let cli = Cli::parse();
+    let double_clicked = cli.command.is_none();
+
+    match run(cli).await {
         Ok(()) => ExitCode::SUCCESS,
         Err(err) => {
             eprintln!("error: {err}");
+            // Explorer closes a double-clicked .exe's console the instant the
+            // process exits, so an early failure (lock already held, bad
+            // config) would flash and vanish before it could be read. Only
+            // pause in that case - anyone who typed a command in an existing
+            // terminal can already see the error after the window stays open.
+            if double_clicked && cfg!(windows) {
+                wait_for_keypress();
+            }
             ExitCode::FAILURE
         }
     }
 }
 
-async fn run() -> Result<(), Box<dyn std::error::Error>> {
-    let cli = Cli::parse();
-    let path = config::config_path();
+fn wait_for_keypress() {
+    use std::io::Write;
 
-    match cli.command {
+    eprint!("\npress Enter to close this window... ");
+    let _ = std::io::stderr().flush();
+    let mut discard = String::new();
+    let _ = std::io::stdin().read_line(&mut discard);
+}
+
+async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
+    let path = config::config_path();
+    let command = cli.command.unwrap_or(Command::Run { loopback: false });
+
+    match command {
         Command::Config(command) => {
             let mut config = Config::load_or_default(&path)?;
             match command {
