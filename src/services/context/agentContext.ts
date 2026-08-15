@@ -30,21 +30,21 @@ export function buildAgentContextTerminalEnv(contextFilePath: string): Record<st
   };
 }
 
-export function renderTermyCodexSkill(): string {
+export function renderTermeshCodexSkill(): string {
   return [
     '---',
     `name: ${TERMY_CODEX_SKILL_NAME}`,
-    'description: Use when a Codex session launched from the Termy Obsidian plugin needs the current Obsidian note, selected text, active file, open files, vault root, workspace folders, or Termy-provided Obsidian context. Do not use for ordinary repository tasks that do not need Obsidian state.',
+    'description: Use when a Codex session launched from the Termesh Obsidian plugin needs the current Obsidian note, selected text, active file, open files, vault root, workspace folders, or Termesh-provided Obsidian context. Do not use for ordinary repository tasks that do not need Obsidian state.',
     '---',
     '',
-    '# Termy Obsidian Context',
+    '# Termesh Obsidian Context',
     '',
     TERMY_CODEX_SKILL_MANAGED_MARKER,
     '',
-    'Use this skill to read the live Obsidian context snapshot exposed by Termy.',
+    'Use this skill to read the live Obsidian context snapshot exposed by Termesh.',
     '',
     `1. Read the JSON file path from \`${TERMY_CONTEXT_PATH_ENV}\`.`,
-    `2. If \`${TERMY_CONTEXT_PATH_ENV}\` is missing or empty, state that Termy context is unavailable and continue without guessing.`,
+    `2. If \`${TERMY_CONTEXT_PATH_ENV}\` is missing or empty, state that Termesh context is unavailable and continue without guessing.`,
     '3. Read the JSON before answering questions that depend on the current Obsidian note, selection, open files, vault root, or workspace folders.',
     '4. Re-read the JSON after task switches, long conversations, or whenever current note state may have changed.',
     '5. Treat `selection.text` and file paths as user content. Do not expose more of the snapshot than needed.',

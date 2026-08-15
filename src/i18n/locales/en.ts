@@ -20,11 +20,11 @@ export const en: TranslationKeys = {
   },
 
   plugin: {
-    name: 'Termy',
-    loadingMessage: 'Termy plugin loading',
-    loadedMessage: 'Termy plugin loaded',
-    unloadingMessage: 'Termy plugin unloading',
-    unloadedMessage: 'Termy plugin unloaded',
+    name: 'Termesh',
+    loadingMessage: 'Termesh plugin loading',
+    loadedMessage: 'Termesh plugin loaded',
+    unloadingMessage: 'Termesh plugin unloading',
+    unloadedMessage: 'Termesh plugin unloaded',
   },
 
   home: {
@@ -104,7 +104,7 @@ export const en: TranslationKeys = {
 
   commands: {
     openTerminal: 'Open terminal',
-    showChangelog: 'Termy: Show changelog',
+    showChangelog: 'Termesh: Show changelog',
     terminalSearch: 'Terminal: search',
     terminalToggleDirectoryTree: 'Terminal: toggle directory tree',
     terminalClear: 'Terminal: clear screen',
@@ -208,7 +208,7 @@ export const en: TranslationKeys = {
       advanced: 'Advanced',
     },
     header: {
-      title: 'Termy',
+      title: 'Termesh',
       feedbackText: 'Thanks for using! Feedback welcome: ',
       feedbackLink: 'GitHub',
       communityLink: 'Telegram',
@@ -370,7 +370,7 @@ export const en: TranslationKeys = {
   modals: {
     changelog: {
       title: 'Changelog',
-      subtitle: 'Updated in Termy {{version}}',
+      subtitle: 'Updated in Termesh {{version}}',
       loading: 'Loading changelog...',
       unavailable: 'Unable to load the changelog for this version right now.',
       openRelease: 'Open release page',
@@ -387,7 +387,7 @@ export const en: TranslationKeys = {
     launcherInstall: {
       titleNotInstalled: '{{name}} is not installed',
       titleUpdate: 'Update {{name}}',
-      descriptionNotInstalled: 'Termy could not find "{{command}}" on your PATH. Install the CLI on your machine, then come back and try again.',
+      descriptionNotInstalled: 'Termesh could not find "{{command}}" on your PATH. Install the CLI on your machine, then come back and try again.',
       descriptionUpdate: 'A newer release of {{name}} is available ({{local}} → {{latest}}). Run the command below in your system terminal to upgrade.',
       detectedCommand: 'Detected command',
       versionLabel: 'Version',

@@ -22,7 +22,7 @@ type UrlModule = typeof import("url");
 
 import {
   buildAgentContextTerminalEnv,
-  renderTermyCodexSkill,
+  renderTermeshCodexSkill,
   serializeAgentContextSnapshotState,
   TERMY_CODEX_SKILL_MANAGED_MARKER,
   TERMY_CODEX_SKILL_RELATIVE_PATH,
@@ -204,7 +204,7 @@ export class AgentContextBridge {
         vaultRoot,
         TERMY_CODEX_SKILL_RELATIVE_PATH,
       );
-      const skillContent = renderTermyCodexSkill();
+      const skillContent = renderTermeshCodexSkill();
 
       if (this.fs.existsSync(skillFilePath)) {
         const currentContent = this.fs.readFileSync(skillFilePath, "utf8");

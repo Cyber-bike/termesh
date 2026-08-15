@@ -31,8 +31,8 @@ test('renderReleaseBody describes the package without requiring CHANGELOG.md as 
     repository: 'jiang-zhong-xi/Termy',
   });
 
-  assert.match(body, /Download `termy-1\.3\.0\.zip` \(includes plugin files and all platform binaries\)/);
-  assert.doesNotMatch(body, /Download `termy\.zip`/);
+  assert.match(body, /Download `termesh-1\.3\.0\.zip` \(includes plugin files and all platform binaries\)/);
+  assert.doesNotMatch(body, /Download `termesh\.zip`/);
   assert.doesNotMatch(body, /includes all platform binaries and `CHANGELOG\.md`/);
   assert.match(body, /\[Telegram Group\]\(https:\/\/t\.me\/\+t6oRqhaw8c1jNzE1\)/);
   assert.doesNotMatch(body, /\[Discussions\]\(/);
@@ -47,7 +47,7 @@ test('renderReleaseBody describes the package without requiring CHANGELOG.md as 
   assert.ok(manualIndex !== -1, 'Manual Installation section should be present');
   assert.ok(communityIndex < bratIndex, 'Community Plugins should come before BRAT');
   assert.ok(bratIndex < manualIndex, 'BRAT should come before Manual Installation');
-  assert.match(body, /Click \*\*Browse\*\*, search for `Termy`/);
+  assert.match(body, /Click \*\*Browse\*\*, search for `Termesh`/);
   assert.match(body, /`termy-agent-win32-x64\.exe`: Windows x64 remote agent/);
   assert.match(body, /`termy-agent-linux-x64`: Linux x64 remote agent/);
   assert.match(body, /`termy-relay-linux-x64`: Linux x64 relay server/);

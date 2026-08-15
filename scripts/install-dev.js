@@ -412,10 +412,10 @@ async function main() {
   log(`  binaries/${binaryName}`, 'green');
   log('  node_modules/@number0/iroh', 'green');
   if (migrateLegacyPluginData(pluginsDir)) {
-    log('  Migrated settings: termesh/data.json → termy/data.json', 'green');
+    log('  Migrated settings: termy/data.json → termesh/data.json', 'green');
   }
   if (migrateEnabledPluginId(pluginsDir)) {
-    log('  Migrated enabled plugin ID: termesh → termy', 'green');
+    log('  Migrated enabled plugin ID: termy → termesh', 'green');
   }
   log('');
 

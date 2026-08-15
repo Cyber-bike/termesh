@@ -918,7 +918,7 @@ export class TerminalSettingsRenderer extends BaseSettingsRenderer {
   /**
    * Probe the underlying CLI and update the badge in place. Mirrors the
    * behaviour used by the status bar menu so users see the same readiness
-   * label and version info everywhere Termy lists their AI launchers.
+   * label and version info everywhere Termesh lists their AI launchers.
    *
    * Reads the cached snapshot from the plugin first so the row paints
    * synchronously when a probe has already resolved, then refreshes in
@@ -1532,8 +1532,8 @@ export class TerminalSettingsRenderer extends BaseSettingsRenderer {
 
     this.themePreviewContentEl = this.themePreviewEl.createDiv({ cls: 'terminal-theme-preview-content' });
 
-    this.themePreviewContentEl.createDiv({ text: '$ echo "Termy"' });
-    this.themePreviewContentEl.createDiv({ text: 'Termy' });
+    this.themePreviewContentEl.createDiv({ text: '$ echo "Termesh"' });
+    this.themePreviewContentEl.createDiv({ text: 'Termesh' });
     this.themePreviewContentEl.createDiv({ text: '$ ls' });
     this.themePreviewContentEl.createDiv({ text: 'README.md  scripts  src  package.json' });
     const promptLine = this.themePreviewContentEl.createDiv({ cls: 'terminal-theme-preview-prompt-line' });

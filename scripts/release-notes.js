@@ -62,7 +62,7 @@ export function readChangelogSection(version, changelogPath = DEFAULT_CHANGELOG_
 
 export function renderReleaseBody({ version, changelogSection, repository = DEFAULT_REPOSITORY }) {
   const repoUrl = `https://github.com/${repository}`;
-  const fullPackageName = `termy-${version}.zip`;
+  const fullPackageName = `termesh-${version}.zip`;
 
   return [
     `## Changelog`,
@@ -73,8 +73,8 @@ export function renderReleaseBody({ version, changelogSection, repository = DEFA
     '',
     '### Obsidian Community Plugins (Recommended)',
     '1. Open **Settings → Community plugins** and turn off **Restricted mode** if it is enabled',
-    '2. Click **Browse**, search for `Termy`, and click **Install**',
-    '3. Click **Enable** to start using Termy',
+    '2. Click **Browse**, search for `Termesh`, and click **Install**',
+    '3. Click **Enable** to start using Termesh',
     '',
     '### BRAT (Early Updates)',
     'Use BRAT if you want to track the latest tagged build before it ships to the community directory.',
@@ -98,8 +98,8 @@ export function renderReleaseBody({ version, changelogSection, repository = DEFA
     '   - **macOS (Intel)**: `termy-server-darwin-x64`',
     '   - **Linux (x64)**: `termy-server-linux-x64`',
     '   - **Linux (ARM64)**: `termy-server-linux-arm64`',
-    '3. Create directory: `.obsidian/plugins/termy/binaries/`',
-    '4. Place core files in `termy/` and binary in `binaries/`',
+    '3. Create directory: `.obsidian/plugins/termesh/binaries/`',
+    '4. Place core files in `termesh/` and binary in `binaries/`',
     '5. Restart Obsidian and enable the plugin',
     '',
     '## Remote Components',

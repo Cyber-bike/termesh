@@ -70,7 +70,7 @@ type BridgeClientState = {
 const IDE_TOOLS = [
   {
     name: 'closeAllDiffTabs',
-    description: 'Close all Claude Code diff tabs in the editor. In Termy this is a no-op.',
+    description: 'Close all Claude Code diff tabs in the editor. In Termesh this is a no-op.',
     inputSchema: EMPTY_OBJECT_SCHEMA,
     annotations: {
       readOnlyHint: true,
@@ -106,7 +106,7 @@ const IDE_TOOLS = [
   },
   {
     name: 'getDiagnostics',
-    description: 'Get editor diagnostics. Obsidian/Termy currently returns an empty diagnostics list.',
+    description: 'Get editor diagnostics. Obsidian/Termesh currently returns an empty diagnostics list.',
     inputSchema: {
       type: 'object',
       properties: {
@@ -384,7 +384,7 @@ export class ClaudeCodeIdeBridge {
     const lockfile = {
       pid: process.pid,
       workspaceFolders,
-      ideName: 'Termy (Obsidian)',
+      ideName: 'Termesh (Obsidian)',
       transport: 'ws',
       runningInWindows: process.platform === 'win32',
       authToken: this.authToken,
@@ -521,7 +521,7 @@ export class ClaudeCodeIdeBridge {
         version: this.version,
       },
       instructions:
-        'This Termy bridge exposes the active Obsidian file and selection to compatible agent CLIs.',
+        'This Termesh bridge exposes the active Obsidian file and selection to compatible agent CLIs.',
     });
   }
 
