@@ -125,6 +125,7 @@ export default class TerminalPlugin extends Plugin {
   private _remoteService: RemoteService | null = null;
   private _pairedDeviceStore: PairedDeviceStore | null = null;
   private _deviceConnections: DeviceConnectionManager | null = null;
+  private _loadIroh: (() => Promise<IrohModule>) | null = null;
   private _claudeCodeIdeBridge: ClaudeCodeIdeBridge | null = null;
   private _agentContextBridge: AgentContextBridge | null = null;
   private _changelogContentCache: string | null = null;
@@ -248,7 +249,13 @@ export default class TerminalPlugin extends Plugin {
   }
 
   loadIroh(): Promise<IrohModule> {
-    return createIrohLoader(this.getPluginDir())();
+    if (!this._loadIroh) {
+      this._loadIroh = createIrohLoader(this.getPluginDir(), require, {
+        version: this.manifest.version,
+        isOffline: () => this.settings.serverConnection.offlineMode,
+      });
+    }
+    return this._loadIroh();
   }
 
   getDeviceConnectionManager(): DeviceConnectionManager {

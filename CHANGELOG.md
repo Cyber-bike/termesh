@@ -5,7 +5,7 @@ All notable changes to Termesh will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [Unreleased]
+## [1.4.5] - 2026-08-16
 
 ### Added
 - Added two new ways to send a note to a connected terminal: right-click a note to send it and have the terminal's agent execute it, or use the new toolbar button in the note view. Both recursively collect every note the note links to (and their attachments), not just the note itself.
@@ -13,6 +13,9 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 
 ### Changed
 - Double-clicking `termy-agent.exe` on Windows now starts the agent directly (equivalent to `termy-agent.exe run`) and keeps the console window open, instead of closing immediately with a missing-subcommand error.
+
+### Fixed
+- Fixed Community Plugins and BRAT installations being unable to add remote devices. Termesh now automatically downloads and verifies the platform-native iroh runtime on first use, while complete platform packages remain available for offline installation.
 
 ## [1.4.4] - 2026-08-15
 

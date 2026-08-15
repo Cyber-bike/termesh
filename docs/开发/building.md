@@ -73,13 +73,13 @@ pnpm install:dev
 pnpm dev        # esbuild watch 模式
 ```
 
-### 3.2 `@number0/iroh` 原生模块必须随包分发
+### 3.2 `@number0/iroh` 原生模块分发
 
-`@number0/iroh` 是 v2.0 远程终端功能依赖的原生 N-API 模块（A0 判定：Obsidian Electron 渲染进程可以直接 `require` 它，见 README 的"当前状态"）。esbuild 把它标为 `external`（`esbuild.config.mjs`），所以 `main.js` 运行时是一句裸的 `require('@number0/iroh')`——这个模块不会被打进 `main.js`，必须物理地跟着 `main.js` 一起分发。
+`@number0/iroh` 是 v2.0 远程终端功能依赖的原生 N-API 模块（A0 判定：Obsidian Electron 渲染进程可以直接 `require` 它，见 README 的"当前状态"）。esbuild 把它标为 `external`（`esbuild.config.mjs`），因此使用两条分发路径：社区市场或 BRAT 安装在首次使用远程设备时，从同版本 GitHub Release 下载平台 `.node` 文件并严格校验 SHA-256；离线完整包则直接携带整个模块。插件直接加载 N-API 文件，不下载或执行 JavaScript 代码。
 
 `scripts/package-plugin.js` 的第 5b 步会自动做这件事：从已安装的 `@number0/iroh` 读它自己声明的 `optionalDependencies`，用 `require.resolve()` 找出当前平台真正装上的那个原生包（不是硬编码的平台名映射表——pnpm 的隔离 store 会把这些包安装成 `node_modules/.pnpm/` 下的符号链接，而且平台矩阵本身也会变，之前 `darwin-x64` 就消失过一次），把 `@number0/iroh` 和 `@number0/iroh-<platform>` 都**解引用后**（不是符号链接）拷进 `plugin-package/node_modules/@number0/`。
 
-也就是说：**打包必须在目标运行的那台机器（或至少同一操作系统+架构）上执行**——`pnpm install` 只会装当前机器平台对应的那个原生包，跨平台打包不会把别的平台的包一起塞进去。Windows 用户要分发给 Windows 用户，必须在 Windows 上跑 `pnpm install` + `pnpm package`。
+两条路径都要求在目标操作系统和架构上构建：`pnpm install` 只安装当前平台对应的原生包。Release workflow 在各平台 runner 上生成完整包，同时提取 `iroh-runtime-<platform>.node` 及校验文件供在线安装按需下载。
 
 `pnpm package` 之后可以验证一下没有漏东西：
 

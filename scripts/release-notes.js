@@ -62,7 +62,7 @@ export function readChangelogSection(version, changelogPath = DEFAULT_CHANGELOG_
 
 export function renderReleaseBody({ version, changelogSection, repository = DEFAULT_REPOSITORY }) {
   const repoUrl = `https://github.com/${repository}`;
-  const fullPackageName = `termesh-${version}.zip`;
+  const fullPackageName = `termesh-${version}-<platform>.zip`;
 
   return [
     `## Changelog`,
@@ -75,22 +75,23 @@ export function renderReleaseBody({ version, changelogSection, repository = DEFA
     '1. Open **Settings → Community plugins** and turn off **Restricted mode** if it is enabled',
     '2. Click **Browse**, search for `Termesh`, and click **Install**',
     '3. Click **Enable** to start using Termesh',
+    '4. On first use of remote devices, Termesh automatically downloads and verifies the platform-native runtime',
     '',
     '### BRAT (Early Updates)',
     'Use BRAT if you want to track the latest tagged build before it ships to the community directory.',
     '',
     `1. Install [BRAT](https://github.com/TfTHacker/obsidian42-brat) plugin`,
     `2. Add this repository: \`${repository}\``,
-    '3. BRAT will automatically download the correct binary for your platform',
+    '3. Remote devices automatically download the verified platform-native runtime on first use',
     '',
     '### Manual Installation',
     '',
-    '**Option 1: Complete Package (All Platforms)**',
-    `1. Download \`${fullPackageName}\` (includes plugin files and all platform binaries)`,
-    '2. Extract to `.obsidian/plugins/` directory',
+    '**Option 1: Complete Package (Offline Installation)**',
+    `1. Download the \`${fullPackageName}\` asset matching your platform`,
+    '2. Extract its contents to `.obsidian/plugins/termesh/`',
     '3. Restart Obsidian and enable the plugin',
     '',
-    '**Option 2: Platform-Specific (Smaller Download)**',
+    '**Option 2: Core Files (Automatic Native Downloads)**',
     '1. Download the three core files: `main.js`, `manifest.json`, `styles.css`',
     '2. Download the binary for your platform:',
     '   - **Windows**: `termy-server-win32-x64.exe`',

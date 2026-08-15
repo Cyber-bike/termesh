@@ -74,7 +74,7 @@ Termesh is built for people who work across notes, terminals, AI coding sessions
 ### Privacy and Network Access
 
 - Termesh does not include telemetry or analytics.
-- Termesh downloads the matching native PTY server binary from [GitHub Releases](https://github.com/jiang-zhong-xi/Termy/releases) when needed; offline mode disables automatic downloads and update checks.
+- Termesh downloads the matching native PTY server and, on first use of remote devices, the platform-specific iroh runtime from [GitHub Releases](https://github.com/jiang-zhong-xi/Termy/releases). Native downloads are verified with SHA-256; offline mode disables them and all update checks.
 - Terminal sessions run local shell commands and user-configured workflows. Those commands may read files, modify files, or access the network according to the shell command or external CLI being run.
 - Termesh starts local WebSocket connections for its PTY backend and optional IDE bridge. These connections are used for local terminal transport and editor-context handoff.
 - Context-aware AI launchers can pass the active note path, selection, editor context, and vault/workspace path to local CLI tools. The Codex integration writes a vault-local helper skill under `.agents/skills/termy-obsidian-context/`.
@@ -179,7 +179,9 @@ Use BRAT if you want to track the latest tagged build before it ships to the com
 
 ### Manual install
 
-1. Download the latest release from [GitHub Releases](https://github.com/jiang-zhong-xi/Termy/releases).
+Community Plugins and BRAT installations automatically download the verified platform-native runtime when remote devices are first used. Manual installation is only needed for offline environments:
+
+1. Download the matching `termesh-<version>-<platform>.zip` complete package from [GitHub Releases](https://github.com/jiang-zhong-xi/Termy/releases), for example `win32-x64` on Windows x64.
 2. Extract the release files into `.obsidian/plugins/termesh/` inside your vault.
 3. Reload Obsidian.
 4. Enable Termesh in **Settings → Community plugins**.

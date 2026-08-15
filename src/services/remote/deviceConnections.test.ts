@@ -139,7 +139,7 @@ function makeFakeWorld() {
               waiter = resolve;
             });
           }
-          return items.shift();
+          return items.shift() ?? null;
         },
       },
     };

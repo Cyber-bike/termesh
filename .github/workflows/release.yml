@@ -93,6 +93,16 @@ jobs:
           workspaces: rust-servers -> target
           key: ${{ matrix.target }}
 
+      - uses: pnpm/action-setup@v5
+        if: matrix.platform != 'darwin' || matrix.arch != 'x64'
+
+      - name: Setup Node.js
+        if: matrix.platform != 'darwin' || matrix.arch != 'x64'
+        uses: actions/setup-node@v6
+        with:
+          node-version: '22'
+          cache: 'pnpm'
+
       - name: Build
         working-directory: rust-servers
         env:
@@ -112,6 +122,51 @@ jobs:
           else
             shasum -a 256 "${BINARY_NAME}" > "${BINARY_NAME}.sha256"
           fi
+
+      - name: Build complete plugin package
+        if: matrix.platform != 'darwin' || matrix.arch != 'x64'
+        run: |
+          pnpm install --frozen-lockfile
+          pnpm build
+          pnpm package
+
+      - name: Upload complete plugin package
+        if: matrix.platform != 'darwin' || matrix.arch != 'x64'
+        uses: actions/upload-artifact@v7
+        with:
+          name: plugin-${{ matrix.platform }}-${{ matrix.arch }}
+          path: plugin-package
+          if-no-files-found: error
+
+      - name: Prepare iroh runtime assets
+        if: matrix.platform != 'darwin' || matrix.arch != 'x64'
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p iroh-assets
+          asset_base="iroh-runtime-${{ matrix.platform }}-${{ matrix.arch }}"
+
+          native_paths=(plugin-package/node_modules/@number0/iroh-*/*.node)
+          if [ "${#native_paths[@]}" -ne 1 ] || [ ! -f "${native_paths[0]}" ]; then
+            echo "Expected exactly one iroh native binding, found ${#native_paths[@]}" >&2
+            exit 1
+          fi
+          cp "${native_paths[0]}" "iroh-assets/${asset_base}.node"
+
+          cd iroh-assets
+          if command -v sha256sum &> /dev/null; then
+            sha256sum "${asset_base}.node" > "${asset_base}.node.sha256"
+          else
+            shasum -a 256 "${asset_base}.node" > "${asset_base}.node.sha256"
+          fi
+
+      - name: Upload iroh runtime assets
+        if: matrix.platform != 'darwin' || matrix.arch != 'x64'
+        uses: actions/upload-artifact@v7
+        with:
+          name: iroh-${{ matrix.platform }}-${{ matrix.arch }}
+          path: iroh-assets
+          if-no-files-found: error
 
       - name: Upload artifact
         uses: actions/upload-artifact@v7
@@ -257,6 +312,19 @@ jobs:
           path: release-assets
           merge-multiple: true
 
+      - name: Download complete plugin packages
+        uses: actions/download-artifact@v7
+        with:
+          pattern: 'plugin-*'
+          path: complete-packages
+
+      - name: Download iroh runtime assets
+        uses: actions/download-artifact@v7
+        with:
+          pattern: 'iroh-*'
+          path: release-assets
+          merge-multiple: true
+
       - name: Set permissions
         run: |
           chmod +x binaries/termy-server-darwin-* || true
@@ -278,6 +346,8 @@ jobs:
 
       - name: Prepare release assets
         run: |
+          set -euo pipefail
+
           # BRAT 需要的三个核心文件（直接上传，不打包）
           # main.js, manifest.json, styles.css 已在根目录
           
@@ -285,13 +355,22 @@ jobs:
           chmod +x binaries/termy-server-darwin-* || true
           chmod +x binaries/termy-server-linux-* || true
           
-          # 创建完整包（所有平台，供手动安装）
-          mkdir -p termy/binaries
-          cp main.js manifest.json styles.css termy/
-          cp binaries/termy-server-* termy/binaries/
-          chmod +x termy/binaries/termy-server-darwin-* || true
-          chmod +x termy/binaries/termy-server-linux-* || true
-          zip -r "termy-${{ github.ref_name }}.zip" termy
+          # 原生 iroh 模块按平台分发，不能混装或省略。
+          package_dirs=(complete-packages/plugin-*)
+          if [ ! -d "${package_dirs[0]}" ]; then
+            echo "No complete plugin packages were downloaded" >&2
+            exit 1
+          fi
+
+          for package_dir in "${package_dirs[@]}"; do
+            platform="${package_dir##*/plugin-}"
+            test -f "${package_dir}/main.js"
+            test -f "${package_dir}/manifest.json"
+            test -f "${package_dir}/styles.css"
+            test -f "${package_dir}/node_modules/@number0/iroh/package.json"
+            find "${package_dir}/node_modules/@number0" -mindepth 2 -maxdepth 2 -type f -name '*.node' -print -quit | grep -q .
+            (cd "${package_dir}" && zip -r "../../termesh-${{ github.ref_name }}-${platform}.zip" .)
+          done
 
       - name: Release
         uses: softprops/action-gh-release@v3
@@ -300,7 +379,9 @@ jobs:
             main.js
             manifest.json
             styles.css
-            termy-${{ github.ref_name }}.zip
+            termesh-${{ github.ref_name }}-*.zip
+            release-assets/iroh-runtime-*.node
+            release-assets/iroh-runtime-*.node.sha256
             binaries/termy-server-win32-x64.exe
             binaries/termy-server-win32-x64.exe.sha256
             binaries/termy-server-darwin-arm64

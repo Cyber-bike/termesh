@@ -31,9 +31,11 @@ test('renderReleaseBody describes the package without requiring CHANGELOG.md as 
     repository: 'jiang-zhong-xi/Termy',
   });
 
-  assert.match(body, /Download `termesh-1\.3\.0\.zip` \(includes plugin files and all platform binaries\)/);
+  assert.match(body, /Download the `termesh-1\.3\.0-<platform>\.zip` asset matching your platform/);
   assert.doesNotMatch(body, /Download `termesh\.zip`/);
   assert.doesNotMatch(body, /includes all platform binaries and `CHANGELOG\.md`/);
+  assert.match(body, /automatically downloads and verifies the platform-native runtime/);
+  assert.match(body, /Complete Package \(Offline Installation\)/);
   assert.match(body, /\[Telegram Group\]\(https:\/\/t\.me\/\+t6oRqhaw8c1jNzE1\)/);
   assert.doesNotMatch(body, /\[Discussions\]\(/);
   assert.ok(body.startsWith('## Changelog\n\n### Added\n- Embedded changelog support.\n\n## Installation'));

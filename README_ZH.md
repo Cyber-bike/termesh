@@ -74,7 +74,7 @@ Termesh 面向同时使用笔记、终端、AI 编码工具和多台设备的用
 ### 隐私与网络访问
 
 - Termesh 不包含遥测或分析功能。
-- Termesh 会在需要时从 [GitHub Releases](https://github.com/jiang-zhong-xi/Termy/releases) 下载与当前平台匹配的原生 PTY server 二进制文件；离线模式会禁用自动下载和更新检查。
+- Termesh 会在需要时从 [GitHub Releases](https://github.com/jiang-zhong-xi/Termy/releases) 下载与当前平台匹配的原生 PTY server，并在首次使用远程设备时下载 iroh 运行库。原生下载均经过 SHA-256 校验；离线模式会禁用这些下载和所有更新检查。
 - 终端会话会运行本地 shell 命令和用户配置的工作流。这些命令可能会根据实际运行的 shell 命令或外部 CLI 读取文件、修改文件或访问网络。
 - Termesh 会启动本地 WebSocket 连接，用于 PTY 后端和可选 IDE bridge。这些连接仅用于本地终端传输和编辑器上下文接力。
 - 上下文感知的 AI 启动器可以把活动笔记路径、选区、编辑器上下文以及 vault/workspace 路径传递给本地 CLI 工具。Codex 集成会在 vault 内写入本地 helper skill：`.agents/skills/termy-obsidian-context/`。
@@ -178,7 +178,9 @@ Termesh 已上架官方 Obsidian Community Plugins 列表。
 
 ### 手动安装
 
-1. 从 [GitHub Releases](https://github.com/jiang-zhong-xi/Termy/releases) 下载最新发布包。
+通过社区市场或 BRAT 安装后，首次使用远程设备时会自动下载并校验当前平台的原生运行库。只有离线环境需要手动安装完整包：
+
+1. 从 [GitHub Releases](https://github.com/jiang-zhong-xi/Termy/releases) 下载与当前平台匹配的 `termesh-<version>-<platform>.zip` 完整包，例如 Windows x64 使用 `win32-x64`。
 2. 解压到当前 vault 的 `.obsidian/plugins/termesh/` 目录。
 3. 重启或重新加载 Obsidian。
 4. 在 **设置 → 社区插件** 中启用 Termesh。
