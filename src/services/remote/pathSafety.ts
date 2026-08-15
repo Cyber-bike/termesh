@@ -58,7 +58,7 @@ export function checkRelativePath(path: string): PathCheck {
       return reject('windows-trailing-dot-or-space', segment);
     }
     if (/[<>:"|?*]/.test(segment)) return reject('windows-illegal-char', segment);
-    // eslint-disable-next-line no-control-regex
+    // eslint-disable-next-line no-control-regex -- Intentionally matches ASCII control chars (U+0000..U+001F) to reject Windows-illegal path segments.
     if (/[\u0000-\u001f]/.test(segment)) return reject('windows-illegal-char', segment);
 
     const stem = segment.split('.')[0].toUpperCase();
