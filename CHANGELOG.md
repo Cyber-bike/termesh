@@ -14,6 +14,12 @@ and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0
 ### Changed
 - Double-clicking `termy-agent.exe` on Windows now starts the agent directly (equivalent to `termy-agent.exe run`) and keeps the console window open, instead of closing immediately with a missing-subcommand error.
 
+## [1.4.4] - 2026-08-15
+
+### Fixed
+- Updated the manifest description to satisfy Obsidian community scanner requirements.
+- Added a descriptive rationale to the `no-control-regex` directive in remote path safety validation so automated source checks pass.
+
 ## [1.4.3] - 2026-07-31
 
 ### Fixed

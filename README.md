@@ -8,7 +8,7 @@
 
 Open local and remote terminal sessions from one device home, with reusable workflows, AI CLI context handoff, and a native Rust PTY backend.
 
-[![Version](https://img.shields.io/badge/version-1.4.3-7c3aed?style=for-the-badge)](./manifest.json)
+[![Version](https://img.shields.io/badge/version-1.4.4-7c3aed?style=for-the-badge)](./manifest.json)
 [![Obsidian](https://img.shields.io/badge/Obsidian-Desktop%20Only-8b5cf6?style=for-the-badge)](https://obsidian.md/)
 [![Community Plugin](https://img.shields.io/badge/Obsidian-Community%20Plugin-22c55e?style=for-the-badge)](https://obsidian.md/plugins?id=termesh)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue?style=for-the-badge)](./LICENSE)
