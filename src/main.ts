@@ -80,7 +80,7 @@ import embeddedChangelogContent from '../CHANGELOG.md';
 
 // Import terminal styles
 
-const REPOSITORY_URL = 'https://github.com/jiang-zhong-xi/ReqFirst';
+const REPOSITORY_URL = 'https://github.com/jiang-zhong-xi/Termy';
 const CHANGELOG_URL = `${REPOSITORY_URL}/blob/master/CHANGELOG.md`;
 const EMBEDDED_CHANGELOG_SOURCE_PATH = 'CHANGELOG.md';
 const ALWAYS_ON_TOP_TAB_BADGE_CLASS = 'termy-always-on-top-tab-badge';
@@ -380,7 +380,7 @@ export default class TerminalPlugin extends Plugin {
       return row instanceof HTMLElement ? row : null;
     };
 
-    this.registerDomEvent(document, 'dragover', (event) => {
+    this.registerDomEvent(activeDocument, 'dragover', (event) => {
       if (!isOurDrag(event) || !explorerContainerFor(event)) {
         setHighlighted(null);
         return;
@@ -389,7 +389,7 @@ export default class TerminalPlugin extends Plugin {
       setHighlighted(rowElementFor(event.target));
     }, { capture: true });
 
-    this.registerDomEvent(document, 'dragleave', (event) => {
+    this.registerDomEvent(activeDocument, 'dragleave', (event) => {
       if (!isOurDrag(event)) return;
       // Only clear once the drag actually leaves the explorer container,
       // not on every dragleave fired while moving between sibling rows
@@ -398,9 +398,9 @@ export default class TerminalPlugin extends Plugin {
       if (!explorerContainerFor(event)) setHighlighted(null);
     }, { capture: true });
 
-    this.registerDomEvent(document, 'dragend', () => setHighlighted(null), { capture: true });
+    this.registerDomEvent(activeDocument, 'dragend', () => setHighlighted(null), { capture: true });
 
-    this.registerDomEvent(document, 'drop', (event) => {
+    this.registerDomEvent(activeDocument, 'drop', (event) => {
       setHighlighted(null);
       if (!isOurDrag(event) || !explorerContainerFor(event)) return;
       event.preventDefault();

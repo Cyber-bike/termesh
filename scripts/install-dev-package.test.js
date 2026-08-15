@@ -68,7 +68,7 @@ test('migrateEnabledPluginId replaces an enabled legacy ID without duplicates', 
 
     assert.equal(migrateEnabledPluginId(pluginsDir), true);
     assert.deepEqual(JSON.parse(fs.readFileSync(enabledPluginsPath, 'utf8')), [
-      'termesh',
+      'termy',
       'hi-note',
     ]);
   } finally {
@@ -99,11 +99,11 @@ test('migrateLegacyPluginData preserves settings when changing plugin IDs', () =
   try {
     fs.mkdirSync(path.join(pluginsDir, 'termy'), { recursive: true });
     fs.mkdirSync(path.join(pluginsDir, 'termesh'), { recursive: true });
-    fs.writeFileSync(path.join(pluginsDir, 'termy', 'data.json'), '{"shell":"pwsh"}');
+    fs.writeFileSync(path.join(pluginsDir, 'termesh', 'data.json'), '{"shell":"pwsh"}');
 
     assert.equal(migrateLegacyPluginData(pluginsDir), true);
     assert.deepEqual(
-      JSON.parse(fs.readFileSync(path.join(pluginsDir, 'termesh', 'data.json'), 'utf8')),
+      JSON.parse(fs.readFileSync(path.join(pluginsDir, 'termy', 'data.json'), 'utf8')),
       { shell: 'pwsh' },
     );
   } finally {
@@ -111,19 +111,19 @@ test('migrateLegacyPluginData preserves settings when changing plugin IDs', () =
   }
 });
 
-test('migrateLegacyPluginData does not overwrite existing Termesh settings', () => {
+test('migrateLegacyPluginData does not overwrite existing Termy settings', () => {
   const tempDir = fs.mkdtempSync(path.join(os.tmpdir(), 'termesh-plugin-data-'));
   const pluginsDir = path.join(tempDir, 'plugins');
 
   try {
     fs.mkdirSync(path.join(pluginsDir, 'termy'), { recursive: true });
     fs.mkdirSync(path.join(pluginsDir, 'termesh'), { recursive: true });
-    fs.writeFileSync(path.join(pluginsDir, 'termy', 'data.json'), '{"shell":"legacy"}');
-    fs.writeFileSync(path.join(pluginsDir, 'termesh', 'data.json'), '{"shell":"current"}');
+    fs.writeFileSync(path.join(pluginsDir, 'termesh', 'data.json'), '{"shell":"legacy"}');
+    fs.writeFileSync(path.join(pluginsDir, 'termy', 'data.json'), '{"shell":"current"}');
 
     assert.equal(migrateLegacyPluginData(pluginsDir), false);
     assert.deepEqual(
-      JSON.parse(fs.readFileSync(path.join(pluginsDir, 'termesh', 'data.json'), 'utf8')),
+      JSON.parse(fs.readFileSync(path.join(pluginsDir, 'termy', 'data.json'), 'utf8')),
       { shell: 'current' },
     );
   } finally {

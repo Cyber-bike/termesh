@@ -1,6 +1,6 @@
 {
-  "name": "termesh",
-  "version": "1.4.1",
+  "name": "termy",
+  "version": "1.4.3",
   "type": "module",
   "description": "Terminal emulator with split panes, reusable workflows, AI CLI context handoff, and zero setup. Powered by xterm.js and a bundled Rust PTY backend.",
   "main": "main.js",
@@ -34,7 +34,7 @@
     "xterm",
     "pty"
   ],
-  "author": "ZyphrZero",
+  "author": "Jiang ZhongXi",
   "license": "GPL-3.0",
   "devDependencies": {
     "@eslint/js": "^9.39.4",

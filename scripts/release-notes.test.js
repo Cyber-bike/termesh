@@ -28,7 +28,7 @@ test('renderReleaseBody describes the package without requiring CHANGELOG.md as 
   const body = renderReleaseBody({
     version: '1.3.0',
     changelogSection: '### Added\n- Embedded changelog support.',
-    repository: 'ZyphrZero/Termy',
+    repository: 'jiang-zhong-xi/Termy',
   });
 
   assert.match(body, /Download `termy-1\.3\.0\.zip` \(includes plugin files and all platform binaries\)/);

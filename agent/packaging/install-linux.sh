@@ -5,7 +5,7 @@
 # One-liner remote install (downloads the latest release, no local checkout
 # needed):
 #
-#   curl -fsSL https://raw.githubusercontent.com/jiang-zhong-xi/ReqFirst/main/agent/packaging/install-linux.sh | bash
+#   curl -fsSL https://raw.githubusercontent.com/jiang-zhong-xi/Termy/main/agent/packaging/install-linux.sh | bash
 #
 # Or, from a local checkout/build, pass the binary path explicitly:
 #
@@ -22,7 +22,7 @@ set -euo pipefail
 BIN_DIR="${HOME}/.local/bin"
 UNIT_DIR="${HOME}/.config/systemd/user"
 UNIT_NAME="termy-agent.service"
-RELEASE_REPO="jiang-zhong-xi/ReqFirst"
+RELEASE_REPO="jiang-zhong-xi/Termy"
 RELEASE_ASSET="termy-agent-linux-x64"
 # Only set when this script is run from a real file (a local checkout), not
 # piped through `curl | bash`, where BASH_SOURCE[0] is empty - falling back to
@@ -87,7 +87,7 @@ else
   cat > "${UNIT_TMP}" <<'UNIT'
 [Unit]
 Description=Termy remote agent
-Documentation=https://github.com/ZyphrZero/Termy
+Documentation=https://github.com/jiang-zhong-xi/Termy
 After=network-online.target
 Wants=network-online.target
 

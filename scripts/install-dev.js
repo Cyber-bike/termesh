@@ -249,7 +249,7 @@ function getBinaryName() {
 
 // Copy file with retry
 async function main() {
-  log('\n[Termesh] Development Install\n', 'cyan');
+  log('\n[Termy] Development Install\n', 'cyan');
 
   // Reset config
   if (RESET_CONFIG) {
@@ -371,7 +371,7 @@ async function main() {
   log('');
 
   // 4. Stop running processes that may lock the installed plugin files
-  const targetDir = path.join(pluginsDir, 'termesh');
+  const targetDir = path.join(pluginsDir, 'termy');
   if (!fs.existsSync(targetDir)) {
     fs.mkdirSync(targetDir, { recursive: true });
   }
@@ -412,10 +412,10 @@ async function main() {
   log(`  binaries/${binaryName}`, 'green');
   log('  node_modules/@number0/iroh', 'green');
   if (migrateLegacyPluginData(pluginsDir)) {
-    log('  Migrated settings: termy/data.json → termesh/data.json', 'green');
+    log('  Migrated settings: termesh/data.json → termy/data.json', 'green');
   }
   if (migrateEnabledPluginId(pluginsDir)) {
-    log('  Migrated enabled plugin ID: termy → termesh', 'green');
+    log('  Migrated enabled plugin ID: termesh → termy', 'green');
   }
   log('');
 
@@ -433,8 +433,8 @@ async function main() {
   if (!KILL_OBSIDIAN) {
     log('Next steps:', 'cyan');
     log('  1. Open Obsidian if it is not already running', 'yellow');
-    log('  2. Reload the "Termesh" plugin from Obsidian settings to pick up the new build', 'yellow');
-    log('  3. Ctrl+P → "Termesh" to open\n', 'yellow');
+    log('  2. Reload the "Termy" plugin from Obsidian settings to pick up the new build', 'yellow');
+    log('  3. Ctrl+P → "Termy" to open\n', 'yellow');
   }
 
   log('Tip: Ctrl+Shift+I for developer console\n', 'gray');

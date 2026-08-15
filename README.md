@@ -1,8 +1,8 @@
 <div align="center">
 
-# Termesh
+# Termy
 
-<img src="assets\termy-tg-avatar-transparent.svg" width="150" alt="Termesh logo" />
+<img src="assets/termy-logo-selection.png" width="150" alt="Termy logo" />
 
 *A device-aware terminal mesh for Obsidian*
 
@@ -10,13 +10,13 @@ Open local and remote terminal sessions from one device home, with reusable work
 
 [![Version](https://img.shields.io/badge/version-1.4.3-7c3aed?style=for-the-badge)](./manifest.json)
 [![Obsidian](https://img.shields.io/badge/Obsidian-Desktop%20Only-8b5cf6?style=for-the-badge)](https://obsidian.md/)
-[![Community Plugin](https://img.shields.io/badge/Obsidian-Community%20Plugin-22c55e?style=for-the-badge)](https://obsidian.md/plugins?id=termesh)
+[![Community Plugin](https://img.shields.io/badge/Obsidian-Community%20Plugin-22c55e?style=for-the-badge)](https://obsidian.md/plugins?id=termy)
 [![License](https://img.shields.io/badge/license-GPL--3.0-blue?style=for-the-badge)](./LICENSE)
 [![PTY](https://img.shields.io/badge/backend-Rust%20PTY-f97316?style=for-the-badge)](./rust-servers)
 
 English / [简体中文](./README_ZH.md)
 
-[Install](#installation) · [Quick Start](#quick-start) · [Features](#features) · [Screenshots](#visual-tour) · [Report Issues](https://github.com/ZyphrZero/Termy/issues) · [Telegram](https://t.me/+t6oRqhaw8c1jNzE1)
+[Install](#installation) · [Quick Start](#quick-start) · [Features](#features) · [Screenshots](#visual-tour) · [Report Issues](https://github.com/jiang-zhong-xi/Termy/issues) · [Telegram](https://t.me/+t6oRqhaw8c1jNzE1)
 
 <p align="center">
   <img src="assets/termy-workspace-overview.png" width="980" alt="Termy main workspace preview with Obsidian, Codex CLI, OpenCode, and Claude Code" />
@@ -26,9 +26,9 @@ English / [简体中文](./README_ZH.md)
 
 ---
 
-## Why Termesh?
+## Why Termy?
 
-Termesh is built for people who work across notes, terminals, AI coding sessions, and more than one device. Its device home keeps local and paired remote terminals in one place while preserving the editor context that makes an Obsidian-native terminal useful.
+Termy is built for people who work across notes, terminals, AI coding sessions, and more than one device. Its device home keeps local and paired remote terminals in one place while preserving the editor context that makes an Obsidian-native terminal useful.
 
 - **Native PTY backend**: Rust keeps the backend lean and avoids extra bridge runtimes.
 - **Real terminal UX**: xterm.js frontend with search, copy/paste, prompt navigation, split panes, and multi-session support.
@@ -74,7 +74,7 @@ Termesh is built for people who work across notes, terminals, AI coding sessions
 ### Privacy and Network Access
 
 - Termy does not include telemetry or analytics.
-- Termy downloads the matching native PTY server binary from [GitHub Releases](https://github.com/jiang-zhong-xi/ReqFirst/releases) when needed; offline mode disables automatic downloads and update checks.
+- Termy downloads the matching native PTY server binary from [GitHub Releases](https://github.com/jiang-zhong-xi/Termy/releases) when needed; offline mode disables automatic downloads and update checks.
 - Terminal sessions run local shell commands and user-configured workflows. Those commands may read files, modify files, or access the network according to the shell command or external CLI being run.
 - Termy starts local WebSocket connections for its PTY backend and optional IDE bridge. These connections are used for local terminal transport and editor-context handoff.
 - Context-aware AI launchers can pass the active note path, selection, editor context, and vault/workspace path to local CLI tools. The Codex integration writes a vault-local helper skill under `.agents/skills/termy-obsidian-context/`.
@@ -142,7 +142,7 @@ Termesh is built for people who work across notes, terminals, AI coding sessions
 | Command | What it does |
 | --- | --- |
 | `Open terminal` | Opens a new terminal using your configured placement rules. |
-| `Termesh: show changelog` | Opens the bundled changelog modal. |
+| `Termy: show changelog` | Opens the bundled changelog modal. |
 | `Terminal: split horizontal / split vertical` | Splits the active terminal. |
 | `Terminal: send selection` | Sends the current editor selection to the active terminal. |
 | `Terminal: send current note` | Sends the full current note content. |
@@ -165,7 +165,7 @@ Termesh is built for people who work across notes, terminals, AI coding sessions
 Termy is now listed in the official Obsidian Community Plugins directory.
 
 1. Open **Settings → Community plugins** and turn off **Restricted mode** if it is enabled.
-2. Click **Browse** and search for `Termesh`.
+2. Click **Browse** and search for `Termy`.
 3. Click **Install**, then **Enable**.
 
 ### Install with BRAT (early updates)
@@ -174,19 +174,19 @@ Use BRAT if you want to track the latest tagged build before it ships to the com
 
 1. Install [BRAT](https://github.com/TfTHacker/obsidian42-brat).
 2. Open BRAT settings and choose **Add beta plugin**.
-3. Enter `jiang-zhong-xi/ReqFirst`.
+3. Enter `jiang-zhong-xi/Termy`.
 4. Install the plugin and enable it in **Settings → Community plugins**.
 
 ### Manual install
 
-1. Download the latest release from [GitHub Releases](https://github.com/ZyphrZero/Termy/releases).
-2. Extract the release files into `.obsidian/plugins/termesh/` inside your vault.
+1. Download the latest release from [GitHub Releases](https://github.com/jiang-zhong-xi/Termy/releases).
+2. Extract the release files into `.obsidian/plugins/termy/` inside your vault.
 3. Reload Obsidian.
-4. Enable Termesh in **Settings → Community plugins**.
+4. Enable Termy in **Settings → Community plugins**.
 
 ## Quick Start
 
-1. Open Termesh from the ribbon, command palette, or empty-tab action to choose a device.
+1. Open Termy from the ribbon, command palette, or empty-tab action to choose a device.
 2. Choose your shell and terminal placement behavior in settings.
 3. Try the built-in workflows from the status bar menu.
 4. Send your current selection, note, or file path into the terminal.

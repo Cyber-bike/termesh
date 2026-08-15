@@ -1,10 +1,10 @@
 {
-  "id": "termesh",
-  "name": "Termesh",
-  "version": "1.4.1",
+  "id": "termy",
+  "name": "Termy",
+  "version": "1.4.3",
   "minAppVersion": "1.8.7",
   "description": "A device-aware terminal mesh for Obsidian with local and remote sessions, reusable workflows, and AI CLI context handoff.",
-  "author": "ZyphrZero",
-  "authorUrl": "https://github.com/ZyphrZero",
+  "author": "Jiang ZhongXi",
+  "authorUrl": "https://github.com/jiang-zhong-xi",
   "isDesktopOnly": true
 }

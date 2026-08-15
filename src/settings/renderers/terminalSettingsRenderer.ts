@@ -1532,8 +1532,8 @@ export class TerminalSettingsRenderer extends BaseSettingsRenderer {
 
     this.themePreviewContentEl = this.themePreviewEl.createDiv({ cls: 'terminal-theme-preview-content' });
 
-    this.themePreviewContentEl.createDiv({ text: '$ echo "Termesh"' });
-    this.themePreviewContentEl.createDiv({ text: 'Termesh' });
+    this.themePreviewContentEl.createDiv({ text: '$ echo "Termy"' });
+    this.themePreviewContentEl.createDiv({ text: 'Termy' });
     this.themePreviewContentEl.createDiv({ text: '$ ls' });
     this.themePreviewContentEl.createDiv({ text: 'README.md  scripts  src  package.json' });
     const promptLine = this.themePreviewContentEl.createDiv({ cls: 'terminal-theme-preview-prompt-line' });

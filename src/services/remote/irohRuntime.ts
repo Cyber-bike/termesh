@@ -17,7 +17,7 @@ export function createIrohLoader(
       const detail = error instanceof Error ? error.message : String(error);
       return Promise.reject(
         new Error(
-          `无法加载远程终端原生模块。请使用 Termesh 完整安装包重新安装插件；开发安装请先运行 pnpm package。详情：${detail}`,
+          `无法加载远程终端原生模块。请使用 Termy 完整安装包重新安装插件；开发安装请先运行 pnpm package。详情：${detail}`,
           { cause: error },
         ),
       );

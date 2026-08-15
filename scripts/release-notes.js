@@ -3,7 +3,7 @@
  *
  * Usage:
  *   node scripts/release-notes.js --version 1.3.0
- *   node scripts/release-notes.js --version 1.3.0 --repository jiang-zhong-xi/ReqFirst --output release-body.md
+ *   node scripts/release-notes.js --version 1.3.0 --repository jiang-zhong-xi/Termy --output release-body.md
  */
 
 import fs from 'fs';
@@ -13,7 +13,7 @@ import { fileURLToPath } from 'url';
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
 const DEFAULT_CHANGELOG_PATH = path.join(__dirname, '..', 'CHANGELOG.md');
-const DEFAULT_REPOSITORY = 'jiang-zhong-xi/ReqFirst';
+const DEFAULT_REPOSITORY = 'jiang-zhong-xi/Termy';
 
 function escapeRegExp(value) {
   return value.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
@@ -98,7 +98,7 @@ export function renderReleaseBody({ version, changelogSection, repository = DEFA
     '   - **macOS (Intel)**: `termy-server-darwin-x64`',
     '   - **Linux (x64)**: `termy-server-linux-x64`',
     '   - **Linux (ARM64)**: `termy-server-linux-arm64`',
-    '3. Create directory: `.obsidian/plugins/termesh/binaries/`',
+    '3. Create directory: `.obsidian/plugins/termy/binaries/`',
     '4. Place core files in `termy/` and binary in `binaries/`',
     '5. Restart Obsidian and enable the plugin',
     '',

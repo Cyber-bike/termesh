@@ -1,6 +1,6 @@
 [Unit]
 Description=Termy remote agent
-Documentation=https://github.com/ZyphrZero/Termy
+Documentation=https://github.com/jiang-zhong-xi/Termy
 # Only meaningful once the network is usable; the agent retries regardless, this
 # just avoids a guaranteed first failure on boot.
 After=network-online.target

@@ -20,11 +20,11 @@ export const en: TranslationKeys = {
   },
 
   plugin: {
-    name: 'Termesh',
-    loadingMessage: 'Termesh plugin loading',
-    loadedMessage: 'Termesh plugin loaded',
-    unloadingMessage: 'Termesh plugin unloading',
-    unloadedMessage: 'Termesh plugin unloaded',
+    name: 'Termy',
+    loadingMessage: 'Termy plugin loading',
+    loadedMessage: 'Termy plugin loaded',
+    unloadingMessage: 'Termy plugin unloading',
+    unloadedMessage: 'Termy plugin unloaded',
   },
 
   home: {
@@ -92,7 +92,7 @@ export const en: TranslationKeys = {
     toggleDockSide: 'Switch side',
     close: 'Close directory tree',
     empty: 'Empty directory',
-    pathInput: 'Current path (type a path and press Enter to navigate)',
+    pathInput: 'Current path (type a path and press enter to navigate)',
     copyToVault: 'Copy to vault',
     copyToVaultChooseFolderPlaceholder: 'Choose a destination folder…',
     copyToVaultDone: 'Copied to vault.',
@@ -104,7 +104,7 @@ export const en: TranslationKeys = {
 
   commands: {
     openTerminal: 'Open terminal',
-    showChangelog: 'Termesh: show changelog',
+    showChangelog: 'Termy: Show changelog',
     terminalSearch: 'Terminal: search',
     terminalToggleDirectoryTree: 'Terminal: toggle directory tree',
     terminalClear: 'Terminal: clear screen',
@@ -208,7 +208,7 @@ export const en: TranslationKeys = {
       advanced: 'Advanced',
     },
     header: {
-      title: 'Termesh',
+      title: 'Termy',
       feedbackText: 'Thanks for using! Feedback welcome: ',
       feedbackLink: 'GitHub',
       communityLink: 'Telegram',
@@ -370,7 +370,7 @@ export const en: TranslationKeys = {
   modals: {
     changelog: {
       title: 'Changelog',
-      subtitle: 'Updated in Termesh {{version}}',
+      subtitle: 'Updated in Termy {{version}}',
       loading: 'Loading changelog...',
       unavailable: 'Unable to load the changelog for this version right now.',
       openRelease: 'Open release page',
@@ -387,7 +387,7 @@ export const en: TranslationKeys = {
     launcherInstall: {
       titleNotInstalled: '{{name}} is not installed',
       titleUpdate: 'Update {{name}}',
-      descriptionNotInstalled: 'Termesh could not find "{{command}}" on your PATH. Install the CLI on your machine, then come back and try again.',
+      descriptionNotInstalled: 'Termy could not find "{{command}}" on your PATH. Install the CLI on your machine, then come back and try again.',
       descriptionUpdate: 'A newer release of {{name}} is available ({{local}} → {{latest}}). Run the command below in your system terminal to upgrade.',
       detectedCommand: 'Detected command',
       versionLabel: 'Version',

@@ -13,7 +13,7 @@ v2.0 **不需要部署任何云端服务**——没有账号、没有云端 Rela
 一条命令装好并启动，直接打印连接码，不需要 GitHub 仓库checkout：
 
 ```bash
-curl -fsSL https://raw.githubusercontent.com/jiang-zhong-xi/ReqFirst/main/agent/packaging/install-linux.sh | bash
+curl -fsSL https://raw.githubusercontent.com/jiang-zhong-xi/Termy/main/agent/packaging/install-linux.sh | bash
 ```
 
 脚本自动完成：没传本地二进制路径时从最新 Release 下载 `termy-agent-linux-x64` 并校验 sha256、把二进制装到 `~/.local/bin`、把 user unit 装到 `~/.config/systemd/user`、启用 lingering、`systemctl --user enable --now`、等待 Agent 上线后直接打印连接码。全程只有一步需要交互（见下）。

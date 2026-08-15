@@ -676,7 +676,7 @@ export class TerminalView extends ItemView {
     if (!input) {
       debugLog('[Terminal DnD] No usable file path or text in drop payload');
       errorLog('[Terminal DnD] No usable path details:', this.describeDropPayload(dataTransfer));
-      new Notice('Termesh: 未获取到可用文本或路径，请确认拖拽来源是否支持文本或文件。');
+      new Notice('Termy: 未获取到可用文本或路径，请确认拖拽来源是否支持文本或文件。');
       return;
     }
 
@@ -1723,7 +1723,7 @@ export class TerminalView extends ItemView {
     const appWithPlugins = this.app as typeof this.app & {
       plugins?: { getPlugin?: (id: string) => unknown };
     };
-    const plugin = appWithPlugins.plugins?.getPlugin?.('termesh');
+    const plugin = appWithPlugins.plugins?.getPlugin?.('termy');
     if (!this.isTerminalPlugin(plugin)) return null;
     return plugin;
   }
