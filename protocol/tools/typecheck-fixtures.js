@@ -70,9 +70,11 @@ const entry = path.join(TMP, 'fixtures.ts');
 fs.writeFileSync(entry, lines.join('\n'));
 
 try {
+  const tscExecutable = path.join(ROOT, 'node_modules', 'typescript', 'bin', 'tsc');
   execFileSync(
-    path.join(ROOT, 'node_modules', '.bin', 'tsc'),
+    process.execPath,
     [
+      tscExecutable,
       '--noEmit', '--strict', '--target', 'ES2022', '--module', 'ESNext',
       '--moduleResolution', 'bundler', entry
     ],

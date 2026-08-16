@@ -101,13 +101,13 @@ function getPnpmCommand() {
   return process.platform === 'win32' ? 'pnpm.cmd' : 'pnpm';
 }
 
-function escapeWindowsArg(arg) {
+export function escapeWindowsArg(arg) {
   const normalized = String(arg);
-  if (!/\s/.test(normalized)) {
-    return normalized;
+  if (/["\r\n]/.test(normalized)) {
+    throw new Error('Windows command arguments must not contain quotes or newlines');
   }
 
-  return `"${normalized.replace(/"/g, '""')}"`;
+  return `"${normalized}"`;
 }
 
 function spawnPnpm(args) {

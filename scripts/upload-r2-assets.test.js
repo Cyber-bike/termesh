@@ -3,6 +3,7 @@ import test from 'node:test';
 
 import {
   assertSupportedNodeVersion,
+  escapeWindowsArg,
   parseNodeMajorVersion,
 } from './upload-r2-assets.js';
 
@@ -26,4 +27,14 @@ test('assertSupportedNodeVersion rejects Node versions older than 22 with a clea
     () => assertSupportedNodeVersion('20.20.2'),
     /requires Node\.js v22\+.*Wrangler.*20\.20\.2/i
   );
+});
+
+test('escapeWindowsArg keeps cmd metacharacters inside quotes', () => {
+  assert.equal(escapeWindowsArg('release&echo injected'), '"release&echo injected"');
+  assert.equal(escapeWindowsArg('bucket|more'), '"bucket|more"');
+});
+
+test('escapeWindowsArg rejects characters that can break the quoted argument', () => {
+  assert.throws(() => escapeWindowsArg('bad"value'), /must not contain quotes or newlines/);
+  assert.throws(() => escapeWindowsArg("bad\nvalue"), /must not contain quotes or newlines/);
 });
