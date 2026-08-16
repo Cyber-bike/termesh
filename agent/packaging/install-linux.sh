@@ -116,6 +116,16 @@ else
   sudo loginctl enable-linger "$(id -un)"
 fi
 
+USER_ID="$(id -u)"
+export XDG_RUNTIME_DIR="/run/user/${USER_ID}"
+export DBUS_SESSION_BUS_ADDRESS="unix:path=${XDG_RUNTIME_DIR}/bus"
+if [[ ! -S "${XDG_RUNTIME_DIR}/bus" ]]; then
+  say "starting the systemd user manager"
+  sudo systemctl start "user@${USER_ID}.service"
+fi
+[[ -S "${XDG_RUNTIME_DIR}/bus" ]] \
+  || die "the systemd user bus was not created at ${XDG_RUNTIME_DIR}/bus"
+
 say "reloading the user manager"
 systemctl --user daemon-reload
 

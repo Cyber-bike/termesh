@@ -186,6 +186,38 @@ Community Plugins and BRAT installations automatically download the verified pla
 3. Reload Obsidian.
 4. Enable Termesh in **Settings → Community plugins**.
 
+### Install a remote Agent
+
+The plugin is the controller. Each remote computer also needs `termy-agent`, which runs as the signed-in ordinary user and exposes that user's shell. No account or separate pairing service is required.
+
+Official Agent builds are currently available for **Linux x64** and **Windows x64**. A macOS Agent is not currently published; macOS can still run the Termesh plugin and local terminals.
+
+#### Linux x64 (Ubuntu 22.04/24.04)
+
+Run the installer as the ordinary user who will own the remote shell, not as root:
+
+```bash
+curl -fsSL https://raw.githubusercontent.com/jiang-zhong-xi/Termy/main/agent/packaging/install-linux.sh | bash
+```
+
+The installer downloads the latest Agent, verifies its SHA-256 checksum, installs it to `~/.local/bin`, and starts a systemd user service. It requests `sudo` once to enable lingering so the Agent keeps running after logout; the Agent and remote shells themselves never run as root.
+
+When installation finishes, copy the printed connection code into **Termesh → Add device**. Show it again or inspect logs with:
+
+```bash
+~/.local/bin/termy-agent status
+journalctl --user -u termy-agent -f
+```
+
+#### Windows x64
+
+1. Download `termy-agent-win32-x64.exe` and its `.sha256` file from the latest [GitHub Release](https://github.com/jiang-zhong-xi/Termy/releases/latest).
+2. Verify the checksum with `Get-FileHash .\termy-agent-win32-x64.exe -Algorithm SHA256`, then compare it with the first value in the `.sha256` file.
+3. Rename it to `termy-agent.exe`, place it in a permanent directory, and run `termy-agent.exe run`. Double-clicking the executable does the same thing.
+4. Copy the printed connection code into **Termesh → Add device**. Keep the Agent running; use Windows Task Scheduler if it should start automatically at sign-in.
+
+See the [Agent deployment and operations guide](docs/%E4%BD%BF%E7%94%A8/operations.md) for configuration, startup, upgrades, removal, and troubleshooting on each platform.
+
 ## Quick Start
 
 1. Open Termesh from the ribbon, command palette, or empty-tab action to choose a device.
