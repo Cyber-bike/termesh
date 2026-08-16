@@ -31,6 +31,7 @@ test('reports a clear installation error when the native module is missing', asy
 test('installs and loads the runtime when the packaged module is missing', async () => {
   const expected = {} as IrohModule;
   const loadedPaths: string[] = [];
+  const progressStages: string[] = [];
   let installCount = 0;
   const loadIroh = createIrohLoader('/vault/.obsidian/plugins/termesh', (modulePath) => {
     loadedPaths.push(modulePath);
@@ -41,11 +42,16 @@ test('installs and loads the runtime when the packaged module is missing', async
   }, {
     version: '1.5.0',
     isOffline: () => false,
-    installRuntime: () => {
+    installRuntime: (onProgress) => {
       installCount += 1;
+      onProgress?.({ stage: 'downloading', percent: 42 });
+      onProgress?.({ stage: 'verifying' });
       return Promise.resolve({
         nativePath: '/runtime/iroh.node',
       });
+    },
+    onInstallProgress: (progress) => {
+      progressStages.push(`${progress.stage}:${progress.percent ?? ''}`);
     },
   });
 
@@ -56,6 +62,7 @@ test('installs and loads the runtime when the packaged module is missing', async
     path.join('/vault/.obsidian/plugins/termesh', 'node_modules', '@number0', 'iroh'),
     '/runtime/iroh.node',
   ]);
+  assert.deepEqual(progressStages, ['downloading:42', 'verifying:', 'complete:']);
 });
 
 test('does not install the runtime in offline mode', async () => {

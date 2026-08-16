@@ -207,6 +207,10 @@ export interface TranslationKeys {
     downloadingBinary: string;
     updatingBinary: string;
     verifyingBinary: string;
+    downloadingRemoteRuntime: string;
+    retryingRemoteRuntime: string;
+    verifyingRemoteRuntime: string;
+    remoteRuntimeReady: string;
     binaryDownloadComplete: string;
     binaryUpdateComplete: string;
     binaryNotAvailable: string;

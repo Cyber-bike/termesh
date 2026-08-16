@@ -1,5 +1,5 @@
 import type { View, WorkspaceLeaf } from 'obsidian';
-import { addIcon, FileSystemAdapter, MarkdownView, Modal, Notice, Plugin, TFile, normalizePath, setIcon, setTooltip } from 'obsidian';
+import { addIcon, FileSystemAdapter, MarkdownView, Modal, Notice, Plugin, TFile, normalizePath, requestUrl, setIcon, setTooltip } from 'obsidian';
 import * as nodeFs from 'fs';
 import * as nodePath from 'path';
 import {
@@ -22,6 +22,7 @@ import { RelayClient } from './services/remote/relayClient';
 import { PairedDeviceStore } from './services/remote/pairedDeviceStore';
 import { DeviceConnectionManager } from './services/remote/deviceConnections';
 import { createIrohLoader } from './services/remote/irohRuntime';
+import type { IrohRuntimeInstallProgress } from './services/remote/irohRuntimeInstaller';
 import type { IrohModule } from './services/remote/irohStreams';
 import { normalizeControllerIdentitySeed } from './services/remote/controllerIdentity';
 import { requestWithObsidian } from './services/remote/obsidianRelayRequest';
@@ -126,6 +127,8 @@ export default class TerminalPlugin extends Plugin {
   private _pairedDeviceStore: PairedDeviceStore | null = null;
   private _deviceConnections: DeviceConnectionManager | null = null;
   private _loadIroh: (() => Promise<IrohModule>) | null = null;
+  private _irohRuntimeInstallProgress: IrohRuntimeInstallProgress | null = null;
+  private readonly _irohRuntimeProgressListeners = new Set<() => void>();
   private _claudeCodeIdeBridge: ClaudeCodeIdeBridge | null = null;
   private _agentContextBridge: AgentContextBridge | null = null;
   private _changelogContentCache: string | null = null;
@@ -250,12 +253,69 @@ export default class TerminalPlugin extends Plugin {
 
   loadIroh(): Promise<IrohModule> {
     if (!this._loadIroh) {
+      let runtimeDownloadNotice: Notice | null = null;
       this._loadIroh = createIrohLoader(this.getPluginDir(), require, {
         version: this.manifest.version,
         isOffline: () => this.settings.serverConnection.offlineMode,
+        fallbackFetchAsset: async (url, onProgress) => {
+          let timeoutId: number | null = null;
+          const response = await Promise.race([
+            requestUrl({ url, method: 'GET', throw: false }),
+            new Promise<never>((_resolve, reject) => {
+              timeoutId = window.setTimeout(() => {
+                reject(new Error('iroh runtime fallback download timed out'));
+              }, 45_000);
+            }),
+          ]).finally(() => {
+            if (timeoutId !== null) window.clearTimeout(timeoutId);
+          });
+          if (response.status !== 200) {
+            throw new Error(`iroh runtime fallback download failed: HTTP ${response.status}`);
+          }
+          const content = Buffer.from(response.arrayBuffer);
+          onProgress?.(content.length, content.length);
+          return content;
+        },
+        onInstallProgress: (progress) => {
+          this._irohRuntimeInstallProgress = progress.stage === 'complete' || progress.stage === 'error'
+            ? null
+            : progress;
+          for (const listener of this._irohRuntimeProgressListeners) listener();
+
+          if (progress.stage === 'downloading') {
+            runtimeDownloadNotice ??= new Notice(t('notices.downloadingRemoteRuntime'), 0);
+            const percent = progress.percent === undefined ? '' : ` ${Math.round(progress.percent)}%`;
+            runtimeDownloadNotice.setMessage(`${t('notices.downloadingRemoteRuntime')}${percent}`);
+            return;
+          }
+          if (progress.stage === 'verifying') {
+            runtimeDownloadNotice?.setMessage(t('notices.verifyingRemoteRuntime'));
+            return;
+          }
+          if (progress.stage === 'retrying') {
+            runtimeDownloadNotice ??= new Notice(t('notices.retryingRemoteRuntime'), 0);
+            runtimeDownloadNotice.setMessage(t('notices.retryingRemoteRuntime'));
+            return;
+          }
+
+          runtimeDownloadNotice?.hide();
+          runtimeDownloadNotice = null;
+          if (progress.stage === 'complete') {
+            new Notice(t('notices.remoteRuntimeReady'), 3000);
+          }
+        },
       });
     }
     return this._loadIroh();
+  }
+
+  getIrohRuntimeInstallProgress(): IrohRuntimeInstallProgress | null {
+    return this._irohRuntimeInstallProgress;
+  }
+
+  onIrohRuntimeInstallProgressChange(listener: () => void): () => void {
+    this._irohRuntimeProgressListeners.add(listener);
+    return () => this._irohRuntimeProgressListeners.delete(listener);
   }
 
   getDeviceConnectionManager(): DeviceConnectionManager {

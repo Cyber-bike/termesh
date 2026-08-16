@@ -74,7 +74,7 @@ Termesh 面向同时使用笔记、终端、AI 编码工具和多台设备的用
 ### 隐私与网络访问
 
 - Termesh 不包含遥测或分析功能。
-- Termesh 会在需要时从 [GitHub Releases](https://github.com/jiang-zhong-xi/Termy/releases) 下载与当前平台匹配的原生 PTY server，并在首次使用远程设备时下载 iroh 运行库。原生下载均经过 SHA-256 校验；离线模式会禁用这些下载和所有更新检查。
+- Termesh 会在需要时从 [GitHub Releases](https://github.com/jiang-zhong-xi/Termy/releases) 下载与当前平台匹配的原生 PTY server。首次使用远程设备时，会优先从 unpkg 下载固定版本、与当前平台匹配的 iroh `.node` 运行库，并依次回退到 jsDelivr 和 GitHub Releases。原生下载均使用插件内置的 SHA-256 校验；离线模式会禁用这些下载和所有更新检查。
 - 终端会话会运行本地 shell 命令和用户配置的工作流。这些命令可能会根据实际运行的 shell 命令或外部 CLI 读取文件、修改文件或访问网络。
 - Termesh 会启动本地 WebSocket 连接，用于 PTY 后端和可选 IDE bridge。这些连接仅用于本地终端传输和编辑器上下文接力。
 - 上下文感知的 AI 启动器可以把活动笔记路径、选区、编辑器上下文以及 vault/workspace 路径传递给本地 CLI 工具。Codex 集成会在 vault 内写入本地 helper skill：`.agents/skills/termy-obsidian-context/`。

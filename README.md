@@ -74,7 +74,7 @@ Termesh is built for people who work across notes, terminals, AI coding sessions
 ### Privacy and Network Access
 
 - Termesh does not include telemetry or analytics.
-- Termesh downloads the matching native PTY server and, on first use of remote devices, the platform-specific iroh runtime from [GitHub Releases](https://github.com/jiang-zhong-xi/Termy/releases). Native downloads are verified with SHA-256; offline mode disables them and all update checks.
+- Termesh downloads the matching native PTY server from [GitHub Releases](https://github.com/jiang-zhong-xi/Termy/releases). On first use of remote devices, it downloads the fixed-version platform-specific iroh `.node` runtime from unpkg, with jsDelivr and GitHub Releases as fallbacks. Native downloads are verified against bundled SHA-256 hashes; offline mode disables them and all update checks.
 - Terminal sessions run local shell commands and user-configured workflows. Those commands may read files, modify files, or access the network according to the shell command or external CLI being run.
 - Termesh starts local WebSocket connections for its PTY backend and optional IDE bridge. These connections are used for local terminal transport and editor-context handoff.
 - Context-aware AI launchers can pass the active note path, selection, editor context, and vault/workspace path to local CLI tools. The Codex integration writes a vault-local helper skill under `.agents/skills/termy-obsidian-context/`.

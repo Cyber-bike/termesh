@@ -1,7 +1,11 @@
 import path from 'node:path';
 
 import { IrohRuntimeInstaller } from './irohRuntimeInstaller';
-import type { IrohRuntimePaths } from './irohRuntimeInstaller';
+import type {
+  IrohRuntimeAssetFetcher,
+  IrohRuntimeInstallProgress,
+  IrohRuntimePaths,
+} from './irohRuntimeInstaller';
 import type { IrohModule } from './irohStreams';
 
 type ModuleLoader = (modulePath: string) => unknown;
@@ -9,7 +13,11 @@ type ModuleLoader = (modulePath: string) => unknown;
 interface IrohLoaderOptions {
   version: string;
   isOffline: () => boolean;
-  installRuntime?: () => Promise<IrohRuntimePaths>;
+  installRuntime?: (
+    onProgress?: (progress: IrohRuntimeInstallProgress) => void,
+  ) => Promise<IrohRuntimePaths>;
+  fallbackFetchAsset?: IrohRuntimeAssetFetcher;
+  onInstallProgress?: (progress: IrohRuntimeInstallProgress) => void;
 }
 
 export function createIrohLoader(
@@ -18,8 +26,10 @@ export function createIrohLoader(
   options?: IrohLoaderOptions,
 ): () => Promise<IrohModule> {
   const modulePath = path.join(pluginDir, 'node_modules', '@number0', 'iroh');
-  const installer = options ? new IrohRuntimeInstaller(pluginDir, options.version) : null;
-  const installRuntime = options?.installRuntime ?? (() => installer!.ensureInstalled());
+  const installer = options
+    ? new IrohRuntimeInstaller(pluginDir, options.version, undefined, options.fallbackFetchAsset)
+    : null;
+  const installRuntime = options?.installRuntime ?? ((onProgress) => installer!.ensureInstalled(onProgress));
   let loadedModule: IrohModule | null = null;
   let loading: Promise<IrohModule> | null = null;
 
@@ -46,13 +56,19 @@ export function createIrohLoader(
         return loading;
       }
 
-      loading = installRuntime()
+      loading = installRuntime((progress) => {
+        if (progress.stage !== 'complete' && progress.stage !== 'error') {
+          options.onInstallProgress?.(progress);
+        }
+      })
         .then((runtimePaths) => loadModule(runtimePaths.nativePath) as IrohModule)
         .then((module) => {
           loadedModule = module;
+          options.onInstallProgress?.({ stage: 'complete' });
           return module;
         })
         .catch((installError: unknown) => {
+          options.onInstallProgress?.({ stage: 'error' });
           throw createLoadError(installError);
         })
         .finally(() => {
@@ -64,7 +80,7 @@ export function createIrohLoader(
 }
 
 function createLoadError(error: unknown): Error {
-      const detail = error instanceof Error ? error.message : String(error);
+  const detail = error instanceof Error ? error.message : String(error);
   return new Error(
     `无法加载远程终端原生模块。请检查网络后重试；离线环境请安装 Termesh 平台完整包。开发安装请先运行 pnpm package。详情：${detail}`,
     { cause: error },

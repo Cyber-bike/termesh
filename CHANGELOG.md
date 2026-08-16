@@ -5,6 +5,16 @@ All notable changes to Termesh will be documented in this file.
 The format is based on [Keep a Changelog](https://keepachangelog.com/en/1.0.0/),
 and this project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [1.4.6] - 2026-08-16
+
+### Changed
+- Download the fixed-version iroh native runtime from unpkg first, with jsDelivr and GitHub Releases as fallbacks, improving first-use reliability on networks where GitHub is slow or unavailable.
+- Show native-runtime download, retry, verification, and completion progress in notices and on the connecting device card.
+
+### Fixed
+- Added bounded network timeouts and transport fallback so a stalled native-runtime download no longer leaves device pairing stuck indefinitely at zero percent.
+- Verify downloaded runtime files against bundled SHA-256 hashes without making a separate checksum request.
+
 ## [1.4.5] - 2026-08-16
 
 ### Added

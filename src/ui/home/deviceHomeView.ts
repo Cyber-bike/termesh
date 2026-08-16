@@ -14,6 +14,7 @@ export const DEVICE_HOME_VIEW_TYPE = 'termesh-device-home';
 export class DeviceHomeView extends ItemView {
   private readonly plugin: TerminalPlugin;
   private connectionSubscription: Disposable | null = null;
+  private runtimeProgressCleanup: (() => void) | null = null;
   private renderTimer: number | null = null;
   private refreshing = false;
 
@@ -37,6 +38,7 @@ export class DeviceHomeView extends ItemView {
   onOpen(): Promise<void> {
     const connections = this.plugin.getDeviceConnectionManager();
     this.connectionSubscription = connections.onDidChange(() => this.scheduleRender());
+    this.runtimeProgressCleanup = this.plugin.onIrohRuntimeInstallProgressChange(() => this.scheduleRender());
     this.render();
     return Promise.resolve();
   }
@@ -44,6 +46,8 @@ export class DeviceHomeView extends ItemView {
   onClose(): Promise<void> {
     this.connectionSubscription?.dispose();
     this.connectionSubscription = null;
+    this.runtimeProgressCleanup?.();
+    this.runtimeProgressCleanup = null;
     if (this.renderTimer !== null) {
       window.clearTimeout(this.renderTimer);
       this.renderTimer = null;
@@ -102,10 +106,11 @@ export class DeviceHomeView extends ItemView {
     }
 
     const { device, status } = card;
+    const statusText = this.getRemoteStatusText(status.state);
     const cardEl = this.createInteractiveCard(
       grid,
       `termesh-device-card is-remote status-${status.state}`,
-      `${device.name}: ${this.getStatusText(status.state)}`,
+      `${device.name}: ${statusText}`,
       () => {
         if (status.state !== 'connecting') void this.openRemoteTerminal(device.nodeId);
       },
@@ -135,7 +140,7 @@ export class DeviceHomeView extends ItemView {
       ? t('home.lastConnected', { time: this.formatLastConnectedAt(device.lastConnectedAt) })
       : t('home.neverConnected');
     cardEl.createEl('p', { text: lastConnected });
-    this.renderStatus(cardEl, status.state, this.getStatusText(status.state));
+    this.renderStatus(cardEl, status.state, statusText);
     if (status.state === 'error') {
       cardEl.createDiv({ cls: 'termesh-device-error', text: status.message });
     }
@@ -241,6 +246,23 @@ export class DeviceHomeView extends ItemView {
       case 'connected': return t('home.statusConnected');
       case 'error': return t('home.statusError');
     }
+  }
+
+  private getRemoteStatusText(state: 'disconnected' | 'connecting' | 'connected' | 'error'): string {
+    if (state !== 'connecting') return this.getStatusText(state);
+
+    const runtimeProgress = this.plugin.getIrohRuntimeInstallProgress();
+    if (runtimeProgress?.stage === 'downloading') {
+      const percent = runtimeProgress.percent === undefined ? '' : ` ${Math.round(runtimeProgress.percent)}%`;
+      return `${t('notices.downloadingRemoteRuntime')}${percent}`;
+    }
+    if (runtimeProgress?.stage === 'verifying') {
+      return t('notices.verifyingRemoteRuntime');
+    }
+    if (runtimeProgress?.stage === 'retrying') {
+      return t('notices.retryingRemoteRuntime');
+    }
+    return this.getStatusText(state);
   }
 
   private formatLastConnectedAt(value: string): string {
