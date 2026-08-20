@@ -351,6 +351,19 @@ export class TerminalView extends ItemView {
     this.setupResizeObserver();
     this.updateLeafHeader(this.leaf);
     this.updateDropHintText();
+    // A directory tree panel built before this swap (e.g. a reconnect
+    // replacing the underlying TerminalInstance, `main.ts`'s
+    // `reconnectTerminalView`) still holds the *previous* instance's
+    // DirectoryTreeSource and remote-node id baked into its constructor, and
+    // its rootPath was computed from the old instance's cwd. Left alone, it
+    // silently keeps browsing/showing stale (or, if remote-ness changed,
+    // outright wrong-machine) data instead of the newly adopted terminal's.
+    // Rebuild it against the new instance rather than leaving it stale.
+    if (this.directoryTreePanel) {
+      const wasVisible = this.directoryTreeVisible;
+      this.closeDirectoryTree();
+      if (wasVisible) this.openDirectoryTree();
+    }
     this.renderRemoteToolbar();
   }
 
