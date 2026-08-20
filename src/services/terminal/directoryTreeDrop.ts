@@ -21,7 +21,9 @@ import type { App, TFile, TFolder } from 'obsidian';
 import { TFile as TFileClass, TFolder as TFolderClass } from 'obsidian';
 
 import { checkRelativePath, normalizeVaultPath } from '../remote/pathSafety.ts';
-import type { CollectedFile } from '../remote/noteCollector.ts';
+import { checkQuotas, type CollectedFile } from '../remote/noteCollector.ts';
+import { collectRecursive, type SkippedNote } from '../remote/noteCollectorRecursive.ts';
+import { createVaultLinkSource, createVaultLinkSourceForPath, readVaultFile } from '../remote/vaultLinkSource.ts';
 import type { PulledFile } from '../remote/transferStreamPuller.ts';
 import type { DeviceConnectionManager } from '../remote/deviceConnections.ts';
 import { resolveUniqueVaultPath } from './directoryTreeVaultNaming.ts';
@@ -101,6 +103,44 @@ export async function copyVaultEntryToDirectory(
 async function readVaultFileBytes(app: App, file: TFile): Promise<Uint8Array> {
   const buffer = await app.vault.readBinary(file);
   return new Uint8Array(buffer);
+}
+
+export interface CopyNoteWithLinksResult extends CopyResult {
+  /** Linked notes that could not be collected, same shape `sendNoteRecursively` surfaces. */
+  skippedNotes: SkippedNote[];
+}
+
+/**
+ * Copies a Markdown note and every note/attachment it links to, recursively,
+ * onto the local filesystem under `targetDir` - the vault -> fs counterpart
+ * to `sendNoteRecursively.ts` (which does the same walk for a remote-device
+ * send). Each file lands at its own vault-relative path under `targetDir`,
+ * which keeps the note's linked structure exactly as it was in the vault
+ * without having to guess which folder the drag "really" meant as its root.
+ */
+export async function copyVaultNoteWithLinksToDirectory(
+  app: App,
+  file: TFile,
+  targetDir: string,
+  fsAccess: FsAccess,
+): Promise<CopyNoteWithLinksResult> {
+  const collected = collectRecursive(createVaultLinkSource(app, file), (path) =>
+    createVaultLinkSourceForPath(app, path)
+  );
+  if (!collected.ok) throw new Error(collected.error ?? `Unable to collect links for "${file.path}"`);
+
+  const quota = checkQuotas(collected.files);
+  if (!quota.ok) throw new Error(quota.error ?? 'Transfer quota exceeded');
+
+  for (const collectedFile of collected.files) {
+    const segments = collectedFile.relativePath.split('/');
+    const destDir = fsAccess.join(targetDir, ...segments.slice(0, -1));
+    await fsAccess.promises.mkdir(destDir, { recursive: true });
+    const bytes = await readVaultFile(app, collectedFile.relativePath);
+    await fsAccess.promises.writeFile(fsAccess.join(destDir, segments[segments.length - 1]), bytes);
+  }
+
+  return { fileCount: collected.files.length, skippedNotes: collected.skippedNotes };
 }
 
 /**

@@ -55,6 +55,7 @@ import type { DirectoryTreeSource } from '../../services/terminal/directoryTreeS
 import {
   collectVaultEntryForTransfer,
   copyVaultEntryToDirectory,
+  copyVaultNoteWithLinksToDirectory,
   type DirectoryTreeDragPayload,
   type FsAccess,
 } from '../../services/terminal/directoryTreeDrop';
@@ -948,15 +949,31 @@ export class TerminalView extends ItemView {
 
     const nodeId = this.getRemoteNodeId();
     try {
+      const allSkippedNotes: Array<{ path: string; reason: string }> = [];
       if (nodeId) {
         await this.sendVaultEntriesToRemote(nodeId, entries, targetPath);
       } else {
         const fsAccess = this.buildDirectoryTreeFsAccess();
         for (const entry of entries) {
-          await copyVaultEntryToDirectory(this.app, entry, targetPath, fsAccess);
+          // A dropped Markdown note also pulls in every note/attachment it
+          // links to, recursively, preserving each one's vault-relative
+          // path under the target directory - matches the "send to
+          // terminal" toolbar action's recursive behavior for the remote
+          // case (`sendNoteRecursively`), just landing on the local disk
+          // instead of over the wire.
+          if (entry instanceof TFile && entry.extension.toLowerCase() === 'md') {
+            const result = await copyVaultNoteWithLinksToDirectory(this.app, entry, targetPath, fsAccess);
+            allSkippedNotes.push(...result.skippedNotes);
+          } else {
+            await copyVaultEntryToDirectory(this.app, entry, targetPath, fsAccess);
+          }
         }
       }
       new Notice(t('directoryTree.dropCopyDone', { path: targetPath }));
+      if (allSkippedNotes.length > 0) {
+        const details = allSkippedNotes.map((s) => `${s.path}: ${s.reason}`).join('; ');
+        new Notice(t('remote.linkedNotesSkipped', { details }), 8000);
+      }
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       new Notice(t('directoryTree.dropCopyFailed', { message }), 5000);
