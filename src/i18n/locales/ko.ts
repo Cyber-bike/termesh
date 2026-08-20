@@ -100,6 +100,8 @@ export const ko: TranslationKeys = {
     dropCopyDone: '{{path}}(으)로 복사했습니다.',
     dropCopyFailed: '복사 실패: {{message}}',
     dropRejectedNotVaultItem: '현재 저장소의 노트, 첨부 파일 또는 폴더를 끌어다 놓으세요.',
+    openInFileManager: '파일 관리자에서 열기',
+    openInFileManagerFailed: '파일 관리자를 열지 못했습니다: {{message}}',
   },
 
   commands: {

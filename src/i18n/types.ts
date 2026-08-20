@@ -151,6 +151,8 @@ export interface TranslationKeys {
     dropCopyDone: string;
     dropCopyFailed: string;
     dropRejectedNotVaultItem: string;
+    openInFileManager: string;
+    openInFileManagerFailed: string;
   };
 
   // Commands

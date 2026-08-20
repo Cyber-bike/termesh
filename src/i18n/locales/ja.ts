@@ -100,6 +100,8 @@ export const ja: TranslationKeys = {
     dropCopyDone: '{{path}} にコピーしました。',
     dropCopyFailed: 'コピーに失敗しました：{{message}}',
     dropRejectedNotVaultItem: 'このVault内のノート、添付ファイル、フォルダをドロップしてください。',
+    openInFileManager: 'ファイルマネージャーで開く',
+    openInFileManagerFailed: 'ファイルマネージャーを開けませんでした：{{message}}',
   },
 
   commands: {

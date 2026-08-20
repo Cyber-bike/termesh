@@ -1439,6 +1439,10 @@
   height: 24px;
   flex-shrink: 0;
 }
+.termy-notice-open-folder-btn {
+  display: block;
+  margin-top: 8px;
+}
 .directory-tree-panel__path {
   width: 100%;
   padding: 4px 8px;

@@ -100,6 +100,8 @@ export const zhCN: TranslationKeys = {
     dropCopyDone: '已复制到 {{path}}。',
     dropCopyFailed: '复制失败：{{message}}',
     dropRejectedNotVaultItem: '请从当前仓库拖入笔记、附件或文件夹。',
+    openInFileManager: '在文件管理器中打开',
+    openInFileManagerFailed: '打开文件管理器失败：{{message}}',
   },
 
   commands: {

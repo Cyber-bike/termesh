@@ -100,6 +100,8 @@ export const ru: TranslationKeys = {
     dropCopyDone: 'Скопировано в {{path}}.',
     dropCopyFailed: 'Не удалось скопировать: {{message}}',
     dropRejectedNotVaultItem: 'Перетащите заметку, вложение или папку из этого хранилища.',
+    openInFileManager: 'Открыть в файловом менеджере',
+    openInFileManagerFailed: 'Не удалось открыть файловый менеджер: {{message}}',
   },
 
   commands: {

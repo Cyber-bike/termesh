@@ -389,13 +389,57 @@ export default class TerminalPlugin extends Plugin {
       // landed in the file explorer, so surfacing it is the only way for
       // the user to notice a resolve-target miss (e.g. dropped past the end
       // of the tree and it landed at vault root instead of a subfolder).
-      new Notice(t('directoryTree.dropCopyDone', { path: targetFolder === '' ? '/' : targetFolder }));
+      const absoluteFolderPath = this.resolveVaultFolderAbsolutePath(targetFolder);
+      this.showCopyToVaultDoneNotice(absoluteFolderPath ?? (targetFolder === '' ? '/' : targetFolder), absoluteFolderPath);
       this.settings.directoryTreeLastCopyToVaultFolder = targetFolder;
       void this.saveSettings();
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
       new Notice(t('directoryTree.copyToVaultFailed', { message }), 5000);
     }
+  }
+
+  /**
+   * Absolute on-disk path for a vault-relative folder, or `null` when the
+   * vault isn't backed by the local filesystem (`FileSystemAdapter` is the
+   * only adapter with `getBasePath()`; Termesh is desktop-only so this
+   * should always succeed, but the check stays defensive rather than
+   * throwing out of a post-copy notice).
+   */
+  private resolveVaultFolderAbsolutePath(vaultRelativeFolder: string): string | null {
+    const adapter = this.app.vault.adapter;
+    if (!(adapter instanceof FileSystemAdapter)) return null;
+    const basePath = adapter.getBasePath();
+    return vaultRelativeFolder === '' ? basePath : nodePath.join(basePath, vaultRelativeFolder);
+  }
+
+  /**
+   * "Copied to {{path}}" notice for a tree -> vault copy. When the
+   * destination's absolute path is known, adds a button that hands it to
+   * the OS file manager via Electron's `shell.openPath` (same mechanism
+   * `TerminalInstance` already uses for its "open in file manager" action)
+   * so the user can jump straight to the copied files without hunting for
+   * them in the vault's file explorer.
+   */
+  private showCopyToVaultDoneNotice(displayPath: string, absolutePath: string | null): void {
+    if (!absolutePath) {
+      new Notice(t('directoryTree.dropCopyDone', { path: displayPath }));
+      return;
+    }
+    const fragment = createFragment((el) => {
+      el.appendText(t('directoryTree.dropCopyDone', { path: displayPath }));
+      const openBtn = el.createEl('button', {
+        cls: ['mod-cta', 'termy-notice-open-folder-btn'],
+        text: t('directoryTree.openInFileManager'),
+      });
+      openBtn.addEventListener('click', (event) => {
+        event.stopPropagation();
+        void shell.openPath(absolutePath).then((errorMessage) => {
+          if (errorMessage) new Notice(t('directoryTree.openInFileManagerFailed', { message: errorMessage }), 5000);
+        });
+      });
+    });
+    new Notice(fragment, 8000);
   }
 
   /**

@@ -100,6 +100,8 @@ export const en: TranslationKeys = {
     dropCopyDone: 'Copied to {{path}}.',
     dropCopyFailed: 'Copy failed: {{message}}',
     dropRejectedNotVaultItem: 'Drop a note, attachment, or folder from this vault.',
+    openInFileManager: 'Open in file manager',
+    openInFileManagerFailed: 'Failed to open file manager: {{message}}',
   },
 
   commands: {
