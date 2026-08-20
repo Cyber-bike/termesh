@@ -245,6 +245,8 @@ pnpm package:zip
 | `pnpm install:dev <vault-path>` | Build everything and install into a local dev vault. Pass `--no-rust` to skip the native PTY rebuild when only TypeScript changed. |
 | `pnpm test:terminal` | Compile and run terminal-layer Node tests. |
 
+See [docs/development.md](docs/development.md) for the full contributor guide: environment setup, building the Rust agent on each platform, testing, coding style, and the Obsidian developer policy limits every change has to respect.
+
 ## Architecture
 
 ```mermaid

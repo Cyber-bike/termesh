@@ -215,8 +215,6 @@ journalctl --user -u termy-agent -f
 3. 将其重命名为 `termy-agent.exe` 并放到固定目录，执行 `termy-agent.exe run`；直接双击该程序也会启动 Agent。
 4. 把打印出的连接码粘贴到 **Termesh → 添加设备**。Agent 需要保持运行；如需登录后自动启动，可使用 Windows 任务计划程序。
 
-各平台的配置、自启动、升级、卸载和排障步骤见 [Agent 部署与运维指南](docs/使用/operations.md)。
-
 ## 快速上手
 
 1. 通过左侧 ribbon、命令面板或空标签页按钮打开 Termesh，并选择要使用的设备。
@@ -243,6 +241,8 @@ pnpm package:zip
 | `pnpm package:zip` | 生成发布压缩包。 |
 | `pnpm install:dev <vault-path>` | 构建全部内容并安装到本地开发 vault。当仅修改 TypeScript 代码时，可追加 `--no-rust` 跳过原生 PTY 后端的重新编译。 |
 | `pnpm test:terminal` | 编译并运行终端层 Node 测试。 |
+
+完整的贡献指南（环境搭建、各平台构建 Rust Agent、测试、代码风格、必须遵守的 Obsidian 开发者政策红线）见 [docs/development_ZH.md](docs/development_ZH.md)。
 
 ## 架构概览
 
