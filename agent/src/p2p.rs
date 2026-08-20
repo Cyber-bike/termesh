@@ -12,7 +12,7 @@
 //!   `EndpointTicket` string, doc 5.1) and parse one back,
 //! - enforce doc 7.7's single-controller rule via [`ControllerGate`].
 //!
-//! The accept loop that stitches these into `termy-agent run` (spawning PTY
+//! The accept loop that stitches these into `termesh-agent run` (spawning PTY
 //! sessions per `termy/terminal/1` stream) is the next slice; keeping it out
 //! of this module keeps every piece here testable in isolation.
 

@@ -4,12 +4,12 @@ This is the single entry point for anyone setting up a local environment to work
 
 ## 1. Overview
 
-Termesh is an Obsidian plugin that embeds a real terminal in a note-taking app, plus an optional remote-terminal feature: a Windows/desktop Obsidian control device drives a `termy-agent` process on a target device (Windows or headless Ubuntu) over a direct `iroh` (QUIC) connection, no account or self-hosted server required.
+Termesh is an Obsidian plugin that embeds a real terminal in a note-taking app, plus an optional remote-terminal feature: a Windows/desktop Obsidian control device drives a `termesh-agent` process on a target device (Windows or headless Ubuntu) over a direct `iroh` (QUIC) connection, no account or self-hosted server required.
 
 | Path | Content |
 | --- | --- |
 | `src/` | The TypeScript Obsidian plugin. `src/services/` for runtime/integration logic (`terminal/`, `server/`, `codexCli/`, `context/`, `remote/`), `src/ui/` for views and modals, `src/settings/` for settings models/renderers, `src/i18n/` for locales, `src/utils/` for shared helpers. |
-| `agent/` | The Rust remote-terminal agent (`termy-agent`): device identity, `iroh` endpoint, connection-code pairing, multi-session PTY service. |
+| `agent/` | The Rust remote-terminal agent (`termesh-agent`): device identity, `iroh` endpoint, connection-code pairing, multi-session PTY service. |
 | `rust-servers/` | The native local PTY backend the plugin talks to over a local WebSocket. |
 | `relay/`, `protocol/` | V1 (account + cloud relay) legacy implementation — see [§7](#7-legacy-v1-code). |
 | `docs/` | This guide, plus screenshots/assets referenced from it. |
@@ -23,7 +23,7 @@ Generated build artifacts (`main.js`, `styles.css` at the repo root, `binaries/`
 - **Rust** — version is pinned by `rust-toolchain.toml`; `rustup` picks it up automatically, don't install a different version by hand.
 - **Node.js 22** — the plugin's test suites need `--experimental-strip-types`. See the Node 18 fallback note in [§4](#4-testing) if that's all you have.
 - **pnpm** — version pinned in `package.json`'s `packageManager` field.
-- **Windows contributors building the agent**: you must build directly on Windows. See [§3.3](#33-rust-agent-termy-agent).
+- **Windows contributors building the agent**: you must build directly on Windows. See [§3.3](#33-rust-agent-termesh-agent).
 
 ## 3. Building
 
@@ -58,13 +58,13 @@ find plugin-package/node_modules -type l   # should print nothing
 
 **The `@number0/iroh` native module**: this N-API module backs the remote-terminal feature. `esbuild.config.mjs` marks it `external` because an installed Obsidian plugin directory has no `node_modules` of its own. Two distribution paths exist: Community Plugins/BRAT installs download the matching platform `.node` file on first use of a remote device (from unpkg, jsDelivr, or GitHub Releases, verified against a bundled SHA-256); offline packages bundle it directly. `scripts/package-plugin.js` step 5b resolves the platform package actually installed (via `require.resolve()`, not a hardcoded platform map — pnpm's isolated store symlinks these under `node_modules/.pnpm/`, and the platform matrix itself changes over time) and copies it, dereferenced, into `plugin-package/node_modules/@number0/`. Both distribution paths require building on the target OS/architecture — `pnpm install` only fetches the native package for the current platform.
 
-### 3.3 Rust agent (`termy-agent`)
+### 3.3 Rust agent (`termesh-agent`)
 
 **Linux:**
 
 ```bash
 cargo build --manifest-path agent/Cargo.toml --release
-./agent/packaging/install-linux.sh agent/target/release/termy-agent
+./agent/packaging/install-linux.sh agent/target/release/termesh-agent
 ```
 
 The install script **refuses to run as root** — install it as the normal user that will run the agent. It installs the binary to `~/.local/bin`, installs a systemd user unit under `~/.config/systemd/user`, and runs `loginctl enable-linger` (the one step that typically needs a root/polkit prompt). No pairing step is needed afterward — start the service, copy the printed connection code, paste it into the plugin.
@@ -78,10 +78,10 @@ The install script **refuses to run as root** — install it as the normal user 
 ```powershell
 rustup toolchain install <version pinned in rust-toolchain.toml>
 cargo build --manifest-path agent\Cargo.toml --release
-# artifact: agent\target\release\termy-agent.exe
+# artifact: agent\target\release\termesh-agent.exe
 ```
 
-There's no autostart install script for Windows yet — register it with Task Scheduler or as a service; `termy-agent.exe run` is the command to keep running.
+There's no autostart install script for Windows yet — register it with Task Scheduler or as a service; `termesh-agent.exe run` is the command to keep running.
 
 ## 4. Testing
 

@@ -1736,7 +1736,7 @@ export class TerminalView extends ItemView {
     const appWithPlugins = this.app as typeof this.app & {
       plugins?: { getPlugin?: (id: string) => unknown };
     };
-    const plugin = appWithPlugins.plugins?.getPlugin?.('termy');
+    const plugin = appWithPlugins.plugins?.getPlugin?.('termesh');
     if (!this.isTerminalPlugin(plugin)) return null;
     return plugin;
   }

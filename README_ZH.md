@@ -187,7 +187,7 @@ Termesh 已上架官方 Obsidian Community Plugins 列表。
 
 ### 安装远程 Agent
 
-插件是控制端；每台远程电脑还需要运行 `termy-agent`，它会以当前普通用户的权限提供该用户的 shell。整个过程不需要账号或单独的配对服务。
+插件是控制端；每台远程电脑还需要运行 `termesh-agent`，它会以当前普通用户的权限提供该用户的 shell。整个过程不需要账号或单独的配对服务。
 
 目前正式发布的 Agent 支持 **Linux x64** 和 **Windows x64**。暂未发布 macOS Agent；macOS 仍可运行 Termesh 插件和本地终端。
 
@@ -204,15 +204,15 @@ curl -fsSL https://raw.githubusercontent.com/jiang-zhong-xi/Termy/main/agent/pac
 安装完成后，把打印出的连接码粘贴到 **Termesh → 添加设备**。之后可随时查看连接码和日志：
 
 ```bash
-~/.local/bin/termy-agent status
-journalctl --user -u termy-agent -f
+~/.local/bin/termesh-agent status
+journalctl --user -u termesh-agent -f
 ```
 
 #### Windows x64
 
-1. 从最新 [GitHub Release](https://github.com/jiang-zhong-xi/Termy/releases/latest) 下载 `termy-agent-win32-x64.exe` 和对应的 `.sha256` 文件。
-2. 执行 `Get-FileHash .\termy-agent-win32-x64.exe -Algorithm SHA256`，与 `.sha256` 文件中的第一个值核对。
-3. 将其重命名为 `termy-agent.exe` 并放到固定目录，执行 `termy-agent.exe run`；直接双击该程序也会启动 Agent。
+1. 从最新 [GitHub Release](https://github.com/jiang-zhong-xi/Termy/releases/latest) 下载 `termesh-agent-win32-x64.exe` 和对应的 `.sha256` 文件。
+2. 执行 `Get-FileHash .\termesh-agent-win32-x64.exe -Algorithm SHA256`，与 `.sha256` 文件中的第一个值核对。
+3. 将其重命名为 `termesh-agent.exe` 并放到固定目录，执行 `termesh-agent.exe run`；直接双击该程序也会启动 Agent。
 4. 把打印出的连接码粘贴到 **Termesh → 添加设备**。Agent 需要保持运行；如需登录后自动启动，可使用 Windows 任务计划程序。
 
 ## 快速上手

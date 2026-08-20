@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# End-to-end (v2.0): starts a real `termy-agent run --loopback` process and
+# End-to-end (v2.0): starts a real `termesh-agent run --loopback` process and
 # drives a real terminal session against it over iroh QUIC, using the same
 # @number0/iroh binding the plugin embeds directly (doc A0 verdict).
 #
@@ -22,7 +22,7 @@ cd "${ROOT}"
 # Only prepend if rustup lives in the usual place; CI puts cargo on PATH itself.
 [ -d "${HOME}/.cargo/bin" ] && export PATH="${HOME}/.cargo/bin:${PATH}"
 
-AGENT_BIN=./agent/target/debug/termy-agent
+AGENT_BIN=./agent/target/debug/termesh-agent
 [ -x "${AGENT_BIN}" ] || { echo "missing ${AGENT_BIN}; run: cargo build --manifest-path agent/Cargo.toml" >&2; exit 1; }
 
 [ -d "${ROOT}/node_modules/@number0/iroh" ] || { echo "missing @number0/iroh; run: pnpm install" >&2; exit 1; }
@@ -40,7 +40,7 @@ trap cleanup EXIT
 # other state on the runner is touched.
 export XDG_CONFIG_HOME=${WORK}/cfg XDG_RUNTIME_DIR=${WORK}
 
-RUST_LOG=termy_agent=debug ${AGENT_BIN} run --loopback > ${WORK}/agent.log 2>&1 & AGENT=$!
+RUST_LOG=termesh_agent=debug ${AGENT_BIN} run --loopback > ${WORK}/agent.log 2>&1 & AGENT=$!
 
 CODE=""
 for _ in $(seq 1 50); do

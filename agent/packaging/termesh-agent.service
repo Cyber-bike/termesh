@@ -1,5 +1,5 @@
 [Unit]
-Description=Termy remote agent
+Description=Termesh remote agent
 Documentation=https://github.com/jiang-zhong-xi/Termy
 # Only meaningful once the network is usable; the agent retries regardless, this
 # just avoids a guaranteed first failure on boot.
@@ -8,7 +8,7 @@ Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=%h/.local/bin/termy-agent run
+ExecStart=%h/.local/bin/termesh-agent run
 
 # Doc 7.6: the agent reconnects on its own with backoff. Restart=always covers
 # the cases it cannot - a panic, an OOM kill, or the operator killing it - and
@@ -18,7 +18,7 @@ RestartSec=5
 
 # Doc 7.3: credentials are read from the config file, never from argv or the
 # environment, so nothing secret can leak into `systemctl show` or the journal.
-Environment=RUST_LOG=termy_agent=info
+Environment=RUST_LOG=termesh_agent=info
 
 # Doc 2.1.13: agent and shell run as the ordinary user who owns the unit. A user
 # unit cannot escalate, so this is structural rather than a setting.
@@ -32,7 +32,7 @@ NoNewPrivileges=true
 
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=termy-agent
+SyslogIdentifier=termesh-agent
 
 [Install]
 WantedBy=default.target

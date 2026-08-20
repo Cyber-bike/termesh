@@ -1,12 +1,12 @@
 // A0 步骤 3：假控制端——用 JS binding 连真实的 Rust agent。
 //
-// 这是插件网络层落地前的端到端替身：贴入 `termy-agent run --loopback`
+// 这是插件网络层落地前的端到端替身：贴入 `termesh-agent run --loopback`
 // 打印的连接码，脚本会以 termy/terminal/1 ALPN 建连、完成 doc 8.2 的
 // open/opened 握手、在真实 shell 里执行 echo 并校验回显，最后正常关闭。
 // 通过即证明：JS binding 与 Rust agent 的 QUIC + 帧协议互通。
 //
 // 运行（先在另一个窗口启动 agent）：
-//   termy-agent run --loopback
+//   termesh-agent run --loopback
 //   cd scripts/a0-spike && npm install
 //   node 03-fake-controller.cjs <连接码>
 // 预期：输出 "FAKE CONTROLLER: OK"，退出码 0。

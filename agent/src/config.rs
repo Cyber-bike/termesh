@@ -61,7 +61,7 @@ pub fn default_device_name() -> String {
         .map(|s| s.trim().to_string())
         .filter(|s| !s.is_empty())
         .or_else(|| std::env::var("COMPUTERNAME").ok())
-        .unwrap_or_else(|| "termy-agent".into())
+        .unwrap_or_else(|| "termesh-agent".into())
 }
 
 impl Default for Config {
@@ -74,7 +74,7 @@ impl Default for Config {
 }
 
 impl Config {
-    /// Matches Termy's local terminal server, which starts a login shell
+    /// Matches Termesh's local terminal server, which starts a login shell
     /// (`rust-servers/src/pty/shell.rs`, `get_shell_login_args`). Without `-l`
     /// bash reads only `~/.bashrc`, and on Ubuntu it is `~/.profile` that puts
     /// `~/.local/bin` on PATH - so everything installed there (pipx, cargo, npm
@@ -186,21 +186,21 @@ impl Config {
     }
 }
 
-/// Doc 7.3: `%APPDATA%\TermyAgent` on Windows, `$XDG_CONFIG_HOME/termy-agent`
-/// (defaulting to `~/.config/termy-agent`) elsewhere.
+/// Doc 7.3: `%APPDATA%\TermeshAgent` on Windows, `$XDG_CONFIG_HOME/termesh-agent`
+/// (defaulting to `~/.config/termesh-agent`) elsewhere.
 pub fn config_dir() -> PathBuf {
     if cfg!(windows) {
         match std::env::var_os("APPDATA") {
-            Some(appdata) => PathBuf::from(appdata).join("TermyAgent"),
+            Some(appdata) => PathBuf::from(appdata).join("TermeshAgent"),
             None => home_dir()
                 .join("AppData")
                 .join("Roaming")
-                .join("TermyAgent"),
+                .join("TermeshAgent"),
         }
     } else {
         match std::env::var_os("XDG_CONFIG_HOME").filter(|v| !v.is_empty()) {
-            Some(base) => PathBuf::from(base).join("termy-agent"),
-            None => home_dir().join(".config").join("termy-agent"),
+            Some(base) => PathBuf::from(base).join("termesh-agent"),
+            None => home_dir().join(".config").join("termesh-agent"),
         }
     }
 }

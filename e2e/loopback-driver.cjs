@@ -1,4 +1,4 @@
-// v2.0 end-to-end driver: dials a real `termy-agent run --loopback` process
+// v2.0 end-to-end driver: dials a real `termesh-agent run --loopback` process
 // over iroh QUIC using the same `@number0/iroh` binding the plugin embeds
 // (doc A0: direct embedding, no termy-bridge), completes the doc 8.2
 // open/opened handshake, and verifies a real shell round-trip.

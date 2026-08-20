@@ -4,12 +4,12 @@
 
 ## 1. 总览
 
-Termesh 是一个给 Obsidian 内嵌真实终端的插件，还带一个可选的远程终端功能：Windows/桌面版 Obsidian 作为控制端，通过 `iroh`（QUIC）与目标设备（Windows 或无桌面 Ubuntu）上的 `termy-agent` 直连，不需要账号，也不需要自建服务端。
+Termesh 是一个给 Obsidian 内嵌真实终端的插件，还带一个可选的远程终端功能：Windows/桌面版 Obsidian 作为控制端，通过 `iroh`（QUIC）与目标设备（Windows 或无桌面 Ubuntu）上的 `termesh-agent` 直连，不需要账号，也不需要自建服务端。
 
 | 目录 | 内容 |
 | --- | --- |
 | `src/` | TypeScript 插件本体。`src/services/` 放运行时/集成逻辑（`terminal/`、`server/`、`codexCli/`、`context/`、`remote/`），`src/ui/` 放视图和弹窗，`src/settings/` 放设置模型与渲染器，`src/i18n/` 放多语言，`src/utils/` 放共享工具函数。 |
-| `agent/` | Rust 编写的远程终端 Agent（`termy-agent`）：设备身份、`iroh` Endpoint、连接码配对、多会话 PTY 服务。 |
+| `agent/` | Rust 编写的远程终端 Agent（`termesh-agent`）：设备身份、`iroh` Endpoint、连接码配对、多会话 PTY 服务。 |
 | `rust-servers/` | 插件通过本地 WebSocket 连接的本机 PTY 后端。 |
 | `relay/`、`protocol/` | V1（账号 + 云端 Relay）遗留实现——见[第 7 节](#7-v1-遗留代码)。 |
 | `docs/` | 本文档及其引用的截图/素材。 |
@@ -23,7 +23,7 @@ Termesh 是一个给 Obsidian 内嵌真实终端的插件，还带一个可选�
 - **Rust**——版本由 `rust-toolchain.toml` 锁定，`rustup` 会自动拉取，不要手动装别的版本。
 - **Node.js 22**——插件测试套件依赖 `--experimental-strip-types`。手头只有 Node 18 时的退路见[第 4 节](#4-测试)。
 - **pnpm**——版本见 `package.json` 的 `packageManager` 字段。
-- **要在 Windows 上构建 Agent 的贡献者**：必须在 Windows 本机构建，见[第 3.3 节](#33-rust-agenttermy-agent)。
+- **要在 Windows 上构建 Agent 的贡献者**：必须在 Windows 本机构建，见[第 3.3 节](#33-rust-agenttermesh-agent)。
 
 ## 3. 构建
 
@@ -58,13 +58,13 @@ find plugin-package/node_modules -type l   # 应该没有任何输出
 
 **`@number0/iroh` 原生模块**：这是远程终端功能依赖的 N-API 模块。`esbuild.config.mjs` 把它标为 `external`，因为安装好的 Obsidian 插件目录本身没有 `node_modules`。分发路径有两条：社区市场/BRAT 安装的插件会在首次使用远程设备时，从 unpkg、jsDelivr 或 GitHub Release 下载对应平台的固定版本 `.node` 文件，并用内置的 SHA-256 校验；离线完整包则直接携带这个模块。`scripts/package-plugin.js` 的第 5b 步会通过 `require.resolve()`（而不是硬编码的平台映射表——pnpm 的隔离 store 会把这些包安装成 `node_modules/.pnpm/` 下的符号链接，平台矩阵本身也会变）找出当前平台真正装上的那个原生包，解引用后拷进 `plugin-package/node_modules/@number0/`。两条分发路径都要求在目标操作系统和架构上构建——`pnpm install` 只会拉当前平台对应的原生包。
 
-### 3.3 Rust Agent（`termy-agent`）
+### 3.3 Rust Agent（`termesh-agent`）
 
 **Linux：**
 
 ```bash
 cargo build --manifest-path agent/Cargo.toml --release
-./agent/packaging/install-linux.sh agent/target/release/termy-agent
+./agent/packaging/install-linux.sh agent/target/release/termesh-agent
 ```
 
 安装脚本**拒绝以 root 身份运行**——要以将来实际使用它的那个普通用户身份安装。它会把二进制装到 `~/.local/bin`、把 systemd user unit 装到 `~/.config/systemd/user`，并执行 `loginctl enable-linger`（通常需要一次 root/polkit 认证的那一步）。装完之后不需要额外配对：启动服务，复制打印出来的连接码，粘贴进插件即可。
@@ -78,10 +78,10 @@ cargo build --manifest-path agent/Cargo.toml --release
 ```powershell
 rustup toolchain install <rust-toolchain.toml 锁定的版本>
 cargo build --manifest-path agent\Cargo.toml --release
-# 产物：agent\target\release\termy-agent.exe
+# 产物：agent\target\release\termesh-agent.exe
 ```
 
-Windows 侧目前没有开机自启的安装脚本，用任务计划程序或注册为服务；要保持运行的命令是 `termy-agent.exe run`。
+Windows 侧目前没有开机自启的安装脚本，用任务计划程序或注册为服务；要保持运行的命令是 `termesh-agent.exe run`。
 
 ## 4. 测试
 

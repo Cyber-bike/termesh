@@ -1,4 +1,4 @@
-//! termy-agent: the target-side daemon of Termy's remote terminal (v2.0).
+//! termesh-agent: the target-side daemon of Termesh's remote terminal (v2.0).
 //!
 //! No account, no pairing service: the agent's identity is a local Ed25519
 //! keypair (doc 5.1) and pairing is "copy the connection code it prints"
@@ -8,16 +8,16 @@ use std::process::ExitCode;
 
 use clap::{Parser, Subcommand};
 
-use termy_agent::config::{self, Config};
-use termy_agent::identity::DeviceIdentity;
-use termy_agent::p2p::{self, EndpointProfile};
-use termy_agent::serve::{self, ServeOptions};
-use termy_agent::{lock, state};
+use termesh_agent::config::{self, Config};
+use termesh_agent::identity::DeviceIdentity;
+use termesh_agent::p2p::{self, EndpointProfile};
+use termesh_agent::serve::{self, ServeOptions};
+use termesh_agent::{lock, state};
 
 #[derive(Parser)]
-#[command(name = "termy-agent", version, about = "Termy remote terminal agent")]
+#[command(name = "termesh-agent", version, about = "Termesh remote terminal agent")]
 struct Cli {
-    /// Defaults to `run` when omitted, so double-clicking termy-agent.exe on
+    /// Defaults to `run` when omitted, so double-clicking termesh-agent.exe on
     /// Windows (which launches it with no arguments) opens a console and
     /// prints the connection code instead of erroring on a missing
     /// subcommand and closing before anyone can read it.
@@ -63,7 +63,7 @@ async fn main() -> ExitCode {
     tracing_subscriber::fmt()
         .with_env_filter(
             tracing_subscriber::EnvFilter::try_from_default_env()
-                .unwrap_or_else(|_| "termy_agent=info".into()),
+                .unwrap_or_else(|_| "termesh_agent=info".into()),
         )
         .init();
 
@@ -236,7 +236,7 @@ async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
                             println!("code       unavailable (agent started before it was recorded)");
                         }
                         (false, _) => {
-                            println!("code       none (start the agent with `termy-agent run`)");
+                            println!("code       none (start the agent with `termesh-agent run`)");
                         }
                     }
                 }
@@ -267,7 +267,7 @@ async fn run(cli: Cli) -> Result<(), Box<dyn std::error::Error>> {
                 previous.fingerprint(),
                 rotated.fingerprint()
             );
-            println!("start the agent to print the new connection code: `termy-agent run`");
+            println!("start the agent to print the new connection code: `termesh-agent run`");
             Ok(())
         }
     }

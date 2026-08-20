@@ -219,8 +219,8 @@ jobs:
         shell: bash
         run: |
           mkdir -p release-assets
-          ASSET_NAME="termy-agent-${{ matrix.platform }}-${{ matrix.arch }}${{ matrix.ext }}"
-          cp "agent/target/${{ matrix.target }}/release/termy-agent${{ matrix.ext }}" "release-assets/${ASSET_NAME}"
+          ASSET_NAME="termesh-agent-${{ matrix.platform }}-${{ matrix.arch }}${{ matrix.ext }}"
+          cp "agent/target/${{ matrix.target }}/release/termesh-agent${{ matrix.ext }}" "release-assets/${ASSET_NAME}"
 
           cd release-assets
           if command -v sha256sum &> /dev/null; then
@@ -233,7 +233,7 @@ jobs:
         uses: actions/upload-artifact@v7
         with:
           name: agent-${{ matrix.platform }}-${{ matrix.arch }}
-          path: release-assets/termy-agent-*
+          path: release-assets/termesh-agent-*
 
   build-relay:
     name: Build Relay linux-x64
@@ -329,7 +329,7 @@ jobs:
         run: |
           chmod +x binaries/termy-server-darwin-* || true
           chmod +x binaries/termy-server-linux-* || true
-          chmod +x release-assets/termy-agent-linux-* || true
+          chmod +x release-assets/termesh-agent-linux-* || true
           chmod +x release-assets/termy-relay-linux-* || true
 
       - name: Install and build
@@ -392,10 +392,10 @@ jobs:
             binaries/termy-server-linux-x64.sha256
             binaries/termy-server-linux-arm64
             binaries/termy-server-linux-arm64.sha256
-            release-assets/termy-agent-win32-x64.exe
-            release-assets/termy-agent-win32-x64.exe.sha256
-            release-assets/termy-agent-linux-x64
-            release-assets/termy-agent-linux-x64.sha256
+            release-assets/termesh-agent-win32-x64.exe
+            release-assets/termesh-agent-win32-x64.exe.sha256
+            release-assets/termesh-agent-linux-x64
+            release-assets/termesh-agent-linux-x64.sha256
             release-assets/termy-relay-linux-x64
             release-assets/termy-relay-linux-x64.sha256
           body_path: release-body.md

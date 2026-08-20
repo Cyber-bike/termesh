@@ -1,4 +1,4 @@
-//! v2.0 accept loop: the part of `termy-agent run` that serves a control end
+//! v2.0 accept loop: the part of `termesh-agent run` that serves a control end
 //! over iroh (doc 7.5/7.7, phase A/B).
 //!
 //! Layering: `p2p` owns endpoint construction and the single-controller

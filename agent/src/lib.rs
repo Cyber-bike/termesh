@@ -1,4 +1,4 @@
-//! termy-agent library surface.
+//! termesh-agent library surface.
 //!
 //! The binary is a thin CLI over these modules so the interesting behaviour -
 //! path safety, PTY teardown, transfer bookkeeping - is reachable from tests
@@ -22,7 +22,7 @@ pub mod transfer;
 pub enum AgentError {
     #[error("configuration error: {0}")]
     Config(String),
-    #[error("another termy-agent instance already holds {0}")]
+    #[error("another termesh-agent instance already holds {0}")]
     AlreadyRunning(String),
     #[error("io error: {0}")]
     Io(#[from] std::io::Error),

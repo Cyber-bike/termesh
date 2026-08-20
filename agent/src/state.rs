@@ -1,6 +1,6 @@
 //! Status file (doc 7.3).
 //!
-//! `termy-agent status` does not talk to the running process; it reads this
+//! `termesh-agent status` does not talk to the running process; it reads this
 //! file. That avoids adding an IPC channel just to answer "am I connected?",
 //! which on a headless box is the only question an operator has.
 

@@ -1,12 +1,12 @@
 [package]
-name = "termy-agent"
+name = "termesh-agent"
 version = "0.1.0"
 edition = "2021"
 rust-version = "1.97.1"
-description = "Termy remote MVP agent: outbound WSS client, PTY host and file receiver"
+description = "Termesh remote MVP agent: outbound WSS client, PTY host and file receiver"
 
 [[bin]]
-name = "termy-agent"
+name = "termesh-agent"
 path = "src/main.rs"
 
 # Versions are pinned exactly per doc 1.2.

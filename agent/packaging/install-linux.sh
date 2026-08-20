@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 #
-# Installs termy-agent as a user service on Ubuntu (doc 7.4).
+# Installs termesh-agent as a user service on Ubuntu (doc 7.4).
 #
 # One-liner remote install (downloads the latest release, no local checkout
 # needed):
@@ -9,7 +9,7 @@
 #
 # Or, from a local checkout/build, pass the binary path explicitly:
 #
-#   ./agent/packaging/install-linux.sh /path/to/termy-agent
+#   ./agent/packaging/install-linux.sh /path/to/termesh-agent
 #
 # Everything except one step runs unprivileged. `loginctl enable-linger` needs
 # root or a polkit prompt on most distributions - that is the documented
@@ -21,9 +21,9 @@ set -euo pipefail
 
 BIN_DIR="${HOME}/.local/bin"
 UNIT_DIR="${HOME}/.config/systemd/user"
-UNIT_NAME="termy-agent.service"
+UNIT_NAME="termesh-agent.service"
 RELEASE_REPO="jiang-zhong-xi/Termy"
-RELEASE_ASSET="termy-agent-linux-x64"
+RELEASE_ASSET="termesh-agent-linux-x64"
 # Only set when this script is run from a real file (a local checkout), not
 # piped through `curl | bash`, where BASH_SOURCE[0] is empty - falling back to
 # the current directory there would risk matching an unrelated binary that
@@ -45,15 +45,15 @@ trap cleanup EXIT
 BINARY="${1:-}"
 if [[ -z "${BINARY}" && -n "${SOURCE_DIR}" ]]; then
   for candidate in \
-    "${SOURCE_DIR}/../target/release/termy-agent" \
-    "${SOURCE_DIR}/../target/debug/termy-agent" \
-    "${SOURCE_DIR}/termy-agent"; do
+    "${SOURCE_DIR}/../target/release/termesh-agent" \
+    "${SOURCE_DIR}/../target/debug/termesh-agent" \
+    "${SOURCE_DIR}/termesh-agent"; do
     [[ -x "${candidate}" ]] && BINARY="${candidate}" && break
   done
 fi
 
 if [[ -z "${BINARY}" ]]; then
-  command -v curl >/dev/null || die "no local termy-agent binary found and curl is not installed to fetch one; pass a binary path as the first argument"
+  command -v curl >/dev/null || die "no local termesh-agent binary found and curl is not installed to fetch one; pass a binary path as the first argument"
   ARCH="$(uname -m)"
   [[ "${ARCH}" == "x86_64" ]] || die "no prebuilt agent for architecture '${ARCH}' (only x86_64 Linux builds are published); pass a local binary path as the first argument"
 
@@ -69,11 +69,11 @@ if [[ -z "${BINARY}" ]]; then
   chmod +x "${TMP_DOWNLOAD_DIR}/${RELEASE_ASSET}"
   BINARY="${TMP_DOWNLOAD_DIR}/${RELEASE_ASSET}"
 fi
-[[ -n "${BINARY}" && -x "${BINARY}" ]] || die "pass the path to the termy-agent binary as the first argument"
+[[ -n "${BINARY}" && -x "${BINARY}" ]] || die "pass the path to the termesh-agent binary as the first argument"
 
 say "installing the binary into ${BIN_DIR}"
 mkdir -p "${BIN_DIR}"
-install -m 0755 "${BINARY}" "${BIN_DIR}/termy-agent"
+install -m 0755 "${BINARY}" "${BIN_DIR}/termesh-agent"
 
 say "installing the user unit into ${UNIT_DIR}"
 mkdir -p "${UNIT_DIR}"
@@ -86,21 +86,21 @@ else
   trap 'rm -f "${UNIT_TMP}"; cleanup' EXIT
   cat > "${UNIT_TMP}" <<'UNIT'
 [Unit]
-Description=Termy remote agent
+Description=Termesh remote agent
 Documentation=https://github.com/jiang-zhong-xi/Termy
 After=network-online.target
 Wants=network-online.target
 
 [Service]
 Type=simple
-ExecStart=%h/.local/bin/termy-agent run
+ExecStart=%h/.local/bin/termesh-agent run
 Restart=always
 RestartSec=5
-Environment=RUST_LOG=termy_agent=info
+Environment=RUST_LOG=termesh_agent=info
 NoNewPrivileges=true
 StandardOutput=journal
 StandardError=journal
-SyslogIdentifier=termy-agent
+SyslogIdentifier=termesh-agent
 
 [Install]
 WantedBy=default.target
@@ -135,7 +135,7 @@ systemctl --user enable --now "${UNIT_NAME}"
 say "waiting for the agent to publish a connection code"
 CODE_LINE=""
 for _ in $(seq 1 20); do
-  LINE="$("${BIN_DIR}/termy-agent" status 2>/dev/null | grep '^code' || true)"
+  LINE="$("${BIN_DIR}/termesh-agent" status 2>/dev/null | grep '^code' || true)"
   if [[ -n "${LINE}" && "${LINE}" != *"none"* && "${LINE}" != *"unavailable"* ]]; then
     CODE_LINE="${LINE}"
     break
@@ -149,13 +149,13 @@ echo
 if [[ -n "${CODE_LINE}" ]]; then
   echo "  ${CODE_LINE}"
   echo
-  echo 'Paste that code into Termy'"'"'s "添加设备" in Obsidian.'
+  echo 'Paste that code into Termesh'"'"'s "添加设备" in Obsidian.'
 else
   echo "Couldn't read the connection code yet (still reaching a relay). Check it with:"
   echo
-  echo "  termy-agent status"
+  echo "  termesh-agent status"
 fi
 echo
 echo "Useful commands:"
-echo "  termy-agent status                          show the connection code again"
+echo "  termesh-agent status                          show the connection code again"
 echo "  journalctl --user -u ${UNIT_NAME} -f        tail the agent's logs"
