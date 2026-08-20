@@ -175,11 +175,10 @@ test('quotas are enforced before anything is sent', () => {
   assert.equal(tooBig.ok, false);
   assert.match(tooBig.error ?? '', /per-file limit/);
 
-  const tooMany = checkQuotas(
+  const manyFiles = checkQuotas(
     Array.from({ length: 257 }, (_, i) => ({ index: i, relativePath: `f${i}.png`, size: 1 }))
   );
-  assert.equal(tooMany.ok, false);
-  assert.match(tooMany.error ?? '', /limit is 256/);
+  assert.equal(manyFiles.ok, true, 'file count is unbounded; only total size is capped');
 
   const tooLarge = checkQuotas(
     Array.from({ length: 5 }, (_, i) => ({

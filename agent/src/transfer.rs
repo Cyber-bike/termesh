@@ -14,7 +14,6 @@ use crate::paths;
 use crate::AgentError;
 
 /// Doc 4.12 and 8.4.
-pub const MAX_FILES: usize = 256;
 pub const MAX_FILE_BYTES: u64 = 64 * 1024 * 1024;
 pub const MAX_TRANSFER_BYTES: u64 = 256 * 1024 * 1024;
 /// Doc 8.6: top the credit window up after this much lands on disk.
@@ -59,13 +58,6 @@ impl TransferSession {
         if entries.is_empty() {
             return Err(AgentError::Transfer("manifest is empty".into()));
         }
-        if entries.len() > MAX_FILES {
-            return Err(AgentError::Transfer(format!(
-                "manifest has {} files, the limit is {MAX_FILES}",
-                entries.len()
-            )));
-        }
-
         let mut seen = HashSet::new();
         let mut total = 0u64;
 

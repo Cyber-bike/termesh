@@ -55,8 +55,13 @@
     "note": "truncated header"
   },
   {
-    "name": "invalid-file-index-too-large",
+    "name": "valid-file-index-above-legacy-cap",
+    "expect": "accept",
+    "note": "file count is unbounded; only the reserved sentinel is excluded"
+  },
+  {
+    "name": "invalid-file-index-reserved-sentinel",
     "expect": "reject",
-    "note": "fileIndex 256 exceeds the 256-file batch"
+    "note": "fileIndex 0xFFFFFFFF is reserved for terminal frames"
   }
 ]

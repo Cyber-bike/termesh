@@ -123,12 +123,20 @@ check('rejects a truncated header', () => {
   assert.throws(() => codec.decode(buf), /truncated header/);
 });
 
-check('rejects a file chunk whose fileIndex is beyond the batch limit', () => {
+check('accepts a file chunk with fileIndex above the old 256-file cap', () => {
   const payload = Buffer.from('x');
   const buf = codec.encode({ kind: codec.KIND_FILE_CHUNK, streamId: TRANSFER, fileIndex: 0, offset: 0, payload });
-  buf.writeUInt32BE(256, 26);
-  record('invalid-file-index-too-large', buf, 'reject', 'fileIndex 256 exceeds the 256-file batch');
-  assert.throws(() => codec.decode(buf), /exceeds the 256-file batch limit/);
+  buf.writeUInt32BE(300, 26);
+  record('valid-file-index-above-legacy-cap', buf, 'accept', 'file count is unbounded; only the reserved sentinel is excluded');
+  assert.strictEqual(codec.decode(buf).fileIndex, 300);
+});
+
+check('rejects a file chunk whose fileIndex is the reserved terminal sentinel', () => {
+  const payload = Buffer.from('x');
+  const buf = codec.encode({ kind: codec.KIND_FILE_CHUNK, streamId: TRANSFER, fileIndex: 0, offset: 0, payload });
+  buf.writeUInt32BE(0xffffffff, 26);
+  record('invalid-file-index-reserved-sentinel', buf, 'reject', 'fileIndex 0xFFFFFFFF is reserved for terminal frames');
+  assert.throws(() => codec.decode(buf), /reserved for terminal frames/);
 });
 
 check('rejects an oversized terminal payload at encode time', () => {

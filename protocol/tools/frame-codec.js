@@ -94,7 +94,7 @@ function decode(buf) {
 
   const fileIndex = buf.readUInt32BE(26);
   if (kind === KIND_FILE_CHUNK) {
-    if (fileIndex > 255) throw new FrameError(`fileIndex ${fileIndex} exceeds the 256-file batch limit`);
+    if (fileIndex === TERMINAL_FILE_INDEX) throw new FrameError('fileIndex 0xFFFFFFFF is reserved for terminal frames');
   } else if (fileIndex !== TERMINAL_FILE_INDEX) {
     throw new FrameError('terminal frames must set fileIndex to 0xFFFFFFFF');
   }

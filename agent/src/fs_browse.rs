@@ -13,7 +13,7 @@ use std::io;
 use std::path::{Path, PathBuf};
 
 use crate::termstream::FsEntry;
-use crate::transfer::{MAX_FILES, MAX_FILE_BYTES, MAX_TRANSFER_BYTES};
+use crate::transfer::{MAX_FILE_BYTES, MAX_TRANSFER_BYTES};
 
 fn resolve_home_dir() -> Option<PathBuf> {
     std::env::var_os("HOME")
@@ -88,7 +88,7 @@ pub struct PullEntry {
 /// Collects everything a "copy to vault" pull needs to send for `path`: one
 /// entry if it is a file, or every file under it (recursively, symlinks
 /// skipped rather than followed) if it is a directory - same shape as the
-/// existing inbound `TransferSession` limits (`transfer::MAX_FILES` etc.),
+/// existing inbound `TransferSession` limits (`transfer::MAX_FILE_BYTES` etc.),
 /// reused here so a pull cannot be used to exfiltrate an unbounded amount
 /// of data any more than a push can be used to write one.
 pub fn walk_for_pull(path: &Path) -> Result<Vec<PullEntry>, String> {
@@ -118,12 +118,6 @@ pub fn walk_for_pull(path: &Path) -> Result<Vec<PullEntry>, String> {
 
     if entries.is_empty() {
         return Err("nothing to send".into());
-    }
-    if entries.len() > MAX_FILES {
-        return Err(format!(
-            "{} files exceeds the {MAX_FILES}-file limit",
-            entries.len()
-        ));
     }
     let mut total = 0u64;
     for entry in &entries {

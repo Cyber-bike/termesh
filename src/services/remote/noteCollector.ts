@@ -161,15 +161,10 @@ export function collect(source: LinkSource): CollectResult {
 }
 
 /** Doc 4.12 and 8.4. */
-export const MAX_FILES = 256;
 export const MAX_FILE_BYTES = 64 * 1024 * 1024;
 export const MAX_TRANSFER_BYTES = 256 * 1024 * 1024;
 
 export function checkQuotas(files: CollectedFile[]): { ok: boolean; error?: string } {
-  if (files.length > MAX_FILES) {
-    return { ok: false, error: `This note pulls in ${files.length} files; the limit is ${MAX_FILES}.` };
-  }
-
   for (const file of files) {
     if (file.size > MAX_FILE_BYTES) {
       return {

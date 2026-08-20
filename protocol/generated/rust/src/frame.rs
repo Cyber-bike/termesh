@@ -151,10 +151,8 @@ pub fn decode(buf: &[u8]) -> Result<Frame, FrameError> {
 
     let file_index = u32::from_be_bytes([buf[26], buf[27], buf[28], buf[29]]);
     if kind == KIND_FILE_CHUNK {
-        if file_index > 255 {
-            return err(format!(
-                "fileIndex {file_index} exceeds the 256-file batch limit"
-            ));
+        if file_index == TERMINAL_FILE_INDEX {
+            return err("fileIndex 0xFFFFFFFF is reserved for terminal frames");
         }
     } else if file_index != TERMINAL_FILE_INDEX {
         return err("terminal frames must set fileIndex to 0xFFFFFFFF");

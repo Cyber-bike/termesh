@@ -412,7 +412,6 @@ export interface TransferStartMessage {
     rootNote: string;
     /**
      * @minItems 1
-     * @maxItems 256
      */
     entries: [FileEntry, ...FileEntry[]];
   };

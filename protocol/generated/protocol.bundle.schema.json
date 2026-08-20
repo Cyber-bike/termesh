@@ -1084,8 +1084,7 @@
               "items": {
                 "$ref": "#/$defs/FileEntry"
               },
-              "minItems": 1,
-              "maxItems": 256
+              "minItems": 1
             }
           },
           "required": [

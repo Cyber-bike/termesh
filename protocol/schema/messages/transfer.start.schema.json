@@ -17,8 +17,7 @@
         "entries": {
           "type": "array",
           "items": { "$ref": "../common.schema.json#/$defs/FileEntry" },
-          "minItems": 1,
-          "maxItems": 256
+          "minItems": 1
         }
       },
       "required": ["transferId", "rootNote", "entries"],
